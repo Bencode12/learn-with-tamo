@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Brain, TrendingUp, Settings, User, LogOut, RefreshCw } from "lucide-react";
+import { BookOpen, Brain, TrendingUp, Settings, User, LogOut, RefreshCw, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const Dashboard = () => {
   const [grades, setGrades] = useState([
@@ -38,6 +39,13 @@ const Dashboard = () => {
               <h1 className="text-xl font-bold text-gray-900">Learning Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSelector />
+              <Link to="/leaderboard">
+                <Button variant="ghost" size="sm">
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Leaderboard
+                </Button>
+              </Link>
               <Link to="/settings">
                 <Button variant="ghost" size="sm">
                   <Settings className="h-4 w-4 mr-2" />

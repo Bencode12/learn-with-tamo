@@ -1,8 +1,8 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Brain, TrendingUp, Zap } from "lucide-react";
+import { BookOpen, Brain, TrendingUp, Zap, Trophy } from "lucide-react";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const Index = () => {
   return (
@@ -16,6 +16,7 @@ const Index = () => {
               <span className="text-xl font-bold text-gray-900">LearnAI</span>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSelector />
               <Link to="/login">
                 <Button variant="ghost">Sign In</Button>
               </Link>
@@ -59,7 +60,7 @@ const Index = () => {
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
               Why Choose Our Platform?
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <Card className="text-center">
                 <CardHeader>
                   <div className="flex justify-center mb-4">
@@ -92,6 +93,18 @@ const Index = () => {
                   <CardTitle>Smart Recommendations</CardTitle>
                   <CardDescription>
                     Receive intelligent suggestions to improve your weak areas and excel in your studies
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center">
+                <CardHeader>
+                  <div className="flex justify-center mb-4">
+                    <Trophy className="h-12 w-12 text-blue-600" />
+                  </div>
+                  <CardTitle>Leaderboard</CardTitle>
+                  <CardDescription>
+                    Compete with peers and track your ranking among other learners
                   </CardDescription>
                 </CardHeader>
               </Card>
