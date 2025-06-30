@@ -52,10 +52,12 @@ const Dashboard = () => {
                   Settings
                 </Button>
               </Link>
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </Button>
+              <Link to="/profile">
+                <Button variant="ghost" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Button>
+              </Link>
               <Button variant="ghost" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -138,19 +140,19 @@ const Dashboard = () => {
             <CardDescription>Get started with your learning activities</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button className="h-20 flex-col space-y-2">
-                <Brain className="h-6 w-6" />
-                <span>Start AI Tutoring</span>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2">
-                <BookOpen className="h-6 w-6" />
-                <span>Review Materials</span>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2">
-                <TrendingUp className="h-6 w-6" />
-                <span>View Progress</span>
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link to="/ai-tutoring">
+                <Button className="h-20 flex-col space-y-2 w-full">
+                  <Brain className="h-6 w-6" />
+                  <span>Start AI Tutoring</span>
+                </Button>
+              </Link>
+              <Link to="/progress">
+                <Button variant="outline" className="h-20 flex-col space-y-2 w-full">
+                  <TrendingUp className="h-6 w-6" />
+                  <span>View Progress</span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
