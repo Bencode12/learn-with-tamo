@@ -4,8 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip } from "recharts";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const Progress = () => {
@@ -42,13 +41,6 @@ const Progress = () => {
     { id: 4, name: "Speed Learner", description: "Complete 5 lessons in one day", icon: TrendingUp, earned: false, date: null },
     { id: 5, name: "Knowledge Seeker", description: "Study for 100 total hours", icon: Clock, earned: false, date: null }
   ];
-
-  const chartConfig = {
-    math: { label: "Mathematics", color: "#3b82f6" },
-    science: { label: "Science", color: "#10b981" },
-    english: { label: "English", color: "#8b5cf6" },
-    history: { label: "History", color: "#f59e0b" }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -147,20 +139,20 @@ const Progress = () => {
               <CardDescription>Your academic performance over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
+              <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={progressData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="math" stroke="var(--color-math)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="science" stroke="var(--color-science)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="english" stroke="var(--color-english)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="history" stroke="var(--color-history)" strokeWidth={2} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="math" stroke="#3b82f6" strokeWidth={2} name="Mathematics" />
+                    <Line type="monotone" dataKey="science" stroke="#10b981" strokeWidth={2} name="Science" />
+                    <Line type="monotone" dataKey="english" stroke="#8b5cf6" strokeWidth={2} name="English" />
+                    <Line type="monotone" dataKey="history" stroke="#f59e0b" strokeWidth={2} name="History" />
                   </LineChart>
                 </ResponsiveContainer>
-              </ChartContainer>
+              </div>
             </CardContent>
           </Card>
 
@@ -174,17 +166,17 @@ const Progress = () => {
               <CardDescription>Hours spent studying each day this week</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={{ hours: { label: "Hours", color: "#3b82f6" } }} className="h-[300px]">
+              <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={studyTimeData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" />
                     <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="hours" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Tooltip />
+                    <Bar dataKey="hours" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Study Hours" />
                   </BarChart>
                 </ResponsiveContainer>
-              </ChartContainer>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -216,7 +208,7 @@ const Progress = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Tooltip formatter={(value) => [`${value}%`, 'Time Spent']} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
