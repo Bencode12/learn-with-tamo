@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -30,6 +31,22 @@ const Profile = () => {
     { id: 5, name: "Perfectionist", description: "Get 100% on any test", icon: TrendingUp, earned: false }
   ]);
 
+  const [friends] = useState([
+    { id: 1, name: "Sarah Chen", level: 12, streak: 8, status: "online" },
+    { id: 2, name: "Mike Rodriguez", level: 18, streak: 15, status: "offline" },
+    { id: 3, name: "Emma Thompson", level: 14, streak: 20, status: "online" },
+    { id: 4, name: "David Kim", level: 16, streak: 5, status: "offline" }
+  ]);
+
+  const [showAddPeople, setShowAddPeople] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const suggestedPeople = [
+    { id: 5, name: "Lisa Park", level: 13, mutualFriends: 2 },
+    { id: 6, name: "James Wilson", level: 11, mutualFriends: 1 },
+    { id: 7, name: "Anna Foster", level: 17, mutualFriends: 3 }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -41,6 +58,15 @@ const Profile = () => {
               <h1 className="text-xl font-bold text-gray-900">Profile</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowAddPeople(!showAddPeople)}
+                className="flex items-center space-x-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add People</span>
+              </Button>
               <LanguageSelector />
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">Dashboard</Button>
@@ -61,9 +87,53 @@ const Profile = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Add People Modal */}
+        {showAddPeople && (
+          <Card className="mb-8 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <UserPlus className="h-5 w-5" />
+                <span>Add People</span>
+              </CardTitle>
+              <CardDescription>Find and connect with other learners</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search for people..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">Suggested People</h4>
+                {suggestedPeople.map((person) => (
+                  <div key={person.id} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>{person.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{person.name}</p>
+                        <p className="text-sm text-gray-500">Level {person.level} • {person.mutualFriends} mutual friends</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Information */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader className="text-center">
                 <Avatar className="w-24 h-24 mx-auto mb-4">
@@ -95,6 +165,39 @@ const Profile = () => {
                 <div className="flex items-center justify-center space-x-2 text-orange-600">
                   <Calendar className="h-5 w-5" />
                   <span className="font-medium">{userStats.streak} day streak!</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Friends Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-5 w-5" />
+                  <span>Friends ({friends.length})</span>
+                </CardTitle>
+                <CardDescription>Your learning companions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {friends.map((friend) => (
+                    <div key={friend.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{friend.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <div 
+                          className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                            friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                          }`}
+                        ></div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{friend.name}</p>
+                        <p className="text-xs text-gray-500">Level {friend.level} • {friend.streak} day streak</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
