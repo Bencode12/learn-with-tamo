@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -32,20 +33,94 @@ const Profile = () => {
   ]);
 
   const [friends] = useState([
-    { id: 1, name: "Sarah Chen", level: 12, streak: 8, status: "online" },
-    { id: 2, name: "Mike Rodriguez", level: 18, streak: 15, status: "offline" },
-    { id: 3, name: "Emma Thompson", level: 14, streak: 20, status: "online" },
-    { id: 4, name: "David Kim", level: 16, streak: 5, status: "offline" }
+    { id: 1, name: "Sarah Chen", level: 12, streak: 8, status: "online", xp: 1850, rank: "Premium", joinDate: "March 2024", totalLessons: 89 },
+    { id: 2, name: "Mike Rodriguez", level: 18, streak: 15, status: "offline", xp: 2890, rank: "Developer", joinDate: "January 2024", totalLessons: 156 },
+    { id: 3, name: "Emma Thompson", level: 14, streak: 20, status: "online", xp: 2100, rank: "VIP", joinDate: "February 2024", totalLessons: 120 },
+    { id: 4, name: "David Kim", level: 16, streak: 5, status: "offline", xp: 2450, rank: "Premium", joinDate: "April 2024", totalLessons: 98 }
   ]);
 
   const [showAddPeople, setShowAddPeople] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const suggestedPeople = [
-    { id: 5, name: "Lisa Park", level: 13, mutualFriends: 2 },
-    { id: 6, name: "James Wilson", level: 11, mutualFriends: 1 },
-    { id: 7, name: "Anna Foster", level: 17, mutualFriends: 3 }
+    { id: 5, name: "Lisa Park", level: 13, mutualFriends: 2, xp: 1950, rank: "Standard", joinDate: "May 2024", totalLessons: 67 },
+    { id: 6, name: "James Wilson", level: 11, mutualFriends: 1, xp: 1650, rank: "Premium", joinDate: "June 2024", totalLessons: 45 },
+    { id: 7, name: "Anna Foster", level: 17, mutualFriends: 3, xp: 2650, rank: "VIP", joinDate: "March 2024", totalLessons: 134 }
   ];
+
+  const getRankIcon = (rank: string) => {
+    switch (rank) {
+      case "Developer": return <Crown className="h-4 w-4 text-purple-500" />;
+      case "VIP": return <Star className="h-4 w-4 text-yellow-500" />;
+      case "Premium": return <Zap className="h-4 w-4 text-blue-500" />;
+      default: return null;
+    }
+  };
+
+  const getRankColor = (rank: string) => {
+    switch (rank) {
+      case "Developer": return "bg-purple-100 text-purple-800 border-purple-200";
+      case "VIP": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Premium": return "bg-blue-100 text-blue-800 border-blue-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const ProfileHoverCard = ({ user, children }: { user: any, children: React.ReactNode }) => (
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        {children}
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg">{user.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-semibold text-lg">{user.name}</h3>
+                {getRankIcon(user.rank)}
+              </div>
+              <Badge className={`text-xs ${getRankColor(user.rank)}`}>
+                {user.rank}
+              </Badge>
+              <p className="text-sm text-gray-500 mt-1">Level {user.level}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>XP Progress</span>
+              <span>{user.xp}/{(user.level + 1) * 200}</span>
+            </div>
+            <Progress value={(user.xp / ((user.level + 1) * 200)) * 100} className="h-2" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="font-bold text-blue-600">{user.totalLessons || 0}</div>
+              <div className="text-xs text-gray-600">Lessons</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="font-bold text-orange-600">{user.streak || 0}</div>
+              <div className="text-xs text-gray-600">Day Streak</div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>Joined {user.joinDate}</span>
+            {user.status && (
+              <div className="flex items-center space-x-1">
+                <div className={`w-2 h-2 rounded-full ${user.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span>{user.status}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,6 +145,9 @@ const Profile = () => {
               <LanguageSelector />
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">Dashboard</Button>
+              </Link>
+              <Link to="/store">
+                <Button variant="ghost" size="sm">Store</Button>
               </Link>
               <Link to="/settings">
                 <Button variant="ghost" size="sm">
@@ -111,15 +189,20 @@ const Profile = () => {
                 <h4 className="font-medium text-gray-900">Suggested People</h4>
                 {suggestedPeople.map((person) => (
                   <div key={person.id} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback>{person.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{person.name}</p>
-                        <p className="text-sm text-gray-500">Level {person.level} • {person.mutualFriends} mutual friends</p>
+                    <ProfileHoverCard user={person}>
+                      <div className="flex items-center space-x-3 cursor-pointer">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{person.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{person.name}</p>
+                            {getRankIcon(person.rank)}
+                          </div>
+                          <p className="text-sm text-gray-500">Level {person.level} • {person.mutualFriends} mutual friends</p>
+                        </div>
                       </div>
-                    </div>
+                    </ProfileHoverCard>
                     <Button size="sm" variant="outline">
                       <UserPlus className="h-4 w-4 mr-1" />
                       Add
@@ -181,22 +264,27 @@ const Profile = () => {
               <CardContent>
                 <div className="space-y-3">
                   {friends.map((friend) => (
-                    <div key={friend.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback>{friend.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div 
-                          className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                            friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
-                          }`}
-                        ></div>
+                    <ProfileHoverCard key={friend.id} user={friend}>
+                      <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <div className="relative">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>{friend.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div 
+                            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                              friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                            }`}
+                          ></div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-1">
+                            <p className="font-medium text-sm">{friend.name}</p>
+                            {getRankIcon(friend.rank)}
+                          </div>
+                          <p className="text-xs text-gray-500">Level {friend.level} • {friend.streak} day streak</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{friend.name}</p>
-                        <p className="text-xs text-gray-500">Level {friend.level} • {friend.streak} day streak</p>
-                      </div>
-                    </div>
+                    </ProfileHoverCard>
                   ))}
                 </div>
               </CardContent>
