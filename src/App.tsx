@@ -14,6 +14,8 @@ import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import AITutoring from "./pages/AITutoring";
 import Store from "./pages/Store";
+import Shop from "./pages/Shop";
+import GameModes from "./pages/GameModes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/progress" element={<Progress />} />
           <Route path="/ai-tutoring" element={<AITutoring />} />
           <Route path="/store" element={<Store />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/game-modes" element={<GameModes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
