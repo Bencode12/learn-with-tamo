@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, Video, FileText, Send, Play, Pause, Settings, LogOut, MessageSquare } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BookOpen, Video, FileText, Send, Play, Pause, Settings, LogOut, MessageSquare, Trophy, Users, Target, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const AITutoring = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [showGameModeSelection, setShowGameModeSelection] = useState(false);
+  const [selectedGameMode, setSelectedGameMode] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedField, setSelectedField] = useState("");
+  
   const [chatHistory, setChatHistory] = useState([
     {
       id: 1,
@@ -53,6 +59,45 @@ const AITutoring = () => {
     }
   ];
 
+  const gameModes = [
+    {
+      id: "single",
+      name: "Single Player",
+      description: "Learn at your own pace with AI guidance",
+      icon: Target,
+      color: "bg-green-500"
+    },
+    {
+      id: "ranked",
+      name: "Ranked",
+      description: "Compete against others in your skill level",
+      icon: Trophy,
+      color: "bg-yellow-500"
+    },
+    {
+      id: "team",
+      name: "Team",
+      description: "Learn together with friends (2-4 players)",
+      icon: Users,
+      color: "bg-blue-500"
+    },
+    {
+      id: "competitive",
+      name: "Competitive",
+      description: "5v5 tournament-style learning battles",
+      icon: Zap,
+      color: "bg-red-500"
+    }
+  ];
+
+  const subjects = [
+    "Mathematics", "Science", "History", "Literature", "Chemistry", "Physics", "Biology", "Geography"
+  ];
+
+  const mathFields = [
+    "Algebra", "Geometry", "Calculus", "Statistics", "Trigonometry", "Linear Algebra"
+  ];
+
   const handleSendMessage = () => {
     if (chatMessage.trim()) {
       const newMessage = {
@@ -75,6 +120,12 @@ const AITutoring = () => {
     }
   };
 
+  const startTutoring = () => {
+    setShowGameModeSelection(false);
+    // Here you would start the actual tutoring session
+    console.log(`Starting ${selectedGameMode} mode in ${selectedSubject} - ${selectedField}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -88,6 +139,99 @@ const AITutoring = () => {
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSelector />
+              <Dialog open={showGameModeSelection} onOpenChange={setShowGameModeSelection}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Play className="h-4 w-4 mr-2" />
+                    Start AI Tutoring
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Select Game Mode</DialogTitle>
+                    <DialogDescription>
+                      Choose how you want to learn today
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6">
+                    {/* Game Mode Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {gameModes.map((mode) => (
+                        <Card 
+                          key={mode.id} 
+                          className={`cursor-pointer transition-all ${selectedGameMode === mode.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
+                          onClick={() => setSelectedGameMode(mode.id)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-10 h-10 ${mode.color} rounded-full flex items-center justify-center`}>
+                                <mode.icon className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="font-medium">{mode.name}</h3>
+                                <p className="text-sm text-gray-600">{mode.description}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* Subject and Field Selection (hide for competitive mode) */}
+                    {selectedGameMode && selectedGameMode !== "competitive" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Subject</label>
+                          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjects.map((subject) => (
+                                <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {selectedSubject === "Mathematics" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Field</label>
+                            <Select value={selectedField} onValueChange={setSelectedField}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose a field" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {mathFields.map((field) => (
+                                  <SelectItem key={field} value={field}>{field}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedGameMode === "competitive" && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-800 text-sm">
+                          <strong>Competitive Mode:</strong> Subject and field will be randomly selected by the algorithm for fair competition.
+                        </p>
+                      </div>
+                    )}
+
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      disabled={!selectedGameMode || (selectedGameMode !== "competitive" && (!selectedSubject || (selectedSubject === "Mathematics" && !selectedField)))}
+                      onClick={startTutoring}
+                    >
+                      Start Learning Session
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">Dashboard</Button>
               </Link>

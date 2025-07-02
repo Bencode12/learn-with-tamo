@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Trophy, Users, Target, Zap, Crown, Coins, Timer, Brain } from "lucide-react";
+import { BookOpen, Trophy, Users, Target, Zap, Crown, Coins, Timer, Brain, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
