@@ -66,6 +66,15 @@ const ProfileCustomization = () => {
     // Here you would save to your backend
   };
 
+  const generatePreviewHTML = () => {
+    return customHTML
+      .replace(/\{\{username\}\}/g, 'John Doe')
+      .replace(/\{\{level\}\}/g, '15')
+      .replace(/\{\{totalLessons\}\}/g, '156')
+      .replace(/\{\{streak\}\}/g, '12')
+      .replace(/\{\{hoursLearned\}\}/g, '89');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -209,14 +218,12 @@ const ProfileCustomization = () => {
               </CardHeader>
               <CardContent>
                 <div className="bg-gray-100 p-6 rounded-lg min-h-[400px]">
-                  <div className="profile-card" dangerouslySetInnerHTML={{ 
-                    __html: customHTML
-                      .replace('{{username}}', 'John Doe')
-                      .replace('{{level}}', '15')
-                      .replace('{{totalLessons}}', '156')
-                      .replace('{{streak}}', '12')
-                      .replace('{{hoursLearned}}', '89')
-                  }} />
+                  <div 
+                    className="profile-preview" 
+                    dangerouslySetInnerHTML={{ 
+                      __html: generatePreviewHTML()
+                    }} 
+                  />
                   <style dangerouslySetInnerHTML={{ __html: customCSS }} />
                 </div>
               </CardContent>

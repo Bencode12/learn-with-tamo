@@ -11,11 +11,16 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
+import ProfileCustomization from "./pages/ProfileCustomization";
 import Progress from "./pages/Progress";
 import AITutoring from "./pages/AITutoring";
 import Store from "./pages/Store";
 import Shop from "./pages/Shop";
 import GameModes from "./pages/GameModes";
+import SingleMode from "./pages/SingleMode";
+import RankedMode from "./pages/RankedMode";
+import TeamMode from "./pages/TeamMode";
+import CompetitiveMode from "./pages/CompetitiveMode";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
