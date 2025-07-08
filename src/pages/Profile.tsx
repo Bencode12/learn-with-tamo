@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown } from "lucide-react";
+import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown, Palette } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -148,6 +147,12 @@ const Profile = () => {
               </Link>
               <Link to="/store">
                 <Button variant="ghost" size="sm">Store</Button>
+              </Link>
+              <Link to="/profile/customize">
+                <Button variant="outline" size="sm">
+                  <Palette className="h-4 w-4 mr-2" />
+                  Customize
+                </Button>
               </Link>
               <Link to="/settings">
                 <Button variant="ghost" size="sm">

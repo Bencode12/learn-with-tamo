@@ -34,11 +34,16 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/customize" element={<ProfileCustomization />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/ai-tutoring" element={<AITutoring />} />
           <Route path="/store" element={<Store />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/game-modes" element={<GameModes />} />
+          <Route path="/single-mode" element={<SingleMode />} />
+          <Route path="/ranked-mode" element={<RankedMode />} />
+          <Route path="/team-mode" element={<TeamMode />} />
+          <Route path="/competitive-mode" element={<CompetitiveMode />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

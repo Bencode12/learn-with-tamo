@@ -46,7 +46,6 @@ const Shop = () => {
       id: "avatar_frame_gold",
       name: "Golden Frame",
       description: "Luxury golden avatar frame",
-      price: 500,
       category: "Avatar Frame",
       preview: "🟨"
     },
@@ -54,7 +53,6 @@ const Shop = () => {
       id: "avatar_frame_diamond",
       name: "Diamond Frame",
       description: "Sparkling diamond avatar frame",
-      price: 1000,
       category: "Avatar Frame",
       preview: "💎"
     },
@@ -62,7 +60,6 @@ const Shop = () => {
       id: "profile_theme_neon",
       name: "Neon Theme",
       description: "Vibrant neon profile theme",
-      price: 750,
       category: "Profile Theme",
       preview: "⚡"
     },
@@ -70,7 +67,6 @@ const Shop = () => {
       id: "title_scholar",
       name: "Scholar Title",
       description: "Display 'Scholar' title on your profile",
-      price: 300,
       category: "Title",
       preview: "📚"
     }
@@ -81,26 +77,25 @@ const Shop = () => {
       id: "achievement_master",
       name: "Subject Master",
       description: "Complete 100 lessons in any subject",
-      price: 0,
-      unlocked: true,
-      reward: "100 coins"
+      unlocked: true
     },
     {
       id: "achievement_streak",
       name: "Streak Legend",
       description: "Maintain a 30-day learning streak",
-      price: 0,
-      unlocked: false,
-      reward: "Special badge + 200 coins"
+      unlocked: false
     }
   ];
 
   const handlePurchase = (item: any, price: number) => {
     if (userCoins >= price) {
       setUserCoins(userCoins - price);
-      // Here you would typically update the user's inventory
       console.log(`Purchased ${item.name} for ${price} coins`);
     }
+  };
+
+  const handleCosmeticSelect = (item: any) => {
+    console.log(`Selected cosmetic: ${item.name}`);
   };
 
   return (
@@ -135,7 +130,7 @@ const Shop = () => {
             Coin Shop
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Spend your hard-earned coins on power-ups, cosmetics, and exclusive items
+            Spend your hard-earned coins on power-ups and customize your profile with free cosmetics
           </p>
         </div>
 
@@ -181,6 +176,11 @@ const Shop = () => {
           </TabsContent>
 
           <TabsContent value="cosmetics" className="space-y-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <p className="text-green-800 text-sm">
+                <strong>Free Cosmetics:</strong> All cosmetic items are free! Select any item to apply it to your profile.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {cosmetics.map((item) => (
                 <Card key={item.id} className="hover:shadow-lg transition-shadow">
@@ -191,19 +191,13 @@ const Shop = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-gray-600 text-center">{item.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Coins className="h-4 w-4 text-yellow-600" />
-                        <span className="font-bold">{item.price}</span>
-                      </div>
-                      <Button 
-                        size="sm"
-                        disabled={userCoins < item.price}
-                        onClick={() => handlePurchase(item, item.price)}
-                      >
-                        Buy
-                      </Button>
-                    </div>
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700" 
+                      size="sm"
+                      onClick={() => handleCosmeticSelect(item)}
+                    >
+                      Select
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -227,17 +221,12 @@ const Shop = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-gray-600">{achievement.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-blue-600">
-                        Reward: {achievement.reward}
-                      </div>
-                      {achievement.unlocked && (
-                        <Badge className="bg-green-500">
-                          <Gift className="h-3 w-3 mr-1" />
-                          Claimed
-                        </Badge>
-                      )}
-                    </div>
+                    {achievement.unlocked && (
+                      <Badge className="bg-green-500">
+                        <Gift className="h-3 w-3 mr-1" />
+                        Achievement Unlocked
+                      </Badge>
+                    )}
                   </CardContent>
                 </Card>
               ))}
