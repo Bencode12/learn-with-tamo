@@ -161,7 +161,7 @@ const ProfileCustomization = () => {
                       <Code className="h-5 w-5" />
                       <span>Custom HTML</span>
                     </CardTitle>
-                    <CardDescription>Design your profile structure with HTML. Use template variables like {{username}}, {{level}}, etc.</CardDescription>
+                    <CardDescription>Design your profile structure with HTML. Use template variables like {`{{username}}`}, {`{{level}}`}, etc.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Textarea
@@ -236,12 +236,12 @@ const ProfileCustomization = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{username}}'}</code>
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{level}}'}</code>
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{totalLessons}}'}</code>
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{streak}}'}</code>
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{hoursLearned}}'}</code>
-                  <code className="bg-gray-100 px-2 py-1 rounded">{'{{xp}}'}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{username}}`}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{level}}`}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{totalLessons}}`}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{streak}}`}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{hoursLearned}}`}</code>
+                  <code className="bg-gray-100 px-2 py-1 rounded">{`{{xp}}`}</code>
                 </div>
               </CardContent>
             </Card>
