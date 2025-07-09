@@ -2,12 +2,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut } from "lucide-react";
+import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip } from "recharts";
 import LanguageSelector from "@/components/LanguageSelector";
+import { useState } from "react";
 
 const Progress = () => {
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
   const progressData = [
     { month: "Jan", math: 65, science: 78, english: 82, history: 70 },
     { month: "Feb", math: 72, science: 80, english: 85, history: 75 },
@@ -44,15 +47,28 @@ const Progress = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      {/* Mobile-friendly Header */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Progress</h1>
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Progress</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            {/* Mobile menu button */}
+            <div className="sm:hidden">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Desktop navigation */}
+            <div className="hidden sm:flex items-center space-x-4">
               <LanguageSelector />
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">Dashboard</Button>
@@ -69,25 +85,47 @@ const Progress = () => {
               </Button>
             </div>
           </div>
+
+          {/* Mobile menu dropdown */}
+          {showMobileMenu && (
+            <div className="sm:hidden border-t bg-white py-2 space-y-1">
+              <LanguageSelector />
+              <Link to="/dashboard" className="block">
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  Dashboard
+                </Button>
+              </Link>
+              <Link to="/settings" className="block">
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Achievements Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+        <Card className="mb-6 sm:mb-8">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
               <Trophy className="h-5 w-5 text-yellow-500" />
               <span>Achievements</span>
             </CardTitle>
-            <CardDescription>Your learning milestones and accomplishments</CardDescription>
+            <CardDescription className="text-sm">Your learning milestones and accomplishments</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {achievements.map((achievement) => (
                 <div
                   key={achievement.id}
-                  className={`p-4 rounded-lg border transition-all hover:shadow-md ${
+                  className={`p-3 sm:p-4 rounded-lg border transition-all hover:shadow-md ${
                     achievement.earned
                       ? "bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200"
                       : "bg-gray-50 border-gray-200 opacity-60"
@@ -95,19 +133,19 @@ const Progress = () => {
                 >
                   <div className="flex items-start space-x-3">
                     <div
-                      className={`p-2 rounded-full ${
+                      className={`p-2 rounded-full flex-shrink-0 ${
                         achievement.earned
                           ? "bg-yellow-100 text-yellow-600"
                           : "bg-gray-200 text-gray-400"
                       }`}
                     >
-                      <achievement.icon className="h-5 w-5" />
+                      <achievement.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className={`font-semibold ${achievement.earned ? "text-gray-900" : "text-gray-500"}`}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-sm sm:text-base ${achievement.earned ? "text-gray-900" : "text-gray-500"}`}>
                         {achievement.name}
                       </h3>
-                      <p className={`text-sm ${achievement.earned ? "text-gray-600" : "text-gray-400"}`}>
+                      <p className={`text-xs sm:text-sm ${achievement.earned ? "text-gray-600" : "text-gray-400"}`}>
                         {achievement.description}
                       </p>
                       {achievement.earned ? (
@@ -128,23 +166,23 @@ const Progress = () => {
         </Card>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
           {/* Grade Progress Chart */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <TrendingUp className="h-5 w-5" />
                 <span>Grade Progress</span>
               </CardTitle>
-              <CardDescription>Your academic performance over time</CardDescription>
+              <CardDescription className="text-sm">Your academic performance over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={progressData}>
+                  <LineChart data={progressData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="math" stroke="#3b82f6" strokeWidth={2} name="Mathematics" />
                     <Line type="monotone" dataKey="science" stroke="#10b981" strokeWidth={2} name="Science" />
@@ -158,20 +196,20 @@ const Progress = () => {
 
           {/* Study Time Chart */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <BarChart3 className="h-5 w-5" />
                 <span>Weekly Study Time</span>
               </CardTitle>
-              <CardDescription>Hours spent studying each day this week</CardDescription>
+              <CardDescription className="text-sm">Hours spent studying each day this week</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={studyTimeData}>
+                  <BarChart data={studyTimeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
+                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
                     <Bar dataKey="hours" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Study Hours" />
                   </BarChart>
@@ -183,24 +221,24 @@ const Progress = () => {
 
         {/* Subject Distribution */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
               <Calendar className="h-5 w-5" />
               <span>Subject Distribution</span>
             </CardTitle>
-            <CardDescription>How you spend your study time across different subjects</CardDescription>
+            <CardDescription className="text-sm">How you spend your study time across different subjects</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-[300px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+              <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={subjectDistribution}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={120}
+                      innerRadius={50}
+                      outerRadius={100}
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -212,15 +250,15 @@ const Progress = () => {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-col justify-center space-y-4">
+              <div className="flex flex-col justify-center space-y-3 sm:space-y-4">
                 {subjectDistribution.map((subject, index) => (
                   <div key={index} className="flex items-center space-x-3">
                     <div
-                      className="w-4 h-4 rounded-full"
+                      className="w-4 h-4 rounded-full flex-shrink-0"
                       style={{ backgroundColor: subject.color }}
                     ></div>
-                    <span className="font-medium">{subject.name}</span>
-                    <span className="text-gray-500 ml-auto">{subject.value}%</span>
+                    <span className="font-medium text-sm sm:text-base">{subject.name}</span>
+                    <span className="text-gray-500 ml-auto text-sm sm:text-base">{subject.value}%</span>
                   </div>
                 ))}
               </div>
