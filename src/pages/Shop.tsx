@@ -3,8 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Coins, Palette, Zap, Shield, Trophy, Gift, Star, Crown } from "lucide-react";
+import { BookOpen, Coins, Zap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -41,51 +40,6 @@ const Shop = () => {
     }
   ];
 
-  const cosmetics = [
-    {
-      id: "avatar_frame_gold",
-      name: "Golden Frame",
-      description: "Luxury golden avatar frame",
-      category: "Avatar Frame",
-      preview: "🟨"
-    },
-    {
-      id: "avatar_frame_diamond",
-      name: "Diamond Frame",
-      description: "Sparkling diamond avatar frame",
-      category: "Avatar Frame",
-      preview: "💎"
-    },
-    {
-      id: "profile_theme_neon",
-      name: "Neon Theme",
-      description: "Vibrant neon profile theme",
-      category: "Profile Theme",
-      preview: "⚡"
-    },
-    {
-      id: "title_scholar",
-      name: "Scholar Title",
-      description: "Display 'Scholar' title on your profile",
-      category: "Title",
-      preview: "📚"
-    }
-  ];
-
-  const achievements = [
-    {
-      id: "achievement_master",
-      name: "Subject Master",
-      description: "Complete 100 lessons in any subject",
-      unlocked: true
-    },
-    {
-      id: "achievement_streak",
-      name: "Streak Legend",
-      description: "Maintain a 30-day learning streak",
-      unlocked: false
-    }
-  ];
 
   const handlePurchase = (item: any, price: number) => {
     if (userCoins >= price) {
@@ -94,9 +48,6 @@ const Shop = () => {
     }
   };
 
-  const handleCosmeticSelect = (item: any) => {
-    console.log(`Selected cosmetic: ${item.name}`);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -107,7 +58,7 @@ const Shop = () => {
             <div className="flex items-center space-x-3">
               <Link to="/dashboard" className="flex items-center space-x-3">
                 <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI Shop</h1>
+                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -130,109 +81,44 @@ const Shop = () => {
             Coin Shop
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Spend your hard-earned coins on power-ups and customize your profile with free cosmetics
+            Spend your hard-earned coins on power-ups to enhance your learning experience
           </p>
         </div>
 
-        <Tabs defaultValue="powerups" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="powerups">Power-ups</TabsTrigger>
-            <TabsTrigger value="cosmetics">Cosmetics</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="powerups" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {powerUps.map((item) => (
-                <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <item.icon className={`h-8 w-8 ${item.color}`} />
-                      <div>
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                        <Badge variant="secondary">{item.duration}</Badge>
-                      </div>
+        {/* Power-ups Section */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {powerUps.map((item) => (
+              <Card key={item.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <item.icon className={`h-8 w-8 ${item.color}`} />
+                    <div>
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
+                      <Badge variant="secondary">{item.duration}</Badge>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600">{item.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Coins className="h-4 w-4 text-yellow-600" />
-                        <span className="font-bold">{item.price}</span>
-                      </div>
-                      <Button 
-                        size="sm"
-                        disabled={userCoins < item.price}
-                        onClick={() => handlePurchase(item, item.price)}
-                      >
-                        Buy
-                      </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-gray-600">{item.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Coins className="h-4 w-4 text-yellow-600" />
+                      <span className="font-bold">{item.price}</span>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="cosmetics" className="space-y-6">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <p className="text-green-800 text-sm">
-                <strong>Free Cosmetics:</strong> All cosmetic items are free! Select any item to apply it to your profile.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {cosmetics.map((item) => (
-                <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="text-center">
-                    <div className="text-4xl mb-2">{item.preview}</div>
-                    <CardTitle className="text-lg">{item.name}</CardTitle>
-                    <Badge variant="outline">{item.category}</Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-gray-600 text-center">{item.description}</p>
                     <Button 
-                      className="w-full bg-green-600 hover:bg-green-700" 
                       size="sm"
-                      onClick={() => handleCosmeticSelect(item)}
+                      disabled={userCoins < item.price}
+                      onClick={() => handlePurchase(item, item.price)}
                     >
-                      Select
+                      Buy
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="achievements" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {achievements.map((achievement) => (
-                <Card key={achievement.id} className={`${achievement.unlocked ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                  <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <Trophy className={`h-8 w-8 ${achievement.unlocked ? 'text-green-600' : 'text-gray-400'}`} />
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{achievement.name}</CardTitle>
-                        <Badge variant={achievement.unlocked ? "default" : "secondary"}>
-                          {achievement.unlocked ? "Unlocked" : "Locked"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600">{achievement.description}</p>
-                    {achievement.unlocked && (
-                      <Badge className="bg-green-500">
-                        <Gift className="h-3 w-3 mr-1" />
-                        Achievement Unlocked
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );

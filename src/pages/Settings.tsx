@@ -67,7 +67,7 @@ const Settings = () => {
                 </Button>
               </Link>
               <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+              <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
             </div>
           </div>
         </div>
@@ -75,79 +75,6 @@ const Settings = () => {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Profile Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Profile Settings</span>
-              </CardTitle>
-              <CardDescription>Update your personal information and profile picture</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="flex items-center space-x-6">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={profileImage || undefined} />
-                    <AvatarFallback className="text-lg">
-                      {profile.username.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label htmlFor="profileImage" className="cursor-pointer">
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Photo
-                        </span>
-                      </Button>
-                    </Label>
-                    <input
-                      id="profileImage"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <p className="text-sm text-gray-500 mt-2">JPG, PNG up to 5MB</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={profile.username}
-                      onChange={(e) => setProfile({...profile, username: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({...profile, email: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell us about yourself..."
-                    value={profile.bio}
-                    onChange={(e) => setProfile({...profile, bio: e.target.value})}
-                  />
-                </div>
-
-                <Button type="submit">Save Profile</Button>
-              </form>
-            </CardContent>
-          </Card>
-
           {/* Tamo Credentials */}
           <Card>
             <CardHeader>

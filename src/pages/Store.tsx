@@ -17,7 +17,7 @@ const Store = () => {
             <div className="flex items-center space-x-3">
               <Link to="/dashboard" className="flex items-center space-x-3">
                 <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI Store</h1>
+                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -110,7 +110,7 @@ const Store = () => {
           <Card>
             <CardContent className="p-6 text-center">
               <Users className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <p className="text-lg font-semibold mb-2">Priority Access</p>
+              <h3 className="text-lg font-semibold mb-2">Priority Access</h3>
               <p className="text-gray-600">Get matched faster in competitive modes</p>
             </CardContent>
           </Card>

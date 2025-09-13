@@ -27,7 +27,7 @@ const SingleMode = () => {
             <div className="flex items-center space-x-3">
               <Link to="/dashboard" className="flex items-center space-x-3">
                 <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">Single Player Mode</h1>
+                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
