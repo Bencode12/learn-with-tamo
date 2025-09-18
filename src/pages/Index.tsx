@@ -92,8 +92,10 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">LearnAI</span>
+              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+                <span className="text-xl font-bold text-gray-900">SūdžiusAI</span>
+              </Link>
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSelector />
@@ -212,7 +214,7 @@ const Index = () => {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-              How LearnAI Works
+              How SūdžiusAI Works
             </h2>
             <div className="space-y-12">
               <div className="flex items-start space-x-6">
@@ -255,15 +257,10 @@ const Index = () => {
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               Join the future of education with AI-powered tutoring, comprehensive analytics, and interactive content creation.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Link to="/signup">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto text-lg px-8 py-3">
                   Get Started Free
-                </Button>
-              </Link>
-              <Link to="/dashboard">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 text-white border-white hover:bg-white hover:text-blue-600">
-                  View Demo
                 </Button>
               </Link>
             </div>
@@ -277,8 +274,10 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <BookOpen className="h-8 w-8 text-blue-400" />
-                <span className="text-2xl font-bold">LearnAI</span>
+                <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                  <BookOpen className="h-8 w-8 text-blue-400" />
+                  <span className="text-2xl font-bold">SūdžiusAI</span>
+                </Link>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering students worldwide with intelligent learning solutions, 
@@ -305,7 +304,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2024 LearnAI. Revolutionizing education with artificial intelligence.</p>
+            <p>© 2024 SūdžiusAI. Revolutionizing education with artificial intelligence.</p>
           </div>
         </div>
       </footer>
