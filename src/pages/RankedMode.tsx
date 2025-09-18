@@ -29,7 +29,7 @@ const RankedMode = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link to="/dashboard" className="flex items-center space-x-3">
+              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />
                 <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>

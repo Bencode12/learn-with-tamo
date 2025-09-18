@@ -11,7 +11,6 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
-import ProfileCustomization from "./pages/ProfileCustomization";
 import Progress from "./pages/Progress";
 import AITutoring from "./pages/AITutoring";
 import Store from "./pages/Store";
@@ -39,7 +38,6 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/customize" element={<ProfileCustomization />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/ai-tutoring" element={<AITutoring />} />
           <Route path="/store" element={<Store />} />
