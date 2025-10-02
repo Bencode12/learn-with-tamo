@@ -14,16 +14,223 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          accuracy: number
+          completed_at: string
+          game_mode: Database["public"]["Enums"]["game_mode"]
+          id: string
+          score: number
+          time_taken: number
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number
+          completed_at?: string
+          game_mode: Database["public"]["Enums"]["game_mode"]
+          id?: string
+          score?: number
+          time_taken: number
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          completed_at?: string
+          game_mode?: Database["public"]["Enums"]["game_mode"]
+          id?: string
+          score?: number
+          time_taken?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lessons: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          is_published: boolean
+          language: string
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty: string
+          id?: string
+          is_published?: boolean
+          language?: string
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_published?: boolean
+          language?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      moderation_logs: {
+        Row: {
+          action_taken: string | null
+          ai_confidence: number
+          created_at: string
+          flagged_reason: string
+          game_mode: Database["public"]["Enums"]["game_mode"]
+          id: string
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          ai_confidence: number
+          created_at?: string
+          flagged_reason: string
+          game_mode: Database["public"]["Enums"]["game_mode"]
+          id?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          ai_confidence?: number
+          created_at?: string
+          flagged_reason?: string
+          game_mode?: Database["public"]["Enums"]["game_mode"]
+          id?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          coins: number
+          created_at: string
+          display_name: string | null
+          experience: number
+          id: string
+          level: number
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          experience?: number
+          id: string
+          level?: number
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          experience?: number
+          id?: string
+          level?: number
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          difficulty_preference: string
+          language: string
+          notifications_enabled: boolean
+          sound_enabled: boolean
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          difficulty_preference?: string
+          language?: string
+          notifications_enabled?: boolean
+          sound_enabled?: boolean
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          difficulty_preference?: string
+          language?: string
+          notifications_enabled?: boolean
+          sound_enabled?: boolean
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff" | "user"
+      game_mode: "single" | "ranked" | "team" | "competitive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +357,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff", "user"],
+      game_mode: ["single", "ranked", "team", "competitive"],
+    },
   },
 } as const
