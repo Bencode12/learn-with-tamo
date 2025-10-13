@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Brain, TrendingUp, Zap, Trophy, Languages, Camera, FileText, BarChart3, Video, Target, Lightbulb, Users, Presentation, ImageIcon, MessageSquare } from "lucide-react";
-import LanguageSelector from "@/components/LanguageSelector";
+import Header from "@/components/Header";
 
 const Index = () => {
   const features = [
@@ -87,28 +87,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">SūdžiusAI</span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <LanguageSelector />
-              <Link to="/login">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link to="/signup">
-                <Button>Get Started</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header showAuth={false} />
 
       <main>
         {/* Hero Section */}
@@ -285,18 +264,8 @@ const Index = () => {
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Features</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
-                <li><Link to="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link></li>
-                <li>AI Tutoring</li>
-                <li>OCR Technology</li>
-              </ul>
-            </div>
-            <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/settings" className="hover:text-white transition-colors">Settings</Link></li>
                 <li>Help Center</li>
                 <li>Contact Us</li>
                 <li>Privacy Policy</li>

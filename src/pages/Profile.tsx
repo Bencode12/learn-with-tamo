@@ -27,8 +27,13 @@ const Profile = () => {
     { id: 1, name: "First Steps", description: "Complete your first lesson", icon: Trophy, earned: true },
     { id: 2, name: "Week Warrior", description: "Maintain a 7-day streak", icon: Target, earned: true },
     { id: 3, name: "Math Master", description: "Score 90%+ in 5 math lessons", icon: Award, earned: true },
-    { id: 4, name: "Study Buddy", description: "Learn for 10 hours total", icon: Clock, earned: false },
-    { id: 5, name: "Perfectionist", description: "Get 100% on any test", icon: TrendingUp, earned: false }
+    { id: 4, name: "Study Buddy", description: "Learn for 10 hours total", icon: Clock, earned: true },
+    { id: 5, name: "Perfectionist", description: "Get 100% on any test", icon: TrendingUp, earned: false },
+    { id: 6, name: "Speed Demon", description: "Complete a lesson in under 10 minutes", icon: Zap, earned: true },
+    { id: 7, name: "Night Owl", description: "Study after 10 PM for 5 days", icon: Star, earned: false },
+    { id: 8, name: "Social Learner", description: "Add 10 friends", icon: Users, earned: true },
+    { id: 9, name: "Curious Mind", description: "Explore all subjects", icon: BookOpen, earned: false },
+    { id: 10, name: "Consistency King", description: "Study 30 days in a row", icon: Crown, earned: false }
   ]);
 
   const [friends] = useState([

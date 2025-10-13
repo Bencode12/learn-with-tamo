@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut, Menu } from "lucide-react";
+import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut, Menu, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip } from "recharts";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -41,8 +41,12 @@ const Progress = () => {
     { id: 1, name: "Perfect Score", description: "Achieved 100% on a test", icon: Trophy, earned: true, date: "May 2024" },
     { id: 2, name: "Study Streak", description: "15 consecutive days of learning", icon: Target, earned: true, date: "June 2024" },
     { id: 3, name: "Math Wizard", description: "Completed advanced algebra", icon: Award, earned: true, date: "April 2024" },
-    { id: 4, name: "Speed Learner", description: "Complete 5 lessons in one day", icon: TrendingUp, earned: false, date: null },
-    { id: 5, name: "Knowledge Seeker", description: "Study for 100 total hours", icon: Clock, earned: false, date: null }
+    { id: 4, name: "Speed Learner", description: "Complete 5 lessons in one day", icon: TrendingUp, earned: true, date: "June 2024" },
+    { id: 5, name: "Knowledge Seeker", description: "Study for 100 total hours", icon: Clock, earned: false, date: null },
+    { id: 6, name: "Early Bird", description: "Study before 7 AM for 7 days", icon: TrendingUp, earned: false, date: null },
+    { id: 7, name: "Team Player", description: "Complete 10 team learning sessions", icon: Users, earned: true, date: "May 2024" },
+    { id: 8, name: "Challenge Master", description: "Win 5 competitive matches", icon: Trophy, earned: false, date: null },
+    { id: 9, name: "Focused Mind", description: "Study for 3 hours straight", icon: Target, earned: true, date: "April 2024" }
   ];
 
   return (

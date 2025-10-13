@@ -6,9 +6,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BookOpen, Brain, TrendingUp, Settings, User, LogOut, RefreshCw, Trophy, Play, Target, Users, Zap } from "lucide-react";
+import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
+import Header from "@/components/Header";
 
 const Dashboard = () => {
   const [grades, setGrades] = useState([
@@ -18,12 +18,52 @@ const Dashboard = () => {
     { subject: "History", grade: 80, trend: "stable" }
   ]);
 
-  const [aiSuggestions] = useState([
-    "Focus on algebra practice to improve your math grade",
-    "Review scientific method concepts in Science",
-    "Great work in English! Keep up the reading habits",
-    "Consider studying more about World War II events"
-  ]);
+  const [selectedLesson, setSelectedLesson] = useState("");
+  
+  const lessons = [
+    { id: "algebra", name: "Algebra Basics", subject: "Mathematics" },
+    { id: "geometry", name: "Geometry Fundamentals", subject: "Mathematics" },
+    { id: "scientific-method", name: "Scientific Method", subject: "Science" },
+    { id: "chemistry-basics", name: "Chemistry Basics", subject: "Science" },
+    { id: "essay-writing", name: "Essay Writing", subject: "English" },
+    { id: "wwii", name: "World War II", subject: "History" }
+  ];
+
+  const getAISuggestions = (lessonId: string) => {
+    const suggestions: Record<string, string[]> = {
+      algebra: [
+        "Start with linear equations - they form the foundation",
+        "Practice solving for x in different scenarios",
+        "Try 15 minutes daily for consistent improvement"
+      ],
+      geometry: [
+        "Focus on understanding angle relationships",
+        "Draw diagrams to visualize problems",
+        "Review Pythagorean theorem applications"
+      ],
+      "scientific-method": [
+        "Break down experiments into clear steps",
+        "Practice forming testable hypotheses",
+        "Learn to identify variables in experiments"
+      ],
+      "chemistry-basics": [
+        "Master the periodic table layout first",
+        "Understand atomic structure concepts",
+        "Practice balancing chemical equations"
+      ],
+      "essay-writing": [
+        "Create strong thesis statements",
+        "Use the PEEL paragraph structure",
+        "Read example essays for inspiration"
+      ],
+      wwii: [
+        "Study the timeline of major events",
+        "Understand the causes and consequences",
+        "Focus on key turning points"
+      ]
+    };
+    return suggestions[lessonId] || ["Select a lesson to see AI recommendations"];
+  };
 
   const [showGameModeSelection, setShowGameModeSelection] = useState(false);
   const [selectedGameMode, setSelectedGameMode] = useState("");
@@ -83,42 +123,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <LanguageSelector />
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="sm">
-                  <Trophy className="h-4 w-4 mr-2" />
-                  Leaderboard
-                </Button>
-              </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-              <Link to="/profile">
-                <Button variant="ghost" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -165,22 +170,52 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* AI Recommendations */}
+          {/* AI Recommendations - Two Column Layout */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5" />
-                <span>AI Recommendations</span>
-              </CardTitle>
-              <CardDescription>Personalized suggestions to improve your learning</CardDescription>
+              <CardTitle>AI Learning Assistant</CardTitle>
+              <CardDescription>Select a lesson to get personalized AI recommendations</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {aiSuggestions.map((suggestion, index) => (
-                  <div key={index} className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                    <p className="text-sm text-gray-700">{suggestion}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Lesson Selection Column */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-gray-700">Select a Lesson</h3>
+                  <div className="space-y-2">
+                    {lessons.map((lesson) => (
+                      <button
+                        key={lesson.id}
+                        onClick={() => setSelectedLesson(lesson.id)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          selectedLesson === lesson.id
+                            ? "bg-blue-50 border-blue-400 shadow-sm"
+                            : "bg-white border-gray-200 hover:border-blue-200"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{lesson.name}</div>
+                        <div className="text-xs text-gray-500">{lesson.subject}</div>
+                      </button>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* AI Suggestions Column */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-gray-700">AI Recommendations</h3>
+                  <div className="space-y-3">
+                    {selectedLesson ? (
+                      getAISuggestions(selectedLesson).map((suggestion, index) => (
+                        <div key={index} className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400">
+                          <p className="text-sm text-gray-700">{suggestion}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded-lg text-center">
+                        <p className="text-sm text-gray-500">Select a lesson from the left to see AI-powered recommendations</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
