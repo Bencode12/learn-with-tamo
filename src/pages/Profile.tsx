@@ -133,37 +133,29 @@ const Profile = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Profile</h1>
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+              </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowAddPeople(!showAddPeople)}
-                className="flex items-center space-x-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                <span>Add People</span>
-              </Button>
               <LanguageSelector />
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
               <Link to="/store">
                 <Button variant="ghost" size="sm">Store</Button>
               </Link>
-              <Link to="/profile/customize">
-                <Button variant="outline" size="sm">
-                  <Palette className="h-4 w-4 mr-2" />
-                  Customize
-                </Button>
+              <Link to="/leaderboard">
+                <Button variant="ghost" size="sm">Leaderboard</Button>
               </Link>
               <Link to="/settings">
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
+                <Button variant="ghost" size="sm">Settings</Button>
+              </Link>
+              <Link to="/profile">
+                <Button variant="ghost" size="sm">Profile</Button>
               </Link>
               <Button variant="ghost" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -261,6 +253,16 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Add People Button */}
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowAddPeople(!showAddPeople)}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add People
+            </Button>
 
             {/* Friends Section */}
             <Card>

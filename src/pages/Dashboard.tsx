@@ -170,52 +170,32 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* AI Recommendations - Two Column Layout */}
+          {/* AI Recommendations */}
           <Card>
             <CardHeader>
               <CardTitle>AI Learning Assistant</CardTitle>
-              <CardDescription>Select a lesson to get personalized AI recommendations</CardDescription>
+              <CardDescription>Personalized AI recommendations based on your performance</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Lesson Selection Column */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm text-gray-700">Select a Lesson</h3>
-                  <div className="space-y-2">
-                    {lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => setSelectedLesson(lesson.id)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          selectedLesson === lesson.id
-                            ? "bg-blue-50 border-blue-400 shadow-sm"
-                            : "bg-white border-gray-200 hover:border-blue-200"
-                        }`}
-                      >
-                        <div className="font-medium text-sm">{lesson.name}</div>
-                        <div className="text-xs text-gray-500">{lesson.subject}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* AI Suggestions Column */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm text-gray-700">AI Recommendations</h3>
-                  <div className="space-y-3">
-                    {selectedLesson ? (
-                      getAISuggestions(selectedLesson).map((suggestion, index) => (
-                        <div key={index} className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400">
-                          <p className="text-sm text-gray-700">{suggestion}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-gray-50 rounded-lg text-center">
-                        <p className="text-sm text-gray-500">Select a lesson from the left to see AI-powered recommendations</p>
+              <div className="space-y-3">
+                {grades.map((grade, index) => {
+                  const lessonForSubject = lessons.find(l => l.subject === grade.subject);
+                  const suggestions = lessonForSubject ? getAISuggestions(lessonForSubject.id) : ["Focus on improving your understanding of core concepts"];
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{grade.subject}</span>
+                        <Badge variant={grade.grade >= 85 ? "default" : grade.grade >= 70 ? "secondary" : "destructive"}>
+                          {grade.grade}%
+                        </Badge>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400">
+                        <p className="text-sm text-gray-700">{suggestions[0]}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

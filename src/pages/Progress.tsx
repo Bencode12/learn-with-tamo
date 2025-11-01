@@ -56,8 +56,15 @@ const Progress = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Progress</h1>
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">SūdžiusAI</h1>
+              </Link>
             </div>
             
             {/* Mobile menu button */}
@@ -71,44 +78,16 @@ const Progress = () => {
               </Button>
             </div>
 
-            {/* Desktop navigation */}
-            <div className="hidden sm:flex items-center space-x-4">
-              <LanguageSelector />
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+            {/* Desktop navigation - removed */}
+            <div className="hidden sm:flex items-center">
+              {/* Empty - navigation removed per requirements */}
             </div>
           </div>
 
-          {/* Mobile menu dropdown */}
+          {/* Mobile menu dropdown - removed */}
           {showMobileMenu && (
             <div className="sm:hidden border-t bg-white py-2 space-y-1">
-              <LanguageSelector />
-              <Link to="/dashboard" className="block">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  Dashboard
-                </Button>
-              </Link>
-              <Link to="/settings" className="block">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm" className="w-full justify-start">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+              {/* Empty - navigation removed per requirements */}
             </div>
           )}
         </div>

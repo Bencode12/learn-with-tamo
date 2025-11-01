@@ -20,17 +20,17 @@ const Header = ({ showAuth = true }: HeaderProps) => {
             <LanguageSelector />
             {showAuth ? (
               <>
+                <Link to="/store">
+                  <Button variant="ghost" size="sm">Store</Button>
+                </Link>
                 <Link to="/leaderboard">
-                  <Button variant="ghost" size="sm">
-                    <Trophy className="h-4 w-4 mr-2" />
-                    Leaderboard
-                  </Button>
+                  <Button variant="ghost" size="sm">Leaderboard</Button>
+                </Link>
+                <Link to="/settings">
+                  <Button variant="ghost" size="sm">Settings</Button>
                 </Link>
                 <Link to="/profile">
-                  <Button variant="ghost" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Button>
+                  <Button variant="ghost" size="sm">Profile</Button>
                 </Link>
                 <Button variant="ghost" size="sm">
                   <LogOut className="h-4 w-4 mr-2" />

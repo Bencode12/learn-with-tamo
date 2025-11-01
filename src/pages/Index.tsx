@@ -109,11 +109,6 @@ const Index = () => {
                   Start Learning Now
                 </Button>
               </Link>
-              <Link to="/leaderboard">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3">
-                  View Leaderboard
-                </Button>
-              </Link>
             </div>
 
             {/* Quick Stats */}
