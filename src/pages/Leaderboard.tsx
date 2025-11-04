@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Trophy, Medal, Award, TrendingUp, Users, Crown, Star, Zap } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Users, Crown, Star, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
+import Header from "@/components/Header";
 
 const Leaderboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("week");
@@ -110,40 +110,7 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <LanguageSelector />
-              <Link to="/store">
-                <Button variant="ghost" size="sm">Store</Button>
-              </Link>
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="sm">Leaderboard</Button>
-              </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">Settings</Button>
-              </Link>
-              <Link to="/profile">
-                <Button variant="ghost" size="sm">Profile</Button>
-              </Link>
-              <Button variant="ghost" size="sm">Logout</Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header showBackButton={true} hideAuthButtons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

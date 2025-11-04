@@ -2,10 +2,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Settings, LogOut, Menu, Users } from "lucide-react";
+import { Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Menu, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip } from "recharts";
-import LanguageSelector from "@/components/LanguageSelector";
+import Header from "@/components/Header";
 import { useState } from "react";
 
 const Progress = () => {
@@ -51,47 +51,7 @@ const Progress = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile-friendly Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">SūdžiusAI</h1>
-              </Link>
-            </div>
-            
-            {/* Mobile menu button */}
-            <div className="sm:hidden">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Desktop navigation - removed */}
-            <div className="hidden sm:flex items-center">
-              {/* Empty - navigation removed per requirements */}
-            </div>
-          </div>
-
-          {/* Mobile menu dropdown - removed */}
-          {showMobileMenu && (
-            <div className="sm:hidden border-t bg-white py-2 space-y-1">
-              {/* Empty - navigation removed per requirements */}
-            </div>
-          )}
-        </div>
-      </header>
+      <Header showBackButton={true} hideAuthButtons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Achievements Section */}

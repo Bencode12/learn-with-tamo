@@ -13,6 +13,18 @@ const GameModes = () => {
 
   const gameModes = [
     {
+      id: "single",
+      name: "Single Player",
+      description: "Learn at your own pace with AI guidance",
+      icon: Target,
+      color: "bg-green-500",
+      players: "Solo",
+      difficulty: "Variable",
+      rewards: "20-40 coins",
+      features: ["Personalized learning", "Progress tracking", "Adaptive difficulty", "Flexible schedule"],
+      route: "/single-mode"
+    },
+    {
       id: "ranked",
       name: "Ranked Mode",
       description: "Climb the ranks in competitive learning",
@@ -21,7 +33,8 @@ const GameModes = () => {
       players: "1v1",
       difficulty: "High",
       rewards: "50-100 coins",
-      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Rank decay system"]
+      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Rank decay system"],
+      route: "/ranked-mode"
     },
     {
       id: "competitive",
@@ -32,29 +45,20 @@ const GameModes = () => {
       players: "5v5",
       difficulty: "Expert",
       rewards: "75-150 coins",
-      features: ["Team coordination", "Voice chat support", "Tournament mode", "Team statistics"]
+      features: ["Team coordination", "Voice chat support", "Tournament mode", "Team statistics"],
+      route: "/competitive-mode"
     },
     {
       id: "duos",
-      name: "Duos",
+      name: "Team Mode",
       description: "Partner up for collaborative learning",
       icon: Users,
       color: "bg-blue-500",
-      players: "2v2",
+      players: "2-4",
       difficulty: "Medium",
       rewards: "30-60 coins",
-      features: ["Friend pairing", "Shared progress", "Cooperative challenges", "Duo achievements"]
-    },
-    {
-      id: "squad",
-      name: "Squad",
-      description: "Team up with 3 friends for group challenges",
-      icon: Users,
-      color: "bg-green-500",
-      players: "4v4",
-      difficulty: "Medium",
-      rewards: "40-80 coins",
-      features: ["Group learning", "Squad leaderboards", "Team objectives", "Social features"]
+      features: ["Friend pairing", "Shared progress", "Cooperative challenges", "Team achievements"],
+      route: "/team-mode"
     }
   ];
 
@@ -171,10 +175,12 @@ const GameModes = () => {
                   </ul>
                 </div>
 
-                <Button className="w-full" size="lg">
-                  <Target className="h-4 w-4 mr-2" />
-                  Play {mode.name}
-                </Button>
+                <Link to={mode.route} className="w-full">
+                  <Button className="w-full" size="lg">
+                    <Target className="h-4 w-4 mr-2" />
+                    Play {mode.name}
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}

@@ -123,7 +123,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header showIcons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -209,99 +209,12 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Dialog open={showGameModeSelection} onOpenChange={setShowGameModeSelection}>
-                <DialogTrigger asChild>
-                  <Button className="h-20 flex-col space-y-2 w-full bg-blue-600 hover:bg-blue-700">
-                    <Play className="h-6 w-6" />
-                    <span>Start AI Tutoring</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Select Game Mode</DialogTitle>
-                    <DialogDescription>
-                      Choose how you want to learn today
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-6">
-                    {/* Game Mode Selection */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {gameModes.map((mode) => (
-                        <Card 
-                          key={mode.id} 
-                          className={`cursor-pointer transition-all ${selectedGameMode === mode.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
-                          onClick={() => setSelectedGameMode(mode.id)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-10 h-10 ${mode.color} rounded-full flex items-center justify-center`}>
-                                <mode.icon className="h-5 w-5 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-medium">{mode.name}</h3>
-                                <p className="text-sm text-gray-600">{mode.description}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Subject and Field Selection (hide for competitive mode) */}
-                    {selectedGameMode && selectedGameMode !== "competitive" && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Subject</label>
-                          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose a subject" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subjects.map((subject) => (
-                                <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {selectedSubject === "Mathematics" && (
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Field</label>
-                            <Select value={selectedField} onValueChange={setSelectedField}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose a field" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mathFields.map((field) => (
-                                  <SelectItem key={field} value={field}>{field}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {selectedGameMode === "competitive" && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <p className="text-red-800 text-sm">
-                          <strong>Competitive Mode:</strong> Subject and field will be randomly selected by the algorithm for fair competition.
-                        </p>
-                      </div>
-                    )}
-
-                    <Button 
-                      className="w-full" 
-                      size="lg"
-                      disabled={!selectedGameMode || (selectedGameMode !== "competitive" && (!selectedSubject || (selectedSubject === "Mathematics" && !selectedField)))}
-                      onClick={startTutoring}
-                    >
-                      Start Learning Session
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Link to="/game-modes">
+                <Button className="h-20 flex-col space-y-2 w-full bg-blue-600 hover:bg-blue-700">
+                  <Play className="h-6 w-6" />
+                  <span>Start AI Tutoring</span>
+                </Button>
+              </Link>
               
               <Link to="/progress">
                 <Button variant="outline" className="h-20 flex-col space-y-2 w-full">

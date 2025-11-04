@@ -12,7 +12,6 @@ import Settings from "./pages/Settings";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
-import AITutoring from "./pages/AITutoring";
 import Store from "./pages/Store";
 import Shop from "./pages/Shop";
 import GameModes from "./pages/GameModes";
@@ -39,7 +38,6 @@ const App = () => (
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/progress" element={<Progress />} />
-          <Route path="/ai-tutoring" element={<AITutoring />} />
           <Route path="/store" element={<Store />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/game-modes" element={<GameModes />} />

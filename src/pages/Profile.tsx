@@ -6,9 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { BookOpen, User, Settings, LogOut, Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown, Palette } from "lucide-react";
+import { Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
+import Header from "@/components/Header";
 
 const Profile = () => {
   const [userStats] = useState({
@@ -32,7 +32,7 @@ const Profile = () => {
     { id: 6, name: "Speed Demon", description: "Complete a lesson in under 10 minutes", icon: Zap, earned: true },
     { id: 7, name: "Night Owl", description: "Study after 10 PM for 5 days", icon: Star, earned: false },
     { id: 8, name: "Social Learner", description: "Add 10 friends", icon: Users, earned: true },
-    { id: 9, name: "Curious Mind", description: "Explore all subjects", icon: BookOpen, earned: false },
+    { id: 9, name: "Curious Mind", description: "Explore all subjects", icon: Target, earned: false },
     { id: 10, name: "Consistency King", description: "Study 30 days in a row", icon: Crown, earned: false }
   ]);
 
@@ -128,43 +128,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <LanguageSelector />
-              <Link to="/store">
-                <Button variant="ghost" size="sm">Store</Button>
-              </Link>
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="sm">Leaderboard</Button>
-              </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">Settings</Button>
-              </Link>
-              <Link to="/profile">
-                <Button variant="ghost" size="sm">Profile</Button>
-              </Link>
-              <Button variant="ghost" size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header showIcons={true} showBackButton={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Add People Modal */}
