@@ -2,36 +2,65 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BookOpen, Users, UserPlus, Crown, Target, Timer, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BookOpen, Users, Copy, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
+import { toast } from "sonner";
 
 const TeamMode = () => {
-  const [currentTeam] = useState([
-    { id: 1, name: "You", level: 15, role: "Leader", status: "online" },
-    { id: 2, name: "Sarah M.", level: 14, role: "Member", status: "online" },
-    { id: 3, name: "Mike R.", level: 16, role: "Member", status: "offline" },
-    { id: 4, name: "Empty Slot", level: 0, role: "Empty", status: "empty" }
-  ]);
+  const [roomCode, setRoomCode] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [isInRoom, setIsInRoom] = useState(false);
+  const [roomMembers, setRoomMembers] = useState<string[]>([]);
 
-  const teamModes = [
-    {
-      id: "duos",
-      name: "Duos (2v2)",
-      description: "Team up with a friend",
-      players: "2v2",
-      waitTime: "~1 min"
-    },
-    {
-      id: "squad",
-      name: "Squad (4v4)",
-      description: "Full team coordination",
-      players: "4v4",
-      waitTime: "~3 min"
+  const generateRoomCode = () => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setGeneratedCode(code);
+    return code;
+  };
+
+  const createRoom = () => {
+    if (!roomName.trim()) {
+      toast.error("Please enter a room name");
+      return;
     }
+    const code = generateRoomCode();
+    setIsInRoom(true);
+    setRoomMembers([code]);
+    toast.success(`Room "${roomName}" created! Share code: ${code}`);
+  };
+
+  const joinRoom = () => {
+    if (!roomCode.trim()) {
+      toast.error("Please enter a room code");
+      return;
+    }
+    setIsInRoom(true);
+    toast.success(`Joined room: ${roomCode}`);
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(generatedCode);
+    toast.success("Room code copied to clipboard!");
+  };
+
+  const allSubjects = [
+    { id: "math", name: "Mathematics", icon: "📊" },
+    { id: "science", name: "Science", icon: "🔬" },
+    { id: "language", name: "Language Arts", icon: "📝" },
+    { id: "social", name: "Social Studies", icon: "📚" }
   ];
+
+  const chapters = {
+    math: ["Algebra", "Geometry", "Calculus"],
+    science: ["Physics", "Chemistry", "Biology"],
+    language: ["Grammar", "Writing", "Literature"],
+    social: ["History", "Geography", "Civics"]
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,6 +69,12 @@ const TeamMode = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />
                 <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
@@ -47,188 +82,160 @@ const TeamMode = () => {
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSelector />
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Team Learning</h2>
-              <p className="text-gray-600">Collaborate with friends to master subjects together</p>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {!isInRoom ? (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Team Learning</h2>
+              <p className="text-gray-600">Join or create a room to learn with friends</p>
             </div>
-            <Badge className="bg-blue-500 text-white">
-              <Users className="h-4 w-4 mr-1" />
-              Team Mode
-            </Badge>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Team Management */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Join Room */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Join a Room</CardTitle>
+                  <CardDescription>Enter a room code to join your team</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="roomCode">Room Code</Label>
+                    <Input
+                      id="roomCode"
+                      placeholder="Enter 6-digit code"
+                      value={roomCode}
+                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      maxLength={6}
+                    />
+                  </div>
+                  <Button onClick={joinRoom} className="w-full">
+                    <Users className="h-4 w-4 mr-2" />
+                    Join Room
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Create Room */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create a Room</CardTitle>
+                  <CardDescription>Start a new team learning session</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="roomName">Room Name</Label>
+                    <Input
+                      id="roomName"
+                      placeholder="Enter room name"
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={createRoom} className="w-full" variant="default">
+                    Create Room
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
           <div className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="h-5 w-5" />
-                    <span>Your Team</span>
-                  </CardTitle>
-                  <Button variant="outline" size="sm">
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    Invite
-                  </Button>
-                </div>
-                <CardDescription>Manage your learning squad</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {currentTeam.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>
-                              {member.status === "empty" ? "?" : member.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          {member.status === "online" && (
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium">{member.name}</p>
-                            {member.role === "Leader" && <Crown className="h-4 w-4 text-yellow-500" />}
-                          </div>
-                          {member.status !== "empty" && (
-                            <p className="text-sm text-gray-600">Level {member.level}</p>
-                          )}
-                        </div>
+                  <div>
+                    <CardTitle className="text-2xl">{roomName || `Room ${generatedCode || roomCode}`}</CardTitle>
+                    <CardDescription>Waiting for team members to join...</CardDescription>
+                  </div>
+                  {generatedCode && (
+                    <div className="flex items-center space-x-2">
+                      <div className="bg-blue-100 px-4 py-2 rounded-lg">
+                        <span className="font-mono font-bold text-blue-900">{generatedCode}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={member.status === "online" ? "default" : member.status === "empty" ? "secondary" : "outline"}>
-                          {member.status === "empty" ? "Empty" : member.status}
-                        </Badge>
-                      </div>
+                      <Button size="sm" variant="outline" onClick={copyCode}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Chat */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <MessageCircle className="h-5 w-5" />
-                  <span>Team Chat</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
-                  <div className="text-sm">
-                    <span className="font-medium text-blue-600">Sarah M.:</span>
-                    <span className="ml-2">Ready for some math challenges!</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-medium text-green-600">You:</span>
-                    <span className="ml-2">Let's do this! 💪</span>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <input 
-                    type="text" 
-                    placeholder="Type a message..." 
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                  <Button size="sm">Send</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Game Modes */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Team Mode</CardTitle>
-                <CardDescription>Choose your team competition format</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {teamModes.map((mode) => (
-                    <Card key={mode.id} className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-lg">{mode.name}</h4>
-                            <p className="text-sm text-gray-600">{mode.description}</p>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                              <div className="flex items-center space-x-1">
-                                <Users className="h-4 w-4" />
-                                <span>{mode.players}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Timer className="h-4 w-4" />
-                                <span>{mode.waitTime}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <Button>Select</Button>
+                  <div>
+                    <h4 className="font-medium mb-2">Team Members ({roomMembers.length}/6)</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {roomMembers.map((member, idx) => (
+                        <div key={idx} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                          User {idx + 1}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Team Stats */}
+            {/* Subject Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>Team Statistics</CardTitle>
-                <CardDescription>Your team's performance</CardDescription>
+                <CardTitle>Select Learning Path</CardTitle>
+                <CardDescription>Team must agree on subject, chapter, and lesson</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">67%</div>
-                    <div className="text-sm text-gray-600">Win Rate</div>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">24</div>
-                    <div className="text-sm text-gray-600">Games Played</div>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">1,450</div>
-                    <div className="text-sm text-gray-600">Team XP</div>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">12</div>
-                    <div className="text-sm text-gray-600">Win Streak</div>
-                  </div>
-                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" size="lg">
+                      Choose Subject & Lesson
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Select Subject</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-4">
+                      {allSubjects.map((subject) => (
+                        <Dialog key={subject.id}>
+                          <DialogTrigger asChild>
+                            <Card className="cursor-pointer hover:bg-gray-50">
+                              <CardContent className="p-4 text-center">
+                                <div className="text-4xl mb-2">{subject.icon}</div>
+                                <h4 className="font-semibold">{subject.name}</h4>
+                              </CardContent>
+                            </Card>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Select Chapter - {subject.name}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-3">
+                              {chapters[subject.id as keyof typeof chapters]?.map((chapter, idx) => (
+                                <Card key={idx} className="cursor-pointer hover:bg-gray-50">
+                                  <CardContent className="p-4 flex items-center justify-between">
+                                    <span className="font-medium">{chapter}</span>
+                                    <Button size="sm">Select</Button>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <Button className="w-full" size="lg" disabled={currentTeam.some(m => m.status === "empty")}>
-                <Target className="h-4 w-4 mr-2" />
-                Start Team Match
-              </Button>
-              <Button variant="outline" className="w-full">
-                Practice with Team
-              </Button>
-            </div>
+            <Button variant="outline" onClick={() => setIsInRoom(false)} className="w-full">
+              Leave Room
+            </Button>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

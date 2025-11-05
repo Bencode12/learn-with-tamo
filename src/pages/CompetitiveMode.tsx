@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Zap, Users, Crown, Timer, Trophy, Target, AlertTriangle } from "lucide-react";
+import { BookOpen, Zap, Users, Crown, Timer, Trophy, Target, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -36,6 +36,12 @@ const CompetitiveMode = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />
                 <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
@@ -43,9 +49,6 @@ const CompetitiveMode = () => {
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSelector />
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
             </div>
           </div>
         </div>

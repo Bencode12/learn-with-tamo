@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Trophy, Users, Target, Zap, Crown, Coins, Timer, Brain, Check } from "lucide-react";
+import { BookOpen, Trophy, Users, Target, Zap, Crown, Coins, Timer, Brain, Check, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
@@ -25,16 +25,16 @@ const GameModes = () => {
       route: "/single-mode"
     },
     {
-      id: "ranked",
-      name: "Ranked Mode",
-      description: "Climb the ranks in competitive learning",
-      icon: Trophy,
-      color: "bg-yellow-500",
-      players: "1v1",
-      difficulty: "High",
-      rewards: "50-100 coins",
-      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Rank decay system"],
-      route: "/ranked-mode"
+      id: "duos",
+      name: "Duos",
+      description: "Learn together with a partner",
+      icon: Users,
+      color: "bg-blue-500",
+      players: "2",
+      difficulty: "Medium",
+      rewards: "30-60 coins",
+      features: ["Friend pairing", "Shared progress", "Cooperative challenges", "Duo achievements"],
+      route: "/team-mode"
     },
     {
       id: "competitive",
@@ -49,16 +49,28 @@ const GameModes = () => {
       route: "/competitive-mode"
     },
     {
-      id: "duos",
+      id: "team",
       name: "Team Mode",
-      description: "Partner up for collaborative learning",
+      description: "Collaborative learning in groups",
       icon: Users,
-      color: "bg-blue-500",
-      players: "2-4",
+      color: "bg-purple-500",
+      players: "2-6",
       difficulty: "Medium",
-      rewards: "30-60 coins",
-      features: ["Friend pairing", "Shared progress", "Cooperative challenges", "Team achievements"],
+      rewards: "40-80 coins",
+      features: ["Room codes", "Team selection", "Group progress", "Team achievements"],
       route: "/team-mode"
+    },
+    {
+      id: "ranked",
+      name: "Ranked Mode",
+      description: "Climb the ranks in competitive learning",
+      icon: Trophy,
+      color: "bg-yellow-500",
+      players: "1v1",
+      difficulty: "High",
+      rewards: "50-100 coins",
+      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Rank decay system"],
+      route: "/ranked-mode"
     }
   ];
 
@@ -76,20 +88,19 @@ const GameModes = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />
                 <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-1 rounded-full">
-                <Coins className="h-4 w-4 text-yellow-600" />
-                <span className="font-medium text-yellow-800">2,450</span>
-              </div>
               <LanguageSelector />
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
             </div>
           </div>
         </div>
@@ -136,9 +147,9 @@ const GameModes = () => {
         </Card>
 
         {/* Game Modes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {gameModes.map((mode) => (
-            <Card key={mode.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card key={mode.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center space-x-4">
                   <div className={`w-16 h-16 ${mode.color} rounded-full flex items-center justify-center`}>
