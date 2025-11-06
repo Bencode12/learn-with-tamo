@@ -29,10 +29,10 @@ const RankedMode = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
+              <Link to="/game-modes">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  Back to Gamemodes
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -99,25 +99,42 @@ const RankedMode = () => {
                   <Zap className="h-5 w-5" />
                   <span>Find Ranked Match</span>
                 </CardTitle>
-                <CardDescription>Get matched with players of similar skill level</CardDescription>
+                <CardDescription>Choose your team size and get matched with players of similar skill level</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <Timer className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                    <h4 className="font-medium">Quick Match</h4>
-                    <p className="text-sm text-gray-600">~2 min wait</p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <Target className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                    <h4 className="font-medium">Subject Focus</h4>
-                    <p className="text-sm text-gray-600">Choose topic</p>
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Select Team Size:</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-blue-50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Target className="h-5 w-5 text-blue-500" />
+                        <span className="font-semibold">Solo (1v1)</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Compete one-on-one against another player</p>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-green-50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Users className="h-5 w-5 text-green-500" />
+                        <span className="font-semibold">Duo (2v2)</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Team up with a partner</p>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-purple-50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Users className="h-5 w-5 text-purple-500" />
+                        <span className="font-semibold">Squad (4v4)</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Play with a team of 4</p>
+                    </Button>
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-red-50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Users className="h-5 w-5 text-red-500" />
+                        <span className="font-semibold">Full Team (5v5)</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Compete with a full team of 5</p>
+                    </Button>
                   </div>
                 </div>
-                <Button className="w-full" size="lg">
-                  <Users className="h-4 w-4 mr-2" />
-                  Find Match
-                </Button>
               </CardContent>
             </Card>
 

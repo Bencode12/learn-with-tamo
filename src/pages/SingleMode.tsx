@@ -64,10 +64,10 @@ const SingleMode = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
+              <Link to="/game-modes">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  Back to Gamemodes
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -183,7 +183,9 @@ const SingleMode = () => {
                                     <h5 className="font-medium">{lesson}</h5>
                                     <p className="text-sm text-gray-600">Lesson {idx + 1}</p>
                                   </div>
-                                  <Button size="sm">Start</Button>
+                                           <Link to={`/lesson-start?title=${encodeURIComponent(lesson)}&subject=${encodeURIComponent(subject.name)}&chapter=${encodeURIComponent(subjectDetails[subject.id]?.chapters.find(ch => ch.id === selectedChapter)?.name || '')}&coins=50&duration=30&xp=100&difficulty=Beginner`}>
+                                             <Button size="sm">Start</Button>
+                                           </Link>
                                 </CardContent>
                               </Card>
                             ))}
@@ -228,13 +230,58 @@ const SingleMode = () => {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <Progress value={subject.progress} className="h-2 mb-2" />
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">{subject.progress}% complete</span>
-                          <Button size="sm">Start Learning</Button>
-                        </div>
-                      </CardContent>
+                       <CardContent>
+                         <Progress value={subject.progress} className="h-2 mb-2" />
+                         <div className="flex items-center justify-between">
+                           <span className="text-sm text-gray-600">{subject.progress}% complete</span>
+                           <Dialog>
+                             <DialogTrigger asChild>
+                               <Button size="sm" onClick={() => { setSelectedSubject(subject.id); setSelectedChapter(null); }}>
+                                 Start Learning
+                               </Button>
+                             </DialogTrigger>
+                             <DialogContent className="max-w-2xl">
+                               <DialogHeader>
+                                 <DialogTitle>
+                                   {!selectedChapter ? `Select Chapter - ${subject.name}` : `Select Lesson`}
+                                 </DialogTitle>
+                               </DialogHeader>
+                               {!selectedChapter ? (
+                                 <div className="grid grid-cols-1 gap-3">
+                                   {subjectDetails[subject.id]?.chapters.map((chapter) => (
+                                     <Card key={chapter.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedChapter(chapter.id)}>
+                                       <CardContent className="p-4">
+                                         <h4 className="font-semibold">{chapter.name}</h4>
+                                         <p className="text-sm text-gray-600">{chapter.lessons.length} lessons</p>
+                                       </CardContent>
+                                     </Card>
+                                   ))}
+                                 </div>
+                               ) : (
+                                 <div className="space-y-3">
+                                   <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)}>
+                                     <ArrowLeft className="h-4 w-4 mr-2" />
+                                     Back to Chapters
+                                   </Button>
+                                   {subjectDetails[subject.id]?.chapters
+                                     .find(ch => ch.id === selectedChapter)
+                                     ?.lessons.map((lesson, idx) => (
+                                       <Card key={idx} className="cursor-pointer hover:bg-gray-50">
+                                         <CardContent className="p-4 flex items-center justify-between">
+                                           <div>
+                                             <h5 className="font-medium">{lesson}</h5>
+                                             <p className="text-sm text-gray-600">Lesson {idx + 1}</p>
+                                           </div>
+                                           <Button size="sm">Start</Button>
+                                         </CardContent>
+                                       </Card>
+                                     ))}
+                                 </div>
+                               )}
+                             </DialogContent>
+                           </Dialog>
+                         </div>
+                       </CardContent>
                     </Card>
                   ))}
                 </div>

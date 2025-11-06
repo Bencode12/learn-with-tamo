@@ -194,6 +194,44 @@ const Settings = () => {
                 </form>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Key className="h-5 w-5" />
+                  <span>ManoDienynas Credentials</span>
+                </CardTitle>
+                <CardDescription>Connect your ManoDienynas account to sync grades automatically</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleTamoCredentials} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="manoDienynasUsername">ManoDienynas Username</Label>
+                      <Input
+                        id="manoDienynasUsername"
+                        placeholder="Enter your ManoDienynas username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manoDienynasPassword">ManoDienynas Password</Label>
+                      <Input
+                        id="manoDienynasPassword"
+                        type="password"
+                        placeholder="Enter your ManoDienynas password"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 p-4 bg-green-50 rounded-lg">
+                    <div className="text-sm text-green-800">
+                      <p className="font-medium">Secure Connection</p>
+                      <p>Your credentials are encrypted and stored securely. We only use them to fetch your grades.</p>
+                    </div>
+                  </div>
+                  <Button type="submit">Save Credentials</Button>
+                </form>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Profile Customization Tab */}

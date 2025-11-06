@@ -34,19 +34,19 @@ const GameModes = () => {
       difficulty: "Medium",
       rewards: "30-60 coins",
       features: ["Friend pairing", "Shared progress", "Cooperative challenges", "Duo achievements"],
-      route: "/team-mode"
+      route: "/duos-mode"
     },
     {
       id: "competitive",
       name: "Team Competitive",
-      description: "5v5 team battles on selected topics",
-      icon: Users,
+      description: "Competitive team battles on selected topics",
+      icon: Zap,
       color: "bg-red-500",
-      players: "5v5",
+      players: "Teams",
       difficulty: "Expert",
       rewards: "75-150 coins",
       features: ["Team coordination", "Voice chat support", "Tournament mode", "Team statistics"],
-      route: "/competitive-mode"
+      route: "/team-mode"
     },
     {
       id: "team",
@@ -66,10 +66,10 @@ const GameModes = () => {
       description: "Climb the ranks in competitive learning",
       icon: Trophy,
       color: "bg-yellow-500",
-      players: "1v1",
+      players: "1-5 players",
       difficulty: "High",
       rewards: "50-100 coins",
-      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Rank decay system"],
+      features: ["Skill-based matchmaking", "Seasonal rankings", "Exclusive rewards", "Multiple team sizes"],
       route: "/ranked-mode"
     }
   ];

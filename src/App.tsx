@@ -13,12 +13,13 @@ import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import Store from "./pages/Store";
-import Shop from "./pages/Shop";
 import GameModes from "./pages/GameModes";
 import SingleMode from "./pages/SingleMode";
+import DuosMode from "./pages/DuosMode";
 import RankedMode from "./pages/RankedMode";
 import TeamMode from "./pages/TeamMode";
-import CompetitiveMode from "./pages/CompetitiveMode";
+import LessonStart from "./pages/LessonStart";
+import Lesson from "./pages/Lesson";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,12 +40,13 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/store" element={<Store />} />
-          <Route path="/shop" element={<Shop />} />
           <Route path="/game-modes" element={<GameModes />} />
           <Route path="/single-mode" element={<SingleMode />} />
+          <Route path="/duos-mode" element={<DuosMode />} />
           <Route path="/ranked-mode" element={<RankedMode />} />
           <Route path="/team-mode" element={<TeamMode />} />
-          <Route path="/competitive-mode" element={<CompetitiveMode />} />
+          <Route path="/lesson-start" element={<LessonStart />} />
+          <Route path="/lesson" element={<Lesson />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

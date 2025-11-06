@@ -8,9 +8,10 @@ interface HeaderProps {
   showIcons?: boolean;
   showBackButton?: boolean;
   hideAuthButtons?: boolean;
+  hideProfileButton?: boolean;
 }
 
-const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hideAuthButtons = false }: HeaderProps) => {
+const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hideAuthButtons = false, hideProfileButton = false }: HeaderProps) => {
   return (
     <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,12 +52,14 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
                     Settings
                   </Button>
                 </Link>
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm">
-                    {showIcons && <User className="h-4 w-4 mr-2" />}
-                    Profile
-                  </Button>
-                </Link>
+                {!hideProfileButton && (
+                  <Link to="/profile">
+                    <Button variant="ghost" size="sm">
+                      {showIcons && <User className="h-4 w-4 mr-2" />}
+                      Profile
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="ghost" size="sm">
                   {showIcons && <LogOut className="h-4 w-4 mr-2" />}
                   Logout

@@ -36,6 +36,8 @@ const Profile = () => {
     { id: 10, name: "Consistency King", description: "Study 30 days in a row", icon: Crown, earned: false }
   ]);
 
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
+
   const [friends] = useState([
     { id: 1, name: "Sarah Chen", level: 12, streak: 8, status: "online", xp: 1850, rank: "Premium", joinDate: "March 2024", totalLessons: 89 },
     { id: 2, name: "Mike Rodriguez", level: 18, streak: 15, status: "offline", xp: 2890, rank: "Developer", joinDate: "January 2024", totalLessons: 156 },
@@ -128,7 +130,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header showIcons={true} showBackButton={true} />
+      <Header showIcons={true} showBackButton={true} hideProfileButton={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Add People Modal */}
@@ -277,9 +279,9 @@ const Profile = () => {
                 </CardTitle>
                 <CardDescription>Your learning milestones and accomplishments</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {achievements.map((achievement) => (
+                  {(showAllAchievements ? achievements : achievements.slice(0, 4)).map((achievement) => (
                     <div
                       key={achievement.id}
                       className={`p-4 rounded-lg border ${
@@ -323,6 +325,15 @@ const Profile = () => {
                     </div>
                   ))}
                 </div>
+                {!showAllAchievements && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setShowAllAchievements(true)}
+                  >
+                    See all Achievements
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

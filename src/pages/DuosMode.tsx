@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
 
-const TeamMode = () => {
+const DuosMode = () => {
   const [roomCode, setRoomCode] = useState("");
   const [roomName, setRoomName] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
@@ -91,8 +90,8 @@ const TeamMode = () => {
         {!isInRoom ? (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Team Learning</h2>
-              <p className="text-gray-600">Join or create a room to learn with friends</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Duos Learning</h2>
+              <p className="text-gray-600">Join or create a room to learn with a partner (Max 2 players)</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -100,7 +99,7 @@ const TeamMode = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Join a Room</CardTitle>
-                  <CardDescription>Enter a room code to join your team</CardDescription>
+                  <CardDescription>Enter a room code to join your partner</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -124,7 +123,7 @@ const TeamMode = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Create a Room</CardTitle>
-                  <CardDescription>Start a new team learning session</CardDescription>
+                  <CardDescription>Start a new duos learning session</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -150,7 +149,7 @@ const TeamMode = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-2xl">{roomName || `Room ${generatedCode || roomCode}`}</CardTitle>
-                    <CardDescription>Waiting for team members to join...</CardDescription>
+                    <CardDescription>Waiting for partner to join...</CardDescription>
                   </div>
                   {generatedCode && (
                     <div className="flex items-center space-x-2">
@@ -167,11 +166,11 @@ const TeamMode = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Team Members ({roomMembers.length}/6)</h4>
+                    <h4 className="font-medium mb-2">Players ({roomMembers.length}/2)</h4>
                     <div className="flex flex-wrap gap-2">
                       {roomMembers.map((member, idx) => (
                         <div key={idx} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                          User {idx + 1}
+                          Player {idx + 1}
                         </div>
                       ))}
                     </div>
@@ -184,7 +183,7 @@ const TeamMode = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Select Learning Path</CardTitle>
-                <CardDescription>Team must agree on subject, chapter, and lesson</CardDescription>
+                <CardDescription>Both players must agree on subject, chapter, and lesson</CardDescription>
               </CardHeader>
               <CardContent>
                 <Dialog>
@@ -241,4 +240,4 @@ const TeamMode = () => {
   );
 };
 
-export default TeamMode;
+export default DuosMode;

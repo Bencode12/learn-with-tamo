@@ -173,8 +173,8 @@ const Dashboard = () => {
           {/* AI Recommendations */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Learning Assistant</CardTitle>
-              <CardDescription>Personalized AI recommendations based on your performance</CardDescription>
+              <CardTitle>Recommendations</CardTitle>
+              <CardDescription>Personalized recommendations based on your performance</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
