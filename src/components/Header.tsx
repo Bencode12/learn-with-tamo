@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
+import { LivesDisplay } from "./LivesDisplay";
+import { CoinsDisplay } from "./CoinsDisplay";
 
 interface HeaderProps {
   showAuth?: boolean;
@@ -31,6 +33,12 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
             </Link>
           </div>
           <div className="flex items-center space-x-4">
+            {showAuth && !hideAuthButtons && (
+              <>
+                <LivesDisplay />
+                <CoinsDisplay />
+              </>
+            )}
             <LanguageSelector />
             {showAuth && !hideAuthButtons ? (
               <>
