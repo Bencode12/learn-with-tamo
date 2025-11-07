@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,19 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
 import { findLesson } from "@/data/lessonContent";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Lesson = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [worksheetAnswers, setWorksheetAnswers] = useState<Record<number, string>>({});
   const [score, setScore] = useState(0);
   const { saveProgress } = useLessonProgress();
+  const [startTime] = useState(Date.now());
 
   const lessonData = {
     title: searchParams.get("title") || "Introduction to Algebra",
@@ -104,17 +108,46 @@ const Lesson = () => {
   };
 
   const handleComplete = async () => {
-    await saveProgress({
-      lessonId: searchParams.get("lessonId") || "intro-variables",
-      videoCompleted: true,
-      worksheetCompleted: true,
-      quizCompleted: true,
-      quizScore: score,
-      timeSpent: 30,
-      status: 'completed'
-    });
-    toast.success("Lesson completed! +50 coins, +100 XP");
-    navigate(-1);
+    if (!user) return;
+
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000 / 60); // minutes
+    const coinsEarned = 50;
+    const xpEarned = 100;
+
+    try {
+      // Save lesson progress
+      await saveProgress({
+        subjectId: "math",
+        chapterId: "algebra", 
+        lessonId: searchParams.get("lessonId") || "intro-variables",
+        completed: true,
+        quizScore: score,
+        timeSpent: timeSpent
+      });
+
+      // Update user profile - add coins and XP
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins, experience')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        await supabase
+          .from('profiles')
+          .update({
+            coins: profile.coins + coinsEarned,
+            experience: profile.experience + xpEarned
+          })
+          .eq('id', user.id);
+      }
+
+      toast.success(`Lesson completed! +${coinsEarned} coins, +${xpEarned} XP`);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error completing lesson:', error);
+      toast.error('Failed to save progress');
+    }
   };
 
   const handleExit = () => {

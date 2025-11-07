@@ -4,13 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface SaveProgressData {
+  subjectId: string;
+  chapterId: string;
   lessonId: string;
-  videoCompleted?: boolean;
-  worksheetCompleted?: boolean;
-  quizCompleted?: boolean;
+  completed?: boolean;
   quizScore?: number;
   timeSpent?: number;
-  status?: 'not_started' | 'in_progress' | 'completed';
 }
 
 export function useLessonProgress() {
@@ -18,41 +17,35 @@ export function useLessonProgress() {
   const [loading, setLoading] = useState(false);
 
   const saveProgress = async (data: SaveProgressData) => {
-    if (!user) {
-      toast.error('You must be logged in to save progress');
-      return { error: new Error('Not authenticated') };
-    }
-
+    if (!user) return { data: null, error: { message: 'Not authenticated' } };
+    
     setLoading(true);
     try {
       const progressData: any = {
         user_id: user.id,
+        subject_id: data.subjectId,
+        chapter_id: data.chapterId,
         lesson_id: data.lessonId,
-        last_accessed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        last_accessed: new Date().toISOString()
       };
 
-      if (data.videoCompleted !== undefined) progressData.video_completed = data.videoCompleted;
-      if (data.worksheetCompleted !== undefined) progressData.worksheet_completed = data.worksheetCompleted;
-      if (data.quizCompleted !== undefined) progressData.quiz_completed = data.quizCompleted;
-      if (data.quizScore !== undefined) progressData.quiz_score = data.quizScore;
+      if (data.completed !== undefined) progressData.completed = data.completed;
+      if (data.quizScore !== undefined) progressData.score = data.quizScore;
       if (data.timeSpent !== undefined) progressData.time_spent = data.timeSpent;
-      if (data.status) progressData.status = data.status;
 
-      if (data.quizCompleted && data.videoCompleted && data.worksheetCompleted) {
-        progressData.completed_at = new Date().toISOString();
-        progressData.status = 'completed';
-      }
+      const { data: result, error } = await supabase
+        .from('lesson_progress')
+        .upsert(progressData, {
+          onConflict: 'user_id,subject_id,chapter_id,lesson_id'
+        })
+        .select()
+        .single();
 
-      const { error } = await supabase.from('lesson_progress').upsert(progressData);
-      
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      console.error('Error saving progress:', error);
-      return { error: error as Error };
-    } finally {
       setLoading(false);
+      return { data: result, error };
+    } catch (error: any) {
+      setLoading(false);
+      return { data: null, error };
     }
   };
 

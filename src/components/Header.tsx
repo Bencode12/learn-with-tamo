@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { LivesDisplay } from "./LivesDisplay";
 import { CoinsDisplay } from "./CoinsDisplay";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   showAuth?: boolean;
@@ -14,6 +15,14 @@ interface HeaderProps {
 }
 
 const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hideAuthButtons = false, hideProfileButton = false }: HeaderProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
   return (
     <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,7 +77,7 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
                     </Button>
                   </Link>
                 )}
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
                   {showIcons && <LogOut className="h-4 w-4 mr-2" />}
                   Logout
                 </Button>

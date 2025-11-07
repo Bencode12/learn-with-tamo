@@ -1,213 +1,307 @@
-
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Trophy, Target, Award, TrendingUp, BarChart3, Calendar, Clock, Menu, Users } from "lucide-react";
-import { Link } from "react-router-dom";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, Award, Clock, BookOpen, Target, Star, Trophy } from "lucide-react";
 import Header from "@/components/Header";
-import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface LessonProgress {
+  id: string;
+  subject_id: string;
+  chapter_id: string;
+  lesson_id: string;
+  completed: boolean;
+  score: number | null;
+  time_spent: number;
+  last_accessed: string;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  earned_at?: string;
+}
 
 const Progress = () => {
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { user } = useAuth();
+  const [lessonsProgress, setLessonsProgress] = useState<LessonProgress[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [stats, setStats] = useState({
+    totalLessons: 0,
+    completedLessons: 0,
+    averageScore: 0,
+    totalHours: 0,
+    currentStreak: 7,
+    level: 1,
+    xp: 0,
+    nextLevelXp: 1000
+  });
 
-  const progressData = [
-    { month: "Jan", math: 65, science: 78, english: 82, history: 70 },
-    { month: "Feb", math: 72, science: 80, english: 85, history: 75 },
-    { month: "Mar", math: 78, science: 85, english: 88, history: 82 },
-    { month: "Apr", math: 85, science: 88, english: 92, history: 86 },
-    { month: "May", math: 88, science: 90, english: 94, history: 88 },
-    { month: "Jun", math: 92, science: 92, english: 96, history: 90 }
-  ];
+  useEffect(() => {
+    if (!user) return;
 
-  const studyTimeData = [
-    { day: "Mon", hours: 2.5 },
-    { day: "Tue", hours: 3.2 },
-    { day: "Wed", hours: 1.8 },
-    { day: "Thu", hours: 2.9 },
-    { day: "Fri", hours: 2.1 },
-    { day: "Sat", hours: 4.2 },
-    { day: "Sun", hours: 3.8 }
-  ];
+    const fetchProgress = async () => {
+      // Fetch lesson progress
+      const { data: progress } = await supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('last_accessed', { ascending: false });
 
-  const subjectDistribution = [
-    { name: "Mathematics", value: 35, color: "#3b82f6" },
-    { name: "Science", value: 28, color: "#10b981" },
-    { name: "English", value: 22, color: "#8b5cf6" },
-    { name: "History", value: 15, color: "#f59e0b" }
-  ];
+      if (progress) {
+        setLessonsProgress(progress);
+        
+        const completed = progress.filter(p => p.completed).length;
+        const avgScore = progress.length > 0 
+          ? progress.reduce((sum, p) => sum + (p.score || 0), 0) / progress.length 
+          : 0;
+        const totalMinutes = progress.reduce((sum, p) => sum + p.time_spent, 0);
 
-  const achievements = [
-    { id: 1, name: "Perfect Score", description: "Achieved 100% on a test", icon: Trophy, earned: true, date: "May 2024" },
-    { id: 2, name: "Study Streak", description: "15 consecutive days of learning", icon: Target, earned: true, date: "June 2024" },
-    { id: 3, name: "Math Wizard", description: "Completed advanced algebra", icon: Award, earned: true, date: "April 2024" },
-    { id: 4, name: "Speed Learner", description: "Complete 5 lessons in one day", icon: TrendingUp, earned: true, date: "June 2024" },
-    { id: 5, name: "Knowledge Seeker", description: "Study for 100 total hours", icon: Clock, earned: false, date: null },
-    { id: 6, name: "Early Bird", description: "Study before 7 AM for 7 days", icon: TrendingUp, earned: false, date: null },
-    { id: 7, name: "Team Player", description: "Complete 10 team learning sessions", icon: Users, earned: true, date: "May 2024" },
-    { id: 8, name: "Challenge Master", description: "Win 5 competitive matches", icon: Trophy, earned: false, date: null },
-    { id: 9, name: "Focused Mind", description: "Study for 3 hours straight", icon: Target, earned: true, date: "April 2024" }
-  ];
+        setStats(prev => ({
+          ...prev,
+          totalLessons: progress.length,
+          completedLessons: completed,
+          averageScore: Math.round(avgScore),
+          totalHours: Math.round(totalMinutes / 60)
+        }));
+      }
+
+      // Fetch profile for XP and level
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('experience, level')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        setStats(prev => ({
+          ...prev,
+          level: profile.level,
+          xp: profile.experience,
+          nextLevelXp: profile.level * 1000
+        }));
+      }
+
+      // Fetch achievements
+      const { data: userAchievements } = await supabase
+        .from('user_achievements')
+        .select(`
+          earned_at,
+          achievements (
+            id,
+            name,
+            description,
+            icon
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (userAchievements) {
+        const achievementsData = userAchievements.map((ua: any) => ({
+          ...ua.achievements,
+          earned_at: ua.earned_at
+        }));
+        setAchievements(achievementsData);
+      }
+    };
+
+    fetchProgress();
+  }, [user]);
+
+  const getSubjectIcon = (subjectId: string) => {
+    const icons: Record<string, string> = {
+      math: "📊",
+      science: "🔬",
+      language: "📝",
+      social: "📚"
+    };
+    return icons[subjectId] || "📖";
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header showBackButton={true} hideAuthButtons={true} />
+    <div className="min-h-screen bg-background">
+      <Header showAuth={true} showIcons={true} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Achievements Section */}
-        <Card className="mb-6 sm:mb-8">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              <span>Achievements</span>
-            </CardTitle>
-            <CardDescription className="text-sm">Your learning milestones and accomplishments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {achievements.map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className={`p-3 sm:p-4 rounded-lg border transition-all hover:shadow-md ${
-                    achievement.earned
-                      ? "bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200"
-                      : "bg-gray-50 border-gray-200 opacity-60"
-                  }`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <div
-                      className={`p-2 rounded-full flex-shrink-0 ${
-                        achievement.earned
-                          ? "bg-yellow-100 text-yellow-600"
-                          : "bg-gray-200 text-gray-400"
-                      }`}
-                    >
-                      <achievement.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold text-sm sm:text-base ${achievement.earned ? "text-gray-900" : "text-gray-500"}`}>
-                        {achievement.name}
-                      </h3>
-                      <p className={`text-xs sm:text-sm ${achievement.earned ? "text-gray-600" : "text-gray-400"}`}>
-                        {achievement.description}
-                      </p>
-                      {achievement.earned ? (
-                        <Badge variant="secondary" className="mt-2 text-xs">
-                          Earned {achievement.date}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          Not Earned
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-foreground mb-2">Your Progress</h2>
+          <p className="text-muted-foreground">Track your learning journey and achievements</p>
+        </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
-          {/* Grade Progress Chart */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                <TrendingUp className="h-5 w-5" />
-                <span>Grade Progress</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Your academic performance over time</CardDescription>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Level</CardTitle>
+              <Trophy className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="h-[250px] sm:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={progressData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="math" stroke="#3b82f6" strokeWidth={2} name="Mathematics" />
-                    <Line type="monotone" dataKey="science" stroke="#10b981" strokeWidth={2} name="Science" />
-                    <Line type="monotone" dataKey="english" stroke="#8b5cf6" strokeWidth={2} name="English" />
-                    <Line type="monotone" dataKey="history" stroke="#f59e0b" strokeWidth={2} name="History" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              <div className="text-2xl font-bold">{stats.level}</div>
+              <ProgressBar value={(stats.xp / stats.nextLevelXp) * 100} className="h-2 mt-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.xp} / {stats.nextLevelXp} XP
+              </p>
             </CardContent>
           </Card>
 
-          {/* Study Time Chart */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                <BarChart3 className="h-5 w-5" />
-                <span>Weekly Study Time</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Hours spent studying each day this week</CardDescription>
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <Target className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="h-[250px] sm:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={studyTimeData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="hours" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Study Hours" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <div className="text-2xl font-bold">{stats.completedLessons}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                out of {stats.totalLessons} lessons
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
+              <Star className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.averageScore}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                across all quizzes
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Study Time</CardTitle>
+              <Clock className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalHours}h</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                total learning time
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Subject Distribution */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Calendar className="h-5 w-5" />
-              <span>Subject Distribution</span>
-            </CardTitle>
-            <CardDescription className="text-sm">How you spend your study time across different subjects</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-              <div className="h-[250px] sm:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={subjectDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {subjectDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, 'Time Spent']} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-col justify-center space-y-3 sm:space-y-4">
-                {subjectDistribution.map((subject, index) => (
-                  <div key={index} className="flex items-center space-x-3">
+        <Tabs defaultValue="lessons" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+            <TabsTrigger value="lessons">Lessons</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="lessons" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BookOpen className="h-5 w-5" />
+                  <span>Recent Activity</span>
+                </CardTitle>
+                <CardDescription>Your most recently accessed lessons</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {lessonsProgress.slice(0, 10).map((lesson) => (
                     <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: subject.color }}
-                    ></div>
-                    <span className="font-medium text-sm sm:text-base">{subject.name}</span>
-                    <span className="text-gray-500 ml-auto text-sm sm:text-base">{subject.value}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                      key={lesson.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="text-2xl">{getSubjectIcon(lesson.subject_id)}</div>
+                        <div>
+                          <h4 className="font-semibold capitalize">
+                            {lesson.lesson_id.replace(/-/g, ' ')}
+                          </h4>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {lesson.subject_id} • {lesson.chapter_id}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          {lesson.completed ? (
+                            <>
+                              <Badge variant="default" className="mb-1">
+                                Completed
+                              </Badge>
+                              <p className="text-sm text-muted-foreground">
+                                Score: {lesson.score}%
+                              </p>
+                            </>
+                          ) : (
+                            <Badge variant="secondary">In Progress</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 inline mr-1" />
+                          {lesson.time_spent}m
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {lessonsProgress.length === 0 && (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No lessons started yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Start learning to see your progress here
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Award className="h-5 w-5" />
+                  <span>Achievements</span>
+                </CardTitle>
+                <CardDescription>
+                  {achievements.length} achievements unlocked
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {achievements.map((achievement) => (
+                    <div
+                      key={achievement.id}
+                      className="p-4 rounded-lg border bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20"
+                    >
+                      <div className="text-3xl mb-2">{achievement.icon}</div>
+                      <h4 className="font-semibold mb-1">{achievement.name}</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {achievement.description}
+                      </p>
+                      {achievement.earned_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Earned: {new Date(achievement.earned_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {achievements.length === 0 && (
+                    <div className="col-span-full text-center py-12">
+                      <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No achievements yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Complete lessons to unlock achievements
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

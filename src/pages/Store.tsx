@@ -1,179 +1,218 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, Shield, Users, Star, BookOpen, Coins, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
+import { Coins, Crown, Zap, Shield, Star, Check } from "lucide-react";
+import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Store = () => {
-  const [userCoins, setUserCoins] = useState(1200);
+  const { user } = useAuth();
+  const [userCoins, setUserCoins] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchCoins = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', user.id)
+        .single();
+
+      if (data) {
+        setUserCoins(data.coins);
+      }
+    };
+
+    fetchCoins();
+  }, [user]);
 
   const coinPackages = [
-    { id: 1, coins: 500, price: "$4.99", bonus: 0 },
-    { id: 2, coins: 1200, price: "$9.99", bonus: 200 },
-    { id: 3, coins: 2500, price: "$19.99", bonus: 500 },
-    { id: 4, coins: 5500, price: "$39.99", bonus: 1500 }
+    { coins: 100, bonus: 0, price: "$0.99", priceValue: 0.99 },
+    { coins: 500, bonus: 50, price: "$4.99", priceValue: 4.99, popular: true },
+    { coins: 1000, bonus: 150, price: "$8.99", priceValue: 8.99 },
+    { coins: 2500, bonus: 500, price: "$19.99", priceValue: 19.99 },
+    { coins: 5000, bonus: 1500, price: "$34.99", priceValue: 34.99, bestValue: true },
+    { coins: 10000, bonus: 3500, price: "$59.99", priceValue: 59.99 }
   ];
 
-  const handlePurchase = (coins: number, price: string) => {
-    toast.success(`Purchased ${coins} coins for ${price}!`);
+  const handlePurchase = async (coins: number, price: string) => {
+    if (!user) return;
+
+    try {
+      // For demo purposes, just add the coins
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        await supabase
+          .from('profiles')
+          .update({ coins: profile.coins + coins })
+          .eq('id', user.id);
+
+        setUserCoins(profile.coins + coins);
+        toast.success(`Successfully purchased ${coins} coins!`);
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error('Failed to complete purchase');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-1 rounded-full">
-                <Coins className="h-4 w-4 text-yellow-600" />
-                <span className="font-semibold text-yellow-900">{userCoins}</span>
-              </div>
-              <LanguageSelector />
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background">
+      <Header showAuth={true} showIcons={true} showBackButton={true} />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Shop & Store
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Purchase coins and unlock premium features
-          </p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-foreground mb-2">Store</h2>
+          <p className="text-muted-foreground">Purchase coins and unlock premium features</p>
         </div>
 
         {/* Premium Plans Section */}
         <div className="mb-12">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Premium Plans</h3>
-          <div className="max-w-md mx-auto">
-            <Card className="relative border-2 border-blue-500 scale-105">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-blue-600 text-white px-4 py-1">
-                  <Star className="h-3 w-3 mr-1" />
-                  Premium
-                </Badge>
-              </div>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">SūdžiusAI Plus</CardTitle>
-                <div className="text-3xl font-bold text-blue-600 mt-2">$6.99/month</div>
-                <CardDescription className="mt-2">Everything you need to accelerate your learning</CardDescription>
+          <h3 className="text-2xl font-bold text-foreground mb-6">Premium Plans</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl">SūdžiusAI Plus</CardTitle>
+                  <Crown className="h-8 w-8 text-primary" />
+                </div>
+                <CardDescription className="text-lg">
+                  Unlock unlimited learning potential
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <ul className="space-y-3">
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Unlimited hearts - never lose progress</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">No ads - focus on learning</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Unlimited streak freezes</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Priority matchmaking</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Detailed progress analytics</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Custom study schedules</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm">Premium badge and profile customization</span>
-                  </li>
-                </ul>
-                <Button className="w-full" size="lg">
-                  <Crown className="h-4 w-4 mr-2" />
-                  Start Free Trial
-                </Button>
-                <p className="text-xs text-gray-500 text-center">
-                  7-day free trial, then $6.99/month. Cancel anytime.
-                </p>
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Unlimited lives - learn without interruption</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Priority AI recommendations</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Exclusive premium lessons and content</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Ad-free experience</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Monthly coin bonus</span>
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <div className="flex items-baseline space-x-2 mb-4">
+                    <span className="text-4xl font-bold">$9.99</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                  <Button className="w-full" size="lg">
+                    Start Free Trial
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    7 days free, then $9.99/month. Cancel anytime.
+                  </p>
+                </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Benefits Section */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
-              <CardContent className="p-6 text-center">
-                <Zap className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Unlimited Learning</h3>
-                <p className="text-gray-600">Never run out of hearts or chances to learn</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Users className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Priority Access</h3>
-                <p className="text-gray-600">Get matched faster in competitive modes</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Streak Protection</h3>
-                <p className="text-gray-600">Unlimited streak freezes to maintain your progress</p>
+              <CardHeader>
+                <CardTitle className="text-2xl">Benefits</CardTitle>
+                <CardDescription>Why go premium?</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-blue-500/10 p-3 rounded-lg">
+                    <Zap className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Learn Faster</h4>
+                    <p className="text-sm text-muted-foreground">
+                      No lives limit means you can practice as much as you want
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <div className="bg-purple-500/10 p-3 rounded-lg">
+                    <Star className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Premium Content</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Access exclusive lessons and advanced topics
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <div className="bg-green-500/10 p-3 rounded-lg">
+                    <Shield className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Priority Support</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Get help faster with premium support
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Coin Packages Section */}
+        {/* Coins Section */}
         <div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Buy Coins</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {coinPackages.map((pkg) => (
-              <Card key={pkg.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="text-center">
-                  <div className="flex justify-center items-center mb-2">
-                    <Coins className="h-8 w-8 text-yellow-500" />
+          <h3 className="text-2xl font-bold text-foreground mb-6">Buy Coins</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {coinPackages.map((pkg, index) => (
+              <Card
+                key={index}
+                className={`relative ${
+                  pkg.popular
+                    ? 'border-2 border-primary bg-primary/5'
+                    : pkg.bestValue
+                    ? 'border-2 border-green-500 bg-green-500/5'
+                    : ''
+                }`}
+              >
+                {pkg.popular && (
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    Most Popular
+                  </Badge>
+                )}
+                {pkg.bestValue && (
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500">
+                    Best Value
+                  </Badge>
+                )}
+                <CardHeader className="text-center pt-8">
+                  <div className="flex justify-center mb-2">
+                    <Coins className="h-12 w-12 text-yellow-500" />
                   </div>
-                  <CardTitle className="text-2xl font-bold text-yellow-600">
-                    {pkg.coins}
-                    {pkg.bonus > 0 && (
-                      <span className="text-sm text-green-600 ml-2">+{pkg.bonus}</span>
-                    )}
-                  </CardTitle>
-                  <CardDescription>Coins</CardDescription>
+                  <CardTitle className="text-3xl">{pkg.coins.toLocaleString()}</CardTitle>
                   {pkg.bonus > 0 && (
                     <Badge variant="secondary" className="mt-2">
-                      Bonus {pkg.bonus}
+                      +{pkg.bonus} Bonus Coins
                     </Badge>
                   )}
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold text-gray-900">{pkg.price}</div>
-                  </div>
-                  <Button 
-                    className="w-full" 
+                <CardContent className="text-center space-y-4">
+                  <div className="text-2xl font-bold text-foreground">{pkg.price}</div>
+                  <Button
                     onClick={() => handlePurchase(pkg.coins + pkg.bonus, pkg.price)}
+                    className="w-full"
+                    variant={pkg.popular || pkg.bestValue ? 'default' : 'outline'}
                   >
                     Buy Now
                   </Button>
