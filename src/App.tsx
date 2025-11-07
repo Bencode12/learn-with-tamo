@@ -22,6 +22,7 @@ import RankedMode from "./pages/RankedMode";
 import TeamMode from "./pages/TeamMode";
 import LessonStart from "./pages/LessonStart";
 import Lesson from "./pages/Lesson";
+import Exams from "./pages/Exams";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,8 +50,9 @@ const App = () => (
             <Route path="/duos-mode" element={<ProtectedRoute><DuosMode /></ProtectedRoute>} />
             <Route path="/ranked-mode" element={<ProtectedRoute><RankedMode /></ProtectedRoute>} />
             <Route path="/team-mode" element={<ProtectedRoute><TeamMode /></ProtectedRoute>} />
-            <Route path="/lesson-start" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
-            <Route path="/lesson" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+            <Route path="/lesson-start/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
+            <Route path="/lesson/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+            <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

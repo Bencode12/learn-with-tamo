@@ -1,13 +1,52 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Zap, Shield, Star, Check } from "lucide-react";
+import { Crown, Zap, Shield, Star, Check, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Store = () => {
-  const handleStartTrial = () => {
-    toast.success("Premium trial started! Enjoy 7 days free.");
+  const { user } = useAuth();
+  const [isPremium, setIsPremium] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, [user]);
+
+  const checkSubscriptionStatus = async () => {
+    if (!user) return;
+    
+    setCheckingStatus(true);
+    const { data, error } = await supabase.functions.invoke('check-subscription');
+    
+    if (!error && data) {
+      setIsPremium(data.subscribed);
+    }
+    setCheckingStatus(false);
+  };
+
+  const handleStartTrial = async () => {
+    if (!user) {
+      toast.error('Please log in to subscribe');
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke('create-checkout');
+    
+    if (error) {
+      toast.error('Failed to create checkout session');
+      console.error(error);
+    } else if (data?.url) {
+      window.open(data.url, '_blank');
+      toast.success('Opening Stripe checkout...');
+    }
+    setLoading(false);
   };
 
   return (
@@ -65,8 +104,17 @@ const Store = () => {
                     <span className="text-4xl font-bold">$9.99</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <Button className="w-full" size="lg" onClick={handleStartTrial}>
-                    Start Free Trial
+                  <Button className="w-full" size="lg" onClick={handleStartTrial} disabled={loading || isPremium}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : isPremium ? (
+                      'Already Premium'
+                    ) : (
+                      'Start Free Trial'
+                    )}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center mt-2">
                     7 days free, then $9.99/month. Cancel anytime.
