@@ -45,7 +45,6 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
           <div className="flex items-center space-x-4">
             {showAuth && !hideAuthButtons && (
               <>
-                <FriendsPanel />
                 <NotificationsPanel />
                 <LivesDisplay />
               </>
@@ -53,6 +52,7 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
             <LanguageSelector />
             {showAuth && !hideAuthButtons ? (
               <>
+                <FriendsPanel />
                 <Link to="/store">
                   <Button variant="ghost" size="sm">
                     {showIcons && <Store className="h-4 w-4 mr-2" />}

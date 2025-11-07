@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, User, Key, Bell, Upload, ArrowLeft, Code, Palette, Save, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -25,8 +26,7 @@ const Settings = () => {
   });
 
   const [notifications, setNotifications] = useState({
-    gradeUpdates: true,
-    aiRecommendations: true,
+    examResults: true,
     weeklyReports: false
   });
 
@@ -394,34 +394,38 @@ const Settings = () => {
                 <CardDescription>Manage your notification preferences</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>Email notifications are sent to:</strong> support@sudzinas.pw
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">
+                    Premium users receive AI-powered insights with their exam results via email.
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-base">Grade Updates</Label>
-                    <p className="text-sm text-gray-500">Get notified when your grades are updated</p>
+                    <Label className="text-base">Exam Results via Email</Label>
+                    <p className="text-sm text-gray-500">Receive your exam answers and results by email</p>
                   </div>
                   <Switch
-                    checked={notifications.gradeUpdates}
-                    onCheckedChange={(checked) => setNotifications({...notifications, gradeUpdates: checked})}
+                    checked={notifications.examResults}
+                    onCheckedChange={(checked) => setNotifications({...notifications, examResults: checked})}
                   />
                 </div>
-                <div className="flex items-center justify-between">
+
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
-                    <Label className="text-base">AI Recommendations</Label>
-                    <p className="text-sm text-gray-500">Receive personalized learning suggestions</p>
-                  </div>
-                  <Switch
-                    checked={notifications.aiRecommendations}
-                    onCheckedChange={(checked) => setNotifications({...notifications, aiRecommendations: checked})}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Weekly Reports</Label>
-                    <p className="text-sm text-gray-500">Get weekly progress summaries</p>
+                    <div className="flex items-center space-x-2">
+                      <Label className="text-base">Weekly Reports</Label>
+                      <Badge variant="secondary" className="text-xs">Premium</Badge>
+                    </div>
+                    <p className="text-sm text-gray-500">Get weekly progress summaries (Premium only)</p>
                   </div>
                   <Switch
                     checked={notifications.weeklyReports}
                     onCheckedChange={(checked) => setNotifications({...notifications, weeklyReports: checked})}
+                    disabled={true}
                   />
                 </div>
               </CardContent>

@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Award, Clock, BookOpen, Target, Star, Trophy } from "lucide-react";
+import { TrendingUp, Award, Clock, BookOpen, Target, Star, Trophy, LineChart, BarChart3, PieChart } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface LessonProgress {
   id: string;
@@ -29,6 +30,7 @@ interface Achievement {
 
 const Progress = () => {
   const { user } = useAuth();
+  const [isPremium, setIsPremium] = useState(false);
   const [lessonsProgress, setLessonsProgress] = useState<LessonProgress[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [stats, setStats] = useState({
@@ -71,10 +73,10 @@ const Progress = () => {
         }));
       }
 
-      // Fetch profile for XP and level
+      // Fetch profile for XP, level and premium status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('experience, level')
+        .select('experience, level, is_premium')
         .eq('id', user.id)
         .single();
 
@@ -85,6 +87,7 @@ const Progress = () => {
           xp: profile.experience,
           nextLevelXp: profile.level * 1000
         }));
+        setIsPremium(profile.is_premium || false);
       }
 
       // Fetch achievements
@@ -125,7 +128,7 @@ const Progress = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showAuth={true} showIcons={true} />
+      <Header showAuth={false} showIcons={false} showBackButton={true} hideAuthButtons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -190,8 +193,9 @@ const Progress = () => {
         </div>
 
         <Tabs defaultValue="lessons" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
             <TabsTrigger value="lessons">Lessons</TabsTrigger>
+            <TabsTrigger value="trends">Trends</TabsTrigger>
             <TabsTrigger value="achievements">Achievements</TabsTrigger>
           </TabsList>
 
@@ -256,6 +260,128 @@ const Progress = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="trends" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <LineChart className="h-5 w-5" />
+                    <span>Weekly Progress</span>
+                  </CardTitle>
+                  <CardDescription>Your lesson completion over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-end justify-between space-x-2">
+                    {[65, 78, 45, 88, 92, 75, 85].map((height, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center">
+                        <div
+                          className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t"
+                          style={{ height: `${height}%` }}
+                        />
+                        <span className="text-xs text-muted-foreground mt-2">
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="h-5 w-5" />
+                    <span>Subject Performance</span>
+                  </CardTitle>
+                  <CardDescription>Average scores by subject</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { subject: 'Math', score: 85, color: 'bg-blue-500' },
+                    { subject: 'Science', score: 78, color: 'bg-green-500' },
+                    { subject: 'Language', score: 92, color: 'bg-purple-500' },
+                    { subject: 'Social', score: 88, color: 'bg-orange-500' }
+                  ].map((item) => (
+                    <div key={item.subject}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">{item.subject}</span>
+                        <span className="text-sm text-muted-foreground">{item.score}%</span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${item.color}`}
+                          style={{ width: `${item.score}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <PieChart className="h-5 w-5" />
+                    <span>Study Time Distribution</span>
+                  </CardTitle>
+                  <CardDescription>Hours spent per subject</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[
+                      { subject: 'Mathematics', hours: 24, percentage: 30, color: 'bg-blue-500' },
+                      { subject: 'Science', hours: 18, percentage: 22, color: 'bg-green-500' },
+                      { subject: 'Language Arts', hours: 20, percentage: 25, color: 'bg-purple-500' },
+                      { subject: 'Social Studies', hours: 18, percentage: 23, color: 'bg-orange-500' }
+                    ].map((item) => (
+                      <div key={item.subject} className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                        <div className="flex-1">
+                          <div className="flex justify-between text-sm">
+                            <span>{item.subject}</span>
+                            <span className="text-muted-foreground">{item.hours}h ({item.percentage}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {isPremium && (
+                <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Star className="h-5 w-5 text-purple-600" />
+                      <span>AI Insights</span>
+                    </CardTitle>
+                    <CardDescription>Personalized recommendations from AI</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 bg-background/50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">📈 Strength Areas</h4>
+                      <p className="text-sm text-muted-foreground">
+                        You're excelling in Language Arts with a 92% average. Your consistent performance shows strong comprehension skills.
+                      </p>
+                    </div>
+                    <div className="p-4 bg-background/50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">🎯 Areas for Improvement</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Focus on Science fundamentals. Consider spending 15-20 minutes daily on basic concepts to build a stronger foundation.
+                      </p>
+                    </div>
+                    <div className="p-4 bg-background/50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">💡 Study Tip</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Your study pattern shows peak productivity on Fridays. Try scheduling challenging topics for Friday sessions.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="achievements" className="space-y-6">

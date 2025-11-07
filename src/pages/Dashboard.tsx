@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,14 +9,37 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import { HeartsDisplay } from "@/components/HeartsDisplay";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const [isPremium, setIsPremium] = useState(false);
   const [grades, setGrades] = useState([
     { subject: "Mathematics", grade: 85, trend: "up" },
     { subject: "Science", grade: 78, trend: "down" },
     { subject: "English", grade: 92, trend: "up" },
     { subject: "History", grade: 80, trend: "stable" }
   ]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkPremium = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setIsPremium(data.is_premium || false);
+      }
+    };
+    
+    checkPremium();
+  }, [user]);
 
   const [selectedLesson, setSelectedLesson] = useState("");
   
@@ -126,13 +149,16 @@ const Dashboard = () => {
       <Header showIcons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
-          <p className="text-gray-600">Here's your learning progress and AI-powered recommendations.</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
+            <p className="text-gray-600">Here's your learning progress and AI-powered recommendations.</p>
+          </div>
+          <HeartsDisplay />
         </div>
 
         {/* Grades Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className={`grid grid-cols-1 ${isPremium ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8 mb-8`}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -170,8 +196,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* AI Recommendations */}
-          <Card>
+          {/* AI Recommendations - Premium Only */}
+          {isPremium && <Card>
             <CardHeader>
               <CardTitle>Recommendations</CardTitle>
               <CardDescription>Personalized recommendations based on your performance</CardDescription>
@@ -198,7 +224,7 @@ const Dashboard = () => {
                 })}
               </div>
             </CardContent>
-          </Card>
+          </Card>}
         </div>
 
         {/* Quick Actions */}
