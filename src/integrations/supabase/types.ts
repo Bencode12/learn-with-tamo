@@ -243,62 +243,45 @@ export type Database = {
       }
       lesson_progress: {
         Row: {
-          completed_at: string | null
-          created_at: string | null
+          chapter_id: string
+          completed: boolean
+          created_at: string
           id: string
-          last_accessed_at: string | null
+          last_accessed: string
           lesson_id: string
-          quiz_attempts: number | null
-          quiz_completed: boolean | null
-          quiz_score: number | null
-          status: string
-          time_spent: number | null
-          updated_at: string | null
+          score: number | null
+          subject_id: string
+          time_spent: number
+          updated_at: string
           user_id: string
-          video_completed: boolean | null
-          worksheet_completed: boolean | null
         }
         Insert: {
-          completed_at?: string | null
-          created_at?: string | null
+          chapter_id: string
+          completed?: boolean
+          created_at?: string
           id?: string
-          last_accessed_at?: string | null
+          last_accessed?: string
           lesson_id: string
-          quiz_attempts?: number | null
-          quiz_completed?: boolean | null
-          quiz_score?: number | null
-          status?: string
-          time_spent?: number | null
-          updated_at?: string | null
+          score?: number | null
+          subject_id: string
+          time_spent?: number
+          updated_at?: string
           user_id: string
-          video_completed?: boolean | null
-          worksheet_completed?: boolean | null
         }
         Update: {
-          completed_at?: string | null
-          created_at?: string | null
+          chapter_id?: string
+          completed?: boolean
+          created_at?: string
           id?: string
-          last_accessed_at?: string | null
+          last_accessed?: string
           lesson_id?: string
-          quiz_attempts?: number | null
-          quiz_completed?: boolean | null
-          quiz_score?: number | null
-          status?: string
-          time_spent?: number | null
-          updated_at?: string | null
+          score?: number | null
+          subject_id?: string
+          time_spent?: number
+          updated_at?: string
           user_id?: string
-          video_completed?: boolean | null
-          worksheet_completed?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "lesson_progress_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "lessons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       lessons: {
         Row: {
