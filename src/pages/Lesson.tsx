@@ -10,6 +10,8 @@ import { BookOpen, PlayCircle, FileText, CheckCircle, Download, ArrowLeft, Arrow
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
+import { useLessonProgress } from "@/hooks/useLessonProgress";
+import { findLesson } from "@/data/lessonContent";
 
 const Lesson = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +20,7 @@ const Lesson = () => {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [worksheetAnswers, setWorksheetAnswers] = useState<Record<number, string>>({});
   const [score, setScore] = useState(0);
+  const { saveProgress } = useLessonProgress();
 
   const lessonData = {
     title: searchParams.get("title") || "Introduction to Algebra",
@@ -100,7 +103,15 @@ const Lesson = () => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    await saveProgress({
+      subjectId: searchParams.get("subjectId") || "math",
+      chapterId: searchParams.get("chapterId") || "algebra",
+      lessonId: searchParams.get("lessonId") || "intro-variables",
+      completed: true,
+      score,
+      timeSpent: 30
+    });
     toast.success("Lesson completed! +50 coins, +100 XP");
     navigate(-1);
   };

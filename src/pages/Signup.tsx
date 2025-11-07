@@ -61,7 +61,8 @@ const Signup = () => {
     const { error } = await signUp(formData.email, formData.password, formData.username);
     
     if (!error) {
-      navigate('/login');
+      // User will be automatically logged in due to auto-confirm
+      navigate('/dashboard');
     }
     
     setLoading(false);

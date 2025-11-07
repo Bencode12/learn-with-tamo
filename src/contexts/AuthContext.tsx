@@ -41,13 +41,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, username: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: {
           username,
           display_name: username
@@ -61,10 +58,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: error.message,
         variant: "destructive"
       });
-    } else {
+    } else if (data.user) {
       toast({
         title: "Account created!",
-        description: "You can now sign in to your account.",
+        description: "Logging you in...",
       });
     }
 
