@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { LivesDisplay } from "./LivesDisplay";
-import { CoinsDisplay } from "./CoinsDisplay";
+import { NotificationsPanel } from "./NotificationsPanel";
+import { FriendsPanel } from "./FriendsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
@@ -44,8 +45,9 @@ const Header = ({ showAuth = true, showIcons = false, showBackButton = false, hi
           <div className="flex items-center space-x-4">
             {showAuth && !hideAuthButtons && (
               <>
+                <FriendsPanel />
+                <NotificationsPanel />
                 <LivesDisplay />
-                <CoinsDisplay />
               </>
             )}
             <LanguageSelector />

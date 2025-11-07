@@ -111,7 +111,6 @@ const Lesson = () => {
     if (!user) return;
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000 / 60); // minutes
-    const coinsEarned = 50;
     const xpEarned = 100;
 
     try {
@@ -125,10 +124,10 @@ const Lesson = () => {
         timeSpent: timeSpent
       });
 
-      // Update user profile - add coins and XP
+      // Update user profile - add XP
       const { data: profile } = await supabase
         .from('profiles')
-        .select('coins, experience')
+        .select('experience')
         .eq('id', user.id)
         .single();
 
@@ -136,13 +135,12 @@ const Lesson = () => {
         await supabase
           .from('profiles')
           .update({
-            coins: profile.coins + coinsEarned,
             experience: profile.experience + xpEarned
           })
           .eq('id', user.id);
       }
 
-      toast.success(`Lesson completed! +${coinsEarned} coins, +${xpEarned} XP`);
+      toast.success(`Lesson completed! +${xpEarned} XP`);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error completing lesson:', error);
@@ -320,12 +318,7 @@ const Lesson = () => {
                 </div>
 
                 {/* Rewards */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-center">
-                    <Trophy className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Coins Earned</p>
-                    <p className="text-2xl font-bold text-yellow-700">+50</p>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 max-w-xs mx-auto">
                   <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center">
                     <Trophy className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                     <p className="text-sm text-gray-600">XP Gained</p>

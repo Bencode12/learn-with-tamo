@@ -187,25 +187,28 @@ export type Database = {
       friendships: {
         Row: {
           created_at: string | null
+          created_by: string | null
           friend_id: string
           id: string
-          status: string
+          status: Database["public"]["Enums"]["friendship_status"] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           friend_id: string
           id?: string
-          status?: string
+          status?: Database["public"]["Enums"]["friendship_status"] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           friend_id?: string
           id?: string
-          status?: string
+          status?: Database["public"]["Enums"]["friendship_status"] | null
           updated_at?: string | null
           user_id?: string
         }
@@ -367,10 +370,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
-          coins: number
           created_at: string
           display_name: string | null
           experience: number
@@ -388,7 +423,6 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          coins?: number
           created_at?: string
           display_name?: string | null
           experience?: number
@@ -406,7 +440,6 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          coins?: number
           created_at?: string
           display_name?: string | null
           experience?: number
@@ -458,6 +491,7 @@ export type Database = {
           last_life_lost_at: string | null
           lives: number
           lives_refill_at: string | null
+          max_lives: number | null
           updated_at: string | null
           user_id: string
         }
@@ -465,6 +499,7 @@ export type Database = {
           last_life_lost_at?: string | null
           lives?: number
           lives_refill_at?: string | null
+          max_lives?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -472,6 +507,7 @@ export type Database = {
           last_life_lost_at?: string | null
           lives?: number
           lives_refill_at?: string | null
+          max_lives?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -540,9 +576,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      refill_user_lives: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "staff" | "user"
+      friendship_status: "pending" | "accepted" | "rejected"
       game_mode: "single" | "ranked" | "team" | "competitive"
     }
     CompositeTypes: {
@@ -672,6 +710,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "user"],
+      friendship_status: ["pending", "accepted", "rejected"],
       game_mode: ["single", "ranked", "team", "competitive"],
     },
   },
