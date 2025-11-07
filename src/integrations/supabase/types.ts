@@ -145,6 +145,50 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_attempts: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          exam_id: string
+          id: string
+          score: number
+          subject_breakdown: Json | null
+          time_taken_seconds: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          completed_at?: string | null
+          exam_id: string
+          id?: string
+          score: number
+          subject_breakdown?: Json | null
+          time_taken_seconds: number
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          exam_id?: string
+          id?: string
+          score?: number
+          subject_breakdown?: Json | null
+          time_taken_seconds?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_results: {
         Row: {
           ai_insights: string | null
@@ -181,6 +225,45 @@ export type Database = {
           subjects?: Json
           total_score?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      exams: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          is_published: boolean | null
+          questions: Json
+          subject: string
+          time_limit_minutes: number
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty: string
+          id?: string
+          is_published?: boolean | null
+          questions: Json
+          subject: string
+          time_limit_minutes?: number
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_published?: boolean | null
+          questions?: Json
+          subject?: string
+          time_limit_minutes?: number
+          title?: string
         }
         Relationships: []
       }
@@ -328,6 +411,44 @@ export type Database = {
         }
         Relationships: []
       }
+      match_participants: {
+        Row: {
+          id: string
+          is_ready: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          match_id: string
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_ready?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          match_id: string
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_ready?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          match_id?: string
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_participants_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_logs: {
         Row: {
           action_taken: string | null
@@ -367,6 +488,57 @@ export type Database = {
           reviewed_by?: string | null
           severity?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      multiplayer_matches: {
+        Row: {
+          chapter: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          current_players: number | null
+          id: string
+          lesson: string | null
+          max_players: number
+          mode: string
+          room_code: string
+          room_name: string | null
+          started_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          chapter?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_players?: number | null
+          id?: string
+          lesson?: string | null
+          max_players: number
+          mode: string
+          room_code: string
+          room_name?: string | null
+          started_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          chapter?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_players?: number | null
+          id?: string
+          lesson?: string | null
+          max_players?: number
+          mode?: string
+          room_code?: string
+          room_name?: string | null
+          started_at?: string | null
+          status?: string
+          subject?: string | null
         }
         Relationships: []
       }
