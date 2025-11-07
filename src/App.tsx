@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -26,32 +28,34 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/store" element={<Store />} />
-          <Route path="/game-modes" element={<GameModes />} />
-          <Route path="/single-mode" element={<SingleMode />} />
-          <Route path="/duos-mode" element={<DuosMode />} />
-          <Route path="/ranked-mode" element={<RankedMode />} />
-          <Route path="/team-mode" element={<TeamMode />} />
-          <Route path="/lesson-start" element={<LessonStart />} />
-          <Route path="/lesson" element={<Lesson />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+            <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
+            <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
+            <Route path="/single-mode" element={<ProtectedRoute><SingleMode /></ProtectedRoute>} />
+            <Route path="/duos-mode" element={<ProtectedRoute><DuosMode /></ProtectedRoute>} />
+            <Route path="/ranked-mode" element={<ProtectedRoute><RankedMode /></ProtectedRoute>} />
+            <Route path="/team-mode" element={<ProtectedRoute><TeamMode /></ProtectedRoute>} />
+            <Route path="/lesson-start" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
+            <Route path="/lesson" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

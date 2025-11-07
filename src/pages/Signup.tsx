@@ -1,11 +1,12 @@
-
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, BookOpen } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,16 @@ const Signup = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signUp, user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -24,14 +35,36 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive"
+      });
       return;
     }
-    // TODO: Implement signup logic
-    console.log("Signup attempt:", formData);
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    const { error } = await signUp(formData.email, formData.password, formData.username);
+    
+    if (!error) {
+      navigate('/login');
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -115,8 +148,8 @@ const Signup = () => {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full">
-              Create Account
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">

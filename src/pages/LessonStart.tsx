@@ -58,6 +58,11 @@ const LessonStart = () => {
     navigate(`/lesson?${searchParams.toString()}`);
   };
 
+  const handleBack = () => {
+    const subject = searchParams.get('subject') || 'Subjects';
+    navigate('/single-mode');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -65,9 +70,9 @@ const LessonStart = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+              <Button variant="ghost" size="sm" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Back to {searchParams.get('subject') || 'Subjects'}
               </Button>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />

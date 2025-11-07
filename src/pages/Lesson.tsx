@@ -102,7 +102,13 @@ const Lesson = () => {
 
   const handleComplete = () => {
     toast.success("Lesson completed! +50 coins, +100 XP");
-    navigate("/dashboard");
+    navigate(-1);
+  };
+
+  const handleExit = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const lessonStartUrl = `/lesson-start?${searchParams.toString()}`;
+    navigate(lessonStartUrl);
   };
 
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -114,7 +120,7 @@ const Lesson = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+              <Button variant="ghost" size="sm" onClick={handleExit}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Exit Lesson
               </Button>

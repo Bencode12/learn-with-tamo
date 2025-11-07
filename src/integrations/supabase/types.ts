@@ -14,6 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          coins_reward: number | null
+          created_at: string | null
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number | null
+        }
+        Insert: {
+          coins_reward?: number | null
+          created_at?: string | null
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward?: number | null
+        }
+        Update: {
+          coins_reward?: number | null
+          created_at?: string | null
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      ai_insight_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          month: string
+          updated_at: string | null
+          user_id: string
+          uses_count: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          month: string
+          updated_at?: string | null
+          user_id: string
+          uses_count?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          month?: string
+          updated_at?: string | null
+          user_id?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
+      daily_challenge_completions: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          id: string
+          score: number
+          time_taken: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          id?: string
+          score?: number
+          time_taken: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          id?: string
+          score?: number
+          time_taken?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenge_completions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_challenges: {
+        Row: {
+          challenge_date: string
+          coins_reward: number
+          created_at: string | null
+          difficulty: string
+          id: string
+          questions: Json
+          subject: string
+          xp_reward: number
+        }
+        Insert: {
+          challenge_date: string
+          coins_reward?: number
+          created_at?: string | null
+          difficulty: string
+          id?: string
+          questions: Json
+          subject: string
+          xp_reward?: number
+        }
+        Update: {
+          challenge_date?: string
+          coins_reward?: number
+          created_at?: string | null
+          difficulty?: string
+          id?: string
+          questions?: Json
+          subject?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      exam_results: {
+        Row: {
+          ai_insights: string | null
+          completed_at: string | null
+          created_at: string | null
+          exam_month: string
+          id: string
+          max_score: number
+          percentage: number
+          subjects: Json
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          ai_insights?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          exam_month: string
+          id?: string
+          max_score: number
+          percentage: number
+          subjects: Json
+          total_score: number
+          user_id: string
+        }
+        Update: {
+          ai_insights?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          exam_month?: string
+          id?: string
+          max_score?: number
+          percentage?: number
+          subjects?: Json
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          created_at: string | null
+          friend_id: string
+          id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          friend_id: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          friend_id?: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard: {
         Row: {
           accuracy: number
@@ -43,6 +240,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lesson_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          lesson_id: string
+          quiz_attempts: number | null
+          quiz_completed: boolean | null
+          quiz_score: number | null
+          status: string
+          time_spent: number | null
+          updated_at: string | null
+          user_id: string
+          video_completed: boolean | null
+          worksheet_completed: boolean | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          lesson_id: string
+          quiz_attempts?: number | null
+          quiz_completed?: boolean | null
+          quiz_score?: number | null
+          status?: string
+          time_spent?: number | null
+          updated_at?: string | null
+          user_id: string
+          video_completed?: boolean | null
+          worksheet_completed?: boolean | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          lesson_id?: string
+          quiz_attempts?: number | null
+          quiz_completed?: boolean | null
+          quiz_score?: number | null
+          status?: string
+          time_spent?: number | null
+          updated_at?: string | null
+          user_id?: string
+          video_completed?: boolean | null
+          worksheet_completed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lessons: {
         Row: {
@@ -136,7 +392,14 @@ export type Database = {
           display_name: string | null
           experience: number
           id: string
+          is_premium: boolean | null
+          last_life_lost_at: string | null
           level: number
+          lives: number | null
+          lives_refill_at: string | null
+          premium_expires_at: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           username: string
         }
@@ -147,7 +410,14 @@ export type Database = {
           display_name?: string | null
           experience?: number
           id: string
+          is_premium?: boolean | null
+          last_life_lost_at?: string | null
           level?: number
+          lives?: number | null
+          lives_refill_at?: string | null
+          premium_expires_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           username: string
         }
@@ -158,9 +428,69 @@ export type Database = {
           display_name?: string | null
           experience?: number
           id?: string
+          is_premium?: boolean | null
+          last_life_lost_at?: string | null
           level?: number
+          lives?: number | null
+          lives_refill_at?: string | null
+          premium_expires_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_lives: {
+        Row: {
+          last_life_lost_at: string | null
+          lives: number
+          lives_refill_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          last_life_lost_at?: string | null
+          lives?: number
+          lives_refill_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          last_life_lost_at?: string | null
+          lives?: number
+          lives_refill_at?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
