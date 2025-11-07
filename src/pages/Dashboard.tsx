@@ -209,10 +209,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link to="/game-modes">
+              <Link to="/gamemodes">
                 <Button className="h-20 flex-col space-y-2 w-full bg-blue-600 hover:bg-blue-700">
                   <Play className="h-6 w-6" />
-                  <span>Start AI Tutoring</span>
+                  <span>Start Learning</span>
                 </Button>
               </Link>
               

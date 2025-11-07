@@ -44,6 +44,7 @@ const App = () => (
             <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
             <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
             <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
+            <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/single-mode" element={<ProtectedRoute><SingleMode /></ProtectedRoute>} />
             <Route path="/duos-mode" element={<ProtectedRoute><DuosMode /></ProtectedRoute>} />
             <Route path="/ranked-mode" element={<ProtectedRoute><RankedMode /></ProtectedRoute>} />

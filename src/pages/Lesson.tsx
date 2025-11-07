@@ -105,12 +105,13 @@ const Lesson = () => {
 
   const handleComplete = async () => {
     await saveProgress({
-      subjectId: searchParams.get("subjectId") || "math",
-      chapterId: searchParams.get("chapterId") || "algebra",
       lessonId: searchParams.get("lessonId") || "intro-variables",
-      completed: true,
-      score,
-      timeSpent: 30
+      videoCompleted: true,
+      worksheetCompleted: true,
+      quizCompleted: true,
+      quizScore: score,
+      timeSpent: 30,
+      status: 'completed'
     });
     toast.success("Lesson completed! +50 coins, +100 XP");
     navigate(-1);
