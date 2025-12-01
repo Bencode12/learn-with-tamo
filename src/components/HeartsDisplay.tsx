@@ -1,9 +1,6 @@
-import React from "react";
 import { Heart } from "lucide-react";
 import { useLives } from "@/hooks/useLives";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-
 export function HeartsDisplay() {
   const {
     lives,
@@ -54,3 +51,5 @@ export function HeartsDisplay() {
       {lives < maxLives && timeRemaining && <span className="text-xs font-medium text-muted-foreground">{timeRemaining}</span>}
     </div>;
 }
+import React from "react";
+import { supabase } from "@/integrations/supabase/client";
