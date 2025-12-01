@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ExportDataButton } from "@/components/ExportDataButton";
 
 interface LessonProgress {
   id: string;
@@ -131,9 +132,14 @@ const Progress = () => {
       <Header showAuth={false} showIcons={false} showBackButton={true} hideAuthButtons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Your Progress</h2>
-          <p className="text-muted-foreground">Track your learning journey and achievements</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground mb-2">Your Progress</h2>
+            <p className="text-muted-foreground">Track your learning journey and achievements</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <ExportDataButton type="all" />
+          </div>
         </div>
 
         {/* Stats Overview */}

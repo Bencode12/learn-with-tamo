@@ -81,7 +81,7 @@ const Index = () => {
   ];
 
   const subjects = [
-    "Mathematics", "Physics", "Chemistry", "Biology", "History", 
+    "Sciences", "Mathematics", "History", 
     "Literature", "Geography", "Computer Science", "Languages"
   ];
 
@@ -94,7 +94,9 @@ const Index = () => {
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-              The Future of
+              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                The Future of
+              </span>
               <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 AI-Powered Learning
               </span>
@@ -150,9 +152,6 @@ const Index = () => {
                       <div className={`p-3 rounded-lg ${feature.color} text-white`}>
                         <feature.icon className="h-6 w-6" />
                       </div>
-                      <Badge variant={feature.status === "In Progress" ? "default" : "secondary"}>
-                        {feature.status}
-                      </Badge>
                     </div>
                     <CardTitle className="text-lg">{feature.title}</CardTitle>
                     <CardDescription className="text-sm">
@@ -196,8 +195,8 @@ const Index = () => {
                   1
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Connect & Sync</h3>
-                  <p className="text-gray-600">Connect your Tamo account and sync your grades automatically. Our system analyzes your academic performance in real-time.</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Choose Your Path</h3>
+                  <p className="text-gray-600">Select from multiple learning modes: solo practice, competitive multiplayer, or team collaboration. Our adaptive system adjusts to your learning style and pace.</p>
                 </div>
               </div>
               <div className="flex items-start space-x-6">
@@ -205,8 +204,8 @@ const Index = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Analysis & OCR</h3>
-                  <p className="text-gray-600">Upload images of your homework or notes. Our OCR technology extracts text and our AI provides instant explanations and solutions.</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Learn by Doing</h3>
+                  <p className="text-gray-600">Engage with interactive lessons featuring video content, hands-on exercises, and real-time feedback. The hearts system keeps you motivated while our AI provides personalized tips when you need help.</p>
                 </div>
               </div>
               <div className="flex items-start space-x-6">
@@ -214,8 +213,8 @@ const Index = () => {
                   3
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Interactive Learning</h3>
-                  <p className="text-gray-600">Create interactive slides, watch AI-generated Manim videos, and compete with peers on the leaderboard while tracking your progress.</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Track & Excel</h3>
+                  <p className="text-gray-600">Monitor your progress with detailed analytics, compete on leaderboards, and earn achievements. Premium users unlock AI-powered insights that identify weak areas and suggest personalized improvement strategies.</p>
                 </div>
               </div>
             </div>
@@ -261,9 +260,9 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>Privacy Policy</li>
+                <li><Link to="/help" className="hover:text-white transition-colors">Help Center</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
               </ul>
             </div>
           </div>

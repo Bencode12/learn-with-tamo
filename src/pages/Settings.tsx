@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, User, Key, Bell, Upload, ArrowLeft, Code, Palette, Save, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import ThemeSelector from "@/components/ThemeSelector";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const Settings = () => {
   const [profile, setProfile] = useState({
@@ -138,6 +139,7 @@ const Settings = () => {
                 <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
               </Link>
             </div>
+            <LanguageSelector />
           </div>
         </div>
       </header>

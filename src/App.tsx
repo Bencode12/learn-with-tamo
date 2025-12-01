@@ -24,6 +24,9 @@ import LessonStart from "./pages/LessonStart";
 import Lesson from "./pages/Lesson";
 import Exams from "./pages/Exams";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ContactUs from "./pages/ContactUs";
+import HelpCenter from "./pages/HelpCenter";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,9 @@ const App = () => (
             <Route path="/lesson-start/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
             <Route path="/lesson/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/help" element={<HelpCenter />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
