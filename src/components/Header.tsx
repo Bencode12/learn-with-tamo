@@ -12,13 +12,15 @@ interface HeaderProps {
   showBackButton?: boolean;
   hideAuthButtons?: boolean;
   hideProfileButton?: boolean;
+  showFriends?: boolean;
 }
 const Header = ({
   showAuth = true,
   showIcons = false,
   showBackButton = false,
   hideAuthButtons = false,
-  hideProfileButton = false
+  hideProfileButton = false,
+  showFriends = false
 }: HeaderProps) => {
   const {
     signOut
@@ -49,8 +51,8 @@ const Header = ({
                 
               </>}
             <LanguageSelector />
+            {showFriends && <FriendsPanel />}
             {showAuth && !hideAuthButtons ? <>
-                <FriendsPanel />
                 <Link to="/store">
                   <Button variant="ghost" size="sm">
                     {showIcons && <Store className="h-4 w-4 mr-2" />}

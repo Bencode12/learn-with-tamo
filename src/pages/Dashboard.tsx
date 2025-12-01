@@ -6,16 +6,18 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy } from "lucide-react";
+import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import { HeartsDisplay } from "@/components/HeartsDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [grades, setGrades] = useState([
     { subject: "Mathematics", grade: 85, trend: "up" },
     { subject: "Science", grade: 78, trend: "down" },
