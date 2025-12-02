@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ContactUs from "./pages/ContactUs";
 import HelpCenter from "./pages/HelpCenter";
+import StaffHub from "./pages/StaffHub";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/lesson-start/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
             <Route path="/lesson/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
+            <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/help" element={<HelpCenter />} />

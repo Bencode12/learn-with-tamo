@@ -1,10 +1,9 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Brain, TrendingUp, Zap, Trophy, Languages, Camera, FileText, BarChart3, Video, Target, Lightbulb, Users, Presentation, ImageIcon, MessageSquare } from "lucide-react";
-import Header from "@/components/Header";
+import { AnimatedHero } from "@/components/AnimatedHero";
 
 const Index = () => {
   const features = [
@@ -12,70 +11,60 @@ const Index = () => {
       icon: TrendingUp,
       title: "Tamo API Integration",
       description: "Seamlessly sync your grades and academic data from Tamo platform",
-      status: "In Progress",
       color: "bg-blue-500"
     },
     {
       icon: Languages,
       title: "Multi-Language Support",
       description: "Learn in your preferred language with full localization support",
-      status: "In Progress",
       color: "bg-green-500"
     },
     {
       icon: Presentation,
       title: "Interactive Slides & Links",
       description: "Create, edit and share educational content with rich media support",
-      status: "In Progress",
       color: "bg-purple-500"
     },
     {
       icon: Camera,
       title: "Image & Photo OCR",
       description: "Extract text from images and photos for instant learning assistance",
-      status: "In Progress",
       color: "bg-orange-500"
     },
     {
       icon: Brain,
       title: "AI-Powered Suggestions",
       description: "Get personalized recommendations based on your learning patterns",
-      status: "In Progress",
       color: "bg-indigo-500"
     },
     {
       icon: BarChart3,
       title: "Progress Analytics",
       description: "Track your learning journey with detailed charts and insights",
-      status: "In Progress",
       color: "bg-cyan-500"
     },
     {
       icon: Trophy,
       title: "Competitive Leaderboard",
       description: "Compete with peers and track your ranking among other learners",
-      status: "In Progress",
       color: "bg-yellow-500"
     },
     {
       icon: Video,
       title: "Manim AI Videos",
       description: "Generate educational videos with AI assistance for complex problems",
-      status: "In Progress",
       color: "bg-red-500"
     },
     {
       icon: Target,
       title: "Smart Recommendations",
       description: "Receive tailored suggestions to improve weak areas and excel",
-      status: "In Progress",
       color: "bg-pink-500"
     },
     {
       icon: MessageSquare,
       title: "Eduka Answers",
       description: "Access comprehensive answers and explanations for various subjects",
-      status: "Idea",
       color: "bg-gray-400"
     }
   ];
@@ -86,51 +75,10 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Header showAuth={false} />
+    <div className="min-h-screen">
+      <AnimatedHero />
 
       <main>
-        {/* Hero Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                The Future of
-              </span>
-              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                AI-Powered Learning
-              </span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Experience next-generation education with AI tutoring, OCR technology, interactive content creation, 
-              and comprehensive analytics. Transform how you learn with our cutting-edge platform.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/signup">
-                <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-3">
-                  Start Learning Now
-                </Button>
-              </Link>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">10+</div>
-                <div className="text-gray-600">Advanced Features</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">6+</div>
-                <div className="text-gray-600">Languages Supported</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-indigo-600">∞</div>
-                <div className="text-gray-600">Learning Possibilities</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Features Showcase */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">

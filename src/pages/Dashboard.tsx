@@ -13,11 +13,14 @@ import { HeartsDisplay } from "@/components/HeartsDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { TherapistModal } from "@/components/TherapistModal";
+import { useTherapistCheckin } from "@/hooks/useTherapistCheckin";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { shouldShowCheckin, setShouldShowCheckin } = useTherapistCheckin();
   const [grades, setGrades] = useState([
     { subject: "Mathematics", grade: 85, trend: "up" },
     { subject: "Science", grade: 78, trend: "down" },
@@ -254,6 +257,16 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      <PremiumUpgradeModal 
+        open={showPremiumModal} 
+        onOpenChange={setShowPremiumModal} 
+      />
+      
+      <TherapistModal
+        open={shouldShowCheckin}
+        onOpenChange={setShouldShowCheckin}
+      />
     </div>
   );
 };
