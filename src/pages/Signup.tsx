@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { OAuthButtons } from "@/components/OAuthButtons";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -153,6 +154,9 @@ const Signup = () => {
               {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
+          
+          <OAuthButtons />
+          
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link to="/login" className="text-blue-600 hover:underline">

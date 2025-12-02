@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      anti_cheat_logs: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          game_mode: string
+          id: string
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          game_mode: string
+          id?: string
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          game_mode?: string
+          id?: string
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_challenge_completions: {
         Row: {
           challenge_id: string
@@ -587,7 +617,9 @@ export type Database = {
           level: number
           lives: number | null
           lives_refill_at: string | null
+          name_color: string | null
           premium_expires_at: string | null
+          staff_badge: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           updated_at: string
@@ -604,7 +636,9 @@ export type Database = {
           level?: number
           lives?: number | null
           lives_refill_at?: string | null
+          name_color?: string | null
           premium_expires_at?: string | null
+          staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
@@ -621,11 +655,43 @@ export type Database = {
           level?: number
           lives?: number | null
           lives_refill_at?: string | null
+          name_color?: string | null
           premium_expires_at?: string | null
+          staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      therapist_checkins: {
+        Row: {
+          ai_response: string | null
+          created_at: string | null
+          id: string
+          mood_rating: number | null
+          notes: string | null
+          stress_level: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_response?: string | null
+          created_at?: string | null
+          id?: string
+          mood_rating?: number | null
+          notes?: string | null
+          stress_level?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_response?: string | null
+          created_at?: string | null
+          id?: string
+          mood_rating?: number | null
+          notes?: string | null
+          stress_level?: number | null
+          user_id?: string
         }
         Relationships: []
       }

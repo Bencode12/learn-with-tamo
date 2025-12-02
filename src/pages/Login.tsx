@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { OAuthButtons } from "@/components/OAuthButtons";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -84,6 +85,9 @@ const Login = () => {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          
+          <OAuthButtons />
+          
           <div className="mt-4 text-center text-sm">
             Don't have an account?{" "}
             <Link to="/signup" className="text-blue-600 hover:underline">

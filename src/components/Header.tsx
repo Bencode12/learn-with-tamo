@@ -6,6 +6,9 @@ import { LivesDisplay } from "./LivesDisplay";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { FriendsPanel } from "./FriendsPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+
 interface HeaderProps {
   showAuth?: boolean;
   showIcons?: boolean;
@@ -22,10 +25,26 @@ const Header = ({
   hideProfileButton = false,
   showFriends = false
 }: HeaderProps) => {
-  const {
-    signOut
-  } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    const checkStaffStatus = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['admin', 'staff']);
+
+      setIsStaff(!!data && data.length > 0);
+    };
+
+    checkStaffStatus();
+  }, [user]);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -52,6 +71,13 @@ const Header = ({
               </>}
             <LanguageSelector />
             {showFriends && <FriendsPanel />}
+            {isStaff && showAuth && (
+              <Link to="/staff-hub">
+                <Button variant="ghost" size="sm" className="bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-600">
+                  Staff Hub
+                </Button>
+              </Link>
+            )}
             {showAuth && !hideAuthButtons ? <>
                 <Link to="/store">
                   <Button variant="ghost" size="sm">
