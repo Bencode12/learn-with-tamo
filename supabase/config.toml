@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.check-subscription]
 verify_jwt = true
+
+[functions.therapist-chat]
+verify_jwt = true
+
+[functions.ai-tutor]
+verify_jwt = false
