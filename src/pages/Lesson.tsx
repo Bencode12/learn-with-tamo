@@ -7,16 +7,22 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, PlayCircle, FileText, CheckCircle, Download, ArrowLeft, ArrowRight, Trophy } from "lucide-react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
-import { findLesson } from "@/data/lessonContent";
+import { findLesson, lessonData } from "@/data/lessonContent";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLearningTime } from "@/hooks/useLearningTime";
+import { useRandomEvents } from "@/hooks/useRandomEvents";
+import { RandomEventModal } from "@/components/RandomEventModal";
+import { DuolingoLesson } from "@/components/lesson-templates/DuolingoLesson";
+import { LeetCodeLesson } from "@/components/lesson-templates/LeetCodeLesson";
+import { BrilliantLesson } from "@/components/lesson-templates/BrilliantLesson";
 
 const Lesson = () => {
-  const [searchParams] = useSearchParams();
+  const { subjectId, chapterId, lessonId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -25,55 +31,85 @@ const Lesson = () => {
   const [score, setScore] = useState(0);
   const { saveProgress } = useLessonProgress();
   const [startTime] = useState(Date.now());
+  const { startTracking, stopTracking } = useLearningTime();
+  const { currentEvent, isEventOpen, checkForRandomEvent, closeEvent } = useRandomEvents();
 
-  const lessonData = {
-    title: searchParams.get("title") || "Introduction to Algebra",
-    subject: searchParams.get("subject") || "Mathematics",
-    chapter: searchParams.get("chapter") || "Algebra Basics",
-    videoId: "dQw4w9WgXcQ" // Replace with actual video ID
-  };
+  const lesson = subjectId && chapterId && lessonId 
+    ? findLesson(subjectId, chapterId, lessonId) 
+    : null;
 
-  const worksheetProblems = [
-    { id: 1, problem: "Solve for x: 2x + 5 = 15", type: "text" },
-    { id: 2, problem: "Simplify: 3(x + 4) - 2x", type: "text" },
-    { id: 3, problem: "What is the value of x when 5x - 3 = 17?", type: "text" }
-  ];
+  const subject = lessonData.find(s => s.id === subjectId);
 
-  const quizQuestions = [
-    {
-      id: 1,
-      question: "What is the first step in solving the equation 2x + 5 = 15?",
-      options: [
-        "Add 5 to both sides",
-        "Subtract 5 from both sides",
-        "Multiply both sides by 2",
-        "Divide both sides by 2"
-      ],
-      correct: "Subtract 5 from both sides"
-    },
-    {
-      id: 2,
-      question: "Which property allows us to distribute 3(x + 4)?",
-      options: [
-        "Commutative Property",
-        "Associative Property",
-        "Distributive Property",
-        "Identity Property"
-      ],
-      correct: "Distributive Property"
-    },
-    {
-      id: 3,
-      question: "What does 'solving for x' mean?",
-      options: [
-        "Finding any value",
-        "Isolating x on one side of the equation",
-        "Making the equation more complex",
-        "Removing x from the equation"
-      ],
-      correct: "Isolating x on one side of the equation"
-    }
-  ];
+  useEffect(() => {
+    startTracking();
+    return () => {
+      stopTracking();
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkForRandomEvent();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [checkForRandomEvent]);
+
+  if (lesson?.type === 'duolingo') {
+    return (
+      <>
+        <DuolingoLesson onComplete={() => {
+          stopTracking();
+          toast.success('Lesson completed! +100 XP');
+          navigate('/dashboard');
+        }} />
+        <RandomEventModal isOpen={isEventOpen} onClose={closeEvent} event={currentEvent} />
+      </>
+    );
+  }
+
+  if (lesson?.type === 'leetcode') {
+    return (
+      <>
+        <LeetCodeLesson onComplete={() => {
+          stopTracking();
+          toast.success('Lesson completed! +100 XP');
+          navigate('/dashboard');
+        }} />
+        <RandomEventModal isOpen={isEventOpen} onClose={closeEvent} event={currentEvent} />
+      </>
+    );
+  }
+
+  if (lesson?.type === 'brilliant') {
+    return (
+      <>
+        <BrilliantLesson onComplete={() => {
+          stopTracking();
+          toast.success('Lesson completed! +100 XP');
+          navigate('/dashboard');
+        }} />
+        <RandomEventModal isOpen={isEventOpen} onClose={closeEvent} event={currentEvent} />
+      </>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Lesson Not Found</CardTitle>
+            <CardDescription>The requested lesson could not be found.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/single-mode">
+              <Button className="w-full">Back to Lessons</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const steps = [
     { name: "Video", icon: PlayCircle },
@@ -84,12 +120,11 @@ const Lesson = () => {
 
   const handleNext = () => {
     if (currentStep === 2) {
-      // Calculate quiz score
       let correct = 0;
-      quizQuestions.forEach(q => {
+      lesson.quizQuestions.forEach(q => {
         if (quizAnswers[q.id] === q.correct) correct++;
       });
-      const percentage = Math.round((correct / quizQuestions.length) * 100);
+      const percentage = Math.round((correct / lesson.quizQuestions.length) * 100);
       setScore(percentage);
       toast.success(`Quiz completed! Score: ${percentage}%`);
     }
@@ -110,21 +145,19 @@ const Lesson = () => {
   const handleComplete = async () => {
     if (!user) return;
 
-    const timeSpent = Math.floor((Date.now() - startTime) / 1000 / 60); // minutes
+    const timeSpent = await stopTracking();
     const xpEarned = 100;
 
     try {
-      // Save lesson progress
       await saveProgress({
-        subjectId: "math",
-        chapterId: "algebra", 
-        lessonId: searchParams.get("lessonId") || "intro-variables",
+        subjectId: subjectId || 'unknown',
+        chapterId: chapterId || 'unknown',
+        lessonId: lessonId || 'unknown',
         completed: true,
         quizScore: score,
         timeSpent: timeSpent
       });
 
-      // Update user profile - add XP
       const { data: profile } = await supabase
         .from('profiles')
         .select('experience')
@@ -134,9 +167,7 @@ const Lesson = () => {
       if (profile) {
         await supabase
           .from('profiles')
-          .update({
-            experience: profile.experience + xpEarned
-          })
+          .update({ experience: profile.experience + xpEarned })
           .eq('id', user.id);
       }
 
@@ -149,16 +180,16 @@ const Lesson = () => {
   };
 
   const handleExit = () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const lessonStartUrl = `/lesson-start?${searchParams.toString()}`;
-    navigate(lessonStartUrl);
+    stopTracking();
+    navigate(`/lesson-start/${subjectId}/${chapterId}/${lessonId}`);
   };
 
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      <RandomEventModal isOpen={isEventOpen} onClose={closeEvent} event={currentEvent} />
+
       <header className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -197,11 +228,10 @@ const Lesson = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Video Step */}
         {currentStep === 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">{lessonData.title}</CardTitle>
+              <CardTitle className="text-2xl">{lesson.title}</CardTitle>
               <CardDescription>Watch the video lesson to understand the core concepts</CardDescription>
             </CardHeader>
             <CardContent>
@@ -209,7 +239,7 @@ const Lesson = () => {
                 <iframe
                   width="100%"
                   height="100%"
-                  src={`https://www.youtube.com/embed/${lessonData.videoId}`}
+                  src={`https://www.youtube.com/embed/${lesson.videoId}`}
                   title="Lesson Video"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -220,16 +250,15 @@ const Lesson = () => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">Key Points:</h4>
                 <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  <li>Pay attention to the examples demonstrated</li>
-                  <li>Take notes on important formulas and concepts</li>
-                  <li>Feel free to pause and replay sections as needed</li>
+                  {lesson.keyTakeaways.map((point, idx) => (
+                    <li key={idx}>{point}</li>
+                  ))}
                 </ul>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Worksheet Step */}
         {currentStep === 1 && (
           <Card>
             <CardHeader>
@@ -238,7 +267,7 @@ const Lesson = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {worksheetProblems.map((problem) => (
+                {lesson.worksheetProblems.map((problem) => (
                   <div key={problem.id} className="p-4 bg-gray-50 rounded-lg">
                     <Label className="text-base font-semibold mb-2 block">
                       Problem {problem.id}: {problem.problem}
@@ -252,17 +281,11 @@ const Lesson = () => {
                     />
                   </div>
                 ))}
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Tip:</strong> Show all your steps. This helps you understand the process and makes it easier to find mistakes.
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Quiz Step */}
         {currentStep === 2 && (
           <Card>
             <CardHeader>
@@ -271,11 +294,9 @@ const Lesson = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {quizQuestions.map((question) => (
+                {lesson.quizQuestions.map((question) => (
                   <div key={question.id} className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold mb-4">
-                      {question.id}. {question.question}
-                    </h4>
+                    <h4 className="font-semibold mb-4">{question.id}. {question.question}</h4>
                     <RadioGroup
                       value={quizAnswers[question.id]}
                       onValueChange={(value) => setQuizAnswers({...quizAnswers, [question.id]: value})}
@@ -283,9 +304,7 @@ const Lesson = () => {
                       {question.options.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2 mb-2">
                           <RadioGroupItem value={option} id={`q${question.id}-${index}`} />
-                          <Label htmlFor={`q${question.id}-${index}`} className="cursor-pointer">
-                            {option}
-                          </Label>
+                          <Label htmlFor={`q${question.id}-${index}`} className="cursor-pointer">{option}</Label>
                         </div>
                       ))}
                     </RadioGroup>
@@ -296,87 +315,66 @@ const Lesson = () => {
           </Card>
         )}
 
-        {/* Summary Step */}
         {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Lesson Complete! 🎉</CardTitle>
-              <CardDescription>Great job! Here's your summary and downloadable resources</CardDescription>
+              <CardDescription>Great job! Here's your summary</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Score Card */}
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-200">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">Quiz Score</h3>
-                      <p className="text-gray-600">Your performance on this lesson</p>
+                      <p className="text-gray-600">Your performance</p>
                     </div>
                     <div className="text-4xl font-bold text-green-600">{score}%</div>
                   </div>
                   <Progress value={score} className="h-3" />
                 </div>
 
-                {/* Rewards */}
-                <div className="grid grid-cols-1 gap-4 max-w-xs mx-auto">
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center">
-                    <Trophy className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">XP Gained</p>
-                    <p className="text-2xl font-bold text-purple-700">+100</p>
-                  </div>
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center max-w-xs mx-auto">
+                  <Trophy className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">XP Gained</p>
+                  <p className="text-2xl font-bold text-purple-700">+100</p>
                 </div>
 
-                {/* Key Takeaways */}
                 <div className="bg-blue-50 p-6 rounded-lg">
                   <h4 className="font-semibold text-lg mb-3">Key Takeaways:</h4>
                   <ul className="space-y-2 text-gray-700">
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Mastered the fundamental concepts of {lessonData.chapter}</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Completed practice problems successfully</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Demonstrated understanding through quiz</span>
-                    </li>
+                    {lesson.keyTakeaways.map((takeaway, idx) => (
+                      <li key={idx} className="flex items-start space-x-2">
+                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{takeaway}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
-                {/* Download Resources */}
-                <div>
-                  <h4 className="font-semibold text-lg mb-4">Download Resources:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-auto p-4 justify-start">
-                      <Download className="h-5 w-5 mr-3 flex-shrink-0" />
-                      <div className="text-left">
-                        <p className="font-semibold">Lesson PDF</p>
-                        <p className="text-xs text-gray-600">Complete notes and examples</p>
-                      </div>
-                    </Button>
-                    <Button variant="outline" className="h-auto p-4 justify-start">
-                      <Download className="h-5 w-5 mr-3 flex-shrink-0" />
-                      <div className="text-left">
-                        <p className="font-semibold">Practice Slides</p>
-                        <p className="text-xs text-gray-600">Additional exercises</p>
-                      </div>
-                    </Button>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button variant="outline" className="h-auto p-4 justify-start">
+                    <Download className="h-5 w-5 mr-3" />
+                    <div className="text-left">
+                      <p className="font-semibold">Lesson PDF</p>
+                      <p className="text-xs text-gray-600">Complete notes</p>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4 justify-start">
+                    <Download className="h-5 w-5 mr-3" />
+                    <div className="text-left">
+                      <p className="font-semibold">Practice Slides</p>
+                      <p className="text-xs text-gray-600">Additional exercises</p>
+                    </div>
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Navigation Buttons */}
         <div className="flex justify-between mt-8">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-          >
+          <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 0}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>

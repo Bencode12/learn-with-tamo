@@ -1,14 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Trophy, Users, Target, Zap, Crown, Timer, Brain, Check, ArrowLeft, Briefcase, Presentation, Heart, Star, Flame, Award, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { BookOpen, Trophy, Users, Target, Zap, Crown, Timer, Brain, Check, ArrowLeft, Briefcase, Presentation, Heart, Star, Flame, Award, TrendingUp, ChevronLeft, ChevronRight, Gamepad2, Medal, Clock, BookMarked } from "lucide-react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const GameModes = () => {
-  const [selectedMode, setSelectedMode] = useState("ranked");
   const statsScrollRef = useRef<HTMLDivElement>(null);
 
   const learningModules = [
@@ -78,11 +77,11 @@ const GameModes = () => {
     {
       id: "job-interview",
       name: "Job Interview Prep",
-      description: "Practice for technical and behavioral interviews",
+      description: "AI-powered interview preparation for your dream job",
       icon: Briefcase,
       color: "bg-indigo-500",
-      features: ["Mock interviews", "Industry questions", "Feedback analysis", "Resume tips"],
-      route: "/single-mode"
+      features: ["Custom job analysis", "Mock interviews", "AI feedback", "Company research"],
+      route: "/job-interview-prep"
     },
     {
       id: "presentation",
@@ -122,6 +121,10 @@ const GameModes = () => {
     { icon: Brain, label: "Lessons Done", value: "156", color: "text-indigo-500" },
     { icon: Target, label: "Quizzes Passed", value: "98", color: "text-emerald-500" },
     { icon: Zap, label: "Perfect Scores", value: "31", color: "text-amber-500" },
+    { icon: Gamepad2, label: "Games Played", value: "234", color: "text-violet-500" },
+    { icon: Medal, label: "Top 10 Finishes", value: "15", color: "text-red-500" },
+    { icon: Clock, label: "Avg Session", value: "28m", color: "text-teal-500" },
+    { icon: BookMarked, label: "Bookmarks", value: "45", color: "text-lime-500" },
   ];
 
   const scrollStats = (direction: "left" | "right") => {

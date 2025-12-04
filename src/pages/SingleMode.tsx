@@ -1,60 +1,30 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BookOpen, Target, Brain, Clock, Star, Trophy, ArrowRight, ArrowLeft, Eye } from "lucide-react";
-import { Link } from "react-router-dom";
+import { BookOpen, Target, Brain, Clock, Star, Trophy, ArrowRight, ArrowLeft, Eye, Lock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
+import { lessonData, getAccessibleSubjects, lessonTitleToId } from "@/data/lessonContent";
+import { useLearningTime } from "@/hooks/useLearningTime";
 
 const SingleMode = () => {
+  const navigate = useNavigate();
   const [currentProgress] = useState(65);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  
-  const allSubjects = [
-    { id: "math", name: "Mathematics", progress: 78, lessons: 45, icon: "📊" },
-    { id: "science", name: "Science", progress: 65, lessons: 32, icon: "🔬" },
-    { id: "language", name: "Language Arts", progress: 71, lessons: 38, icon: "📝" },
-    { id: "social", name: "Social Studies", progress: 82, lessons: 28, icon: "📚" },
-    { id: "cs", name: "Computer Science", progress: 55, lessons: 24, icon: "💻" },
-    { id: "arts", name: "Arts", progress: 68, lessons: 19, icon: "🎨" },
-    { id: "foreign", name: "Foreign Languages", progress: 42, lessons: 31, icon: "🌍" }
-  ];
+  const { isPremium, formatRemainingTime, canLearn } = useLearningTime();
 
-  const subjects = allSubjects.slice(0, 4);
+  const accessibleSubjects = getAccessibleSubjects(isPremium);
+  const allSubjects = lessonData;
 
-  const subjectDetails: Record<string, { chapters: { id: string; name: string; lessons: string[] }[] }> = {
-    math: {
-      chapters: [
-        { id: "algebra", name: "Algebra", lessons: ["Introduction to Variables", "Linear Equations", "Quadratic Functions", "Polynomials"] },
-        { id: "geometry", name: "Geometry", lessons: ["Basic Shapes", "Angles and Triangles", "Circles", "3D Geometry"] },
-        { id: "calculus", name: "Calculus", lessons: ["Limits", "Derivatives", "Integrals", "Applications"] }
-      ]
-    },
-    science: {
-      chapters: [
-        { id: "physics", name: "Physics", lessons: ["Motion", "Forces", "Energy", "Waves"] },
-        { id: "chemistry", name: "Chemistry", lessons: ["Atoms", "Periodic Table", "Chemical Reactions", "Acids and Bases"] },
-        { id: "biology", name: "Biology", lessons: ["Cells", "Genetics", "Evolution", "Ecology"] }
-      ]
-    },
-    language: {
-      chapters: [
-        { id: "grammar", name: "Grammar", lessons: ["Parts of Speech", "Sentence Structure", "Punctuation", "Common Errors"] },
-        { id: "writing", name: "Writing", lessons: ["Essay Structure", "Creative Writing", "Research Papers", "Citations"] },
-        { id: "literature", name: "Literature", lessons: ["Poetry Analysis", "Novel Study", "Drama", "Literary Devices"] }
-      ]
-    },
-    social: {
-      chapters: [
-        { id: "history", name: "History", lessons: ["Ancient Civilizations", "World Wars", "Modern History", "Local History"] },
-        { id: "geography", name: "Geography", lessons: ["Physical Geography", "Human Geography", "Maps and Navigation", "Climate"] },
-        { id: "civics", name: "Civics", lessons: ["Government Structure", "Rights and Responsibilities", "Democracy", "Law"] }
-      ]
+  const handleStartLesson = (subjectId: string, chapterId: string, lessonId: string) => {
+    if (!canLearn()) {
+      return;
     }
+    navigate(`/lesson-start/${subjectId}/${chapterId}/${lessonId}`);
   };
 
   return (
@@ -67,7 +37,7 @@ const SingleMode = () => {
               <Link to="/game-modes">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Gamemodes
+                  Back to Learning Modules
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -76,6 +46,12 @@ const SingleMode = () => {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              {!isPremium && (
+                <Badge variant="outline" className="text-sm">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {formatRemainingTime()} left today
+                </Badge>
+              )}
               <LanguageSelector />
             </div>
           </div>
@@ -117,178 +93,111 @@ const SingleMode = () => {
 
         {/* Subject Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {subjects.map((subject) => (
-            <Card key={subject.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-2xl">{subject.icon}</div>
-                    <div>
-                      <CardTitle>{subject.name}</CardTitle>
-                      <CardDescription>{subject.lessons} lessons completed</CardDescription>
+          {allSubjects.map((subject) => {
+            const isLocked = subject.isPremium && !isPremium;
+            
+            return (
+              <Card key={subject.id} className={`hover:shadow-lg transition-shadow ${isLocked ? 'opacity-75' : ''}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="text-2xl">{subject.icon}</div>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {subject.name}
+                          {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                        </CardTitle>
+                        <CardDescription>
+                          {subject.chapters.reduce((acc, ch) => acc + ch.lessons.length, 0)} lessons
+                        </CardDescription>
+                      </div>
                     </div>
+                    {isLocked && <Badge variant="secondary">Premium</Badge>}
                   </div>
-                  <Badge variant="secondary">{subject.progress}%</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Progress value={subject.progress} className="h-2" />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>~30 min</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Progress value={65} className="h-2" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4" />
+                        <span>~30 min</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4" />
+                        <span>+50 XP</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4" />
-                      <span>+50 XP</span>
-                    </div>
-                  </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button size="sm" onClick={() => { setSelectedSubject(subject.id); setSelectedChapter(null); }}>
-                        Continue
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>
-                          {!selectedChapter ? `Select Chapter - ${subject.name}` : `Select Lesson`}
-                        </DialogTitle>
-                      </DialogHeader>
-                      {!selectedChapter ? (
-                        <div className="grid grid-cols-1 gap-3">
-                          {subjectDetails[subject.id]?.chapters.map((chapter) => (
-                            <Card key={chapter.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedChapter(chapter.id)}>
-                              <CardContent className="p-4">
-                                <h4 className="font-semibold">{chapter.name}</h4>
-                                <p className="text-sm text-gray-600">{chapter.lessons.length} lessons</p>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)}>
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Chapters
+                    {isLocked ? (
+                      <Link to="/store">
+                        <Button size="sm" variant="outline">
+                          <Lock className="h-4 w-4 mr-1" />
+                          Unlock
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" onClick={() => { setSelectedSubject(subject.id); setSelectedChapter(null); }}>
+                            Continue
+                            <ArrowRight className="h-4 w-4 ml-1" />
                           </Button>
-                          {subjectDetails[subject.id]?.chapters
-                            .find(ch => ch.id === selectedChapter)
-                            ?.lessons.map((lesson, idx) => (
-                              <Card key={idx} className="cursor-pointer hover:bg-gray-50">
-                                <CardContent className="p-4 flex items-center justify-between">
-                                  <div>
-                                    <h5 className="font-medium">{lesson}</h5>
-                                    <p className="text-sm text-gray-600">Lesson {idx + 1}</p>
-                                  </div>
-                                           <Link to={`/lesson-start?title=${encodeURIComponent(lesson)}&subject=${encodeURIComponent(subject.name)}&chapter=${encodeURIComponent(subjectDetails[subject.id]?.chapters.find(ch => ch.id === selectedChapter)?.name || '')}&coins=50&duration=30&xp=100&difficulty=Beginner`}>
-                                             <Button size="sm">Start</Button>
-                                           </Link>
-                                </CardContent>
-                              </Card>
-                            ))}
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>
+                              {!selectedChapter ? `Select Chapter - ${subject.name}` : `Select Lesson`}
+                            </DialogTitle>
+                          </DialogHeader>
+                          {!selectedChapter ? (
+                            <div className="grid grid-cols-1 gap-3">
+                              {subject.chapters.map((chapter) => (
+                                <Card key={chapter.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedChapter(chapter.id)}>
+                                  <CardContent className="p-4">
+                                    <h4 className="font-semibold">{chapter.name}</h4>
+                                    <p className="text-sm text-gray-600">{chapter.lessons.length} lessons</p>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)}>
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back to Chapters
+                              </Button>
+                              {subject.chapters
+                                .find(ch => ch.id === selectedChapter)
+                                ?.lessons.map((lesson, idx) => (
+                                  <Card key={lesson.id} className="cursor-pointer hover:bg-gray-50">
+                                    <CardContent className="p-4 flex items-center justify-between">
+                                      <div>
+                                        <h5 className="font-medium">{lesson.title}</h5>
+                                        <p className="text-sm text-gray-600">
+                                          Lesson {idx + 1} • {lesson.type === 'leetcode' ? 'Coding' : lesson.type === 'duolingo' ? 'Interactive' : 'Video'}
+                                        </p>
+                                      </div>
+                                      <Button 
+                                        size="sm"
+                                        onClick={() => handleStartLesson(subject.id, selectedChapter, lesson.id)}
+                                        disabled={!canLearn()}
+                                      >
+                                        Start
+                                      </Button>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-
-        {/* View More Card */}
-        <Card className="mb-8 border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors cursor-pointer">
-          <CardContent className="p-6 text-center">
-            <Eye className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <h3 className="text-lg font-semibold mb-2">View More Subjects</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Explore {allSubjects.length - 4} more subjects: {allSubjects.slice(4).map(s => s.name).join(", ")}
-            </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  View All Subjects
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>All Available Subjects</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-                  {allSubjects.map((subject) => (
-                    <Card key={subject.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-2xl">{subject.icon}</div>
-                          <div>
-                            <CardTitle className="text-lg">{subject.name}</CardTitle>
-                            <CardDescription>{subject.lessons} lessons</CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                       <CardContent>
-                         <Progress value={subject.progress} className="h-2 mb-2" />
-                         <div className="flex items-center justify-between">
-                           <span className="text-sm text-gray-600">{subject.progress}% complete</span>
-                           <Dialog>
-                             <DialogTrigger asChild>
-                               <Button size="sm" onClick={() => { setSelectedSubject(subject.id); setSelectedChapter(null); }}>
-                                 Start Learning
-                               </Button>
-                             </DialogTrigger>
-                             <DialogContent className="max-w-2xl">
-                               <DialogHeader>
-                                 <DialogTitle>
-                                   {!selectedChapter ? `Select Chapter - ${subject.name}` : `Select Lesson`}
-                                 </DialogTitle>
-                               </DialogHeader>
-                               {!selectedChapter ? (
-                                 <div className="grid grid-cols-1 gap-3">
-                                   {subjectDetails[subject.id]?.chapters.map((chapter) => (
-                                     <Card key={chapter.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedChapter(chapter.id)}>
-                                       <CardContent className="p-4">
-                                         <h4 className="font-semibold">{chapter.name}</h4>
-                                         <p className="text-sm text-gray-600">{chapter.lessons.length} lessons</p>
-                                       </CardContent>
-                                     </Card>
-                                   ))}
-                                 </div>
-                               ) : (
-                                 <div className="space-y-3">
-                                   <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)}>
-                                     <ArrowLeft className="h-4 w-4 mr-2" />
-                                     Back to Chapters
-                                   </Button>
-                                   {subjectDetails[subject.id]?.chapters
-                                     .find(ch => ch.id === selectedChapter)
-                                     ?.lessons.map((lesson, idx) => (
-                                       <Card key={idx} className="cursor-pointer hover:bg-gray-50">
-                                         <CardContent className="p-4 flex items-center justify-between">
-                                           <div>
-                                             <h5 className="font-medium">{lesson}</h5>
-                                             <p className="text-sm text-gray-600">Lesson {idx + 1}</p>
-                                           </div>
-                                           <Button size="sm">Start</Button>
-                                         </CardContent>
-                                       </Card>
-                                     ))}
-                                 </div>
-                               )}
-                             </DialogContent>
-                           </Dialog>
-                         </div>
-                       </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
 
         {/* Daily Challenges */}
         <Card>
