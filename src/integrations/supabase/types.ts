@@ -327,6 +327,48 @@ export type Database = {
         }
         Relationships: []
       }
+      job_interview_sessions: {
+        Row: {
+          ai_analysis: Json | null
+          company_name: string | null
+          created_at: string | null
+          experience_level: string
+          id: string
+          job_title: string
+          questions_asked: Json | null
+          skills: Json | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          company_name?: string | null
+          created_at?: string | null
+          experience_level: string
+          id?: string
+          job_title: string
+          questions_asked?: Json | null
+          skills?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          company_name?: string | null
+          created_at?: string | null
+          experience_level?: string
+          id?: string
+          job_title?: string
+          questions_asked?: Json | null
+          skills?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard: {
         Row: {
           accuracy: number
@@ -609,11 +651,13 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          daily_learning_time: number
           display_name: string | null
           experience: number
           id: string
           is_premium: boolean | null
           last_life_lost_at: string | null
+          learning_time_reset: string
           level: number
           lives: number | null
           lives_refill_at: string | null
@@ -622,17 +666,20 @@ export type Database = {
           staff_badge: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          total_learning_time: number
           updated_at: string
           username: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          daily_learning_time?: number
           display_name?: string | null
           experience?: number
           id: string
           is_premium?: boolean | null
           last_life_lost_at?: string | null
+          learning_time_reset?: string
           level?: number
           lives?: number | null
           lives_refill_at?: string | null
@@ -641,17 +688,20 @@ export type Database = {
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          total_learning_time?: number
           updated_at?: string
           username: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          daily_learning_time?: number
           display_name?: string | null
           experience?: number
           id?: string
           is_premium?: boolean | null
           last_life_lost_at?: string | null
+          learning_time_reset?: string
           level?: number
           lives?: number | null
           lives_refill_at?: string | null
@@ -660,8 +710,80 @@ export type Database = {
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          total_learning_time?: number
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      random_event_completions: {
+        Row: {
+          completed_at: string | null
+          event_id: string
+          id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          event_id: string
+          id?: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          event_id?: string
+          id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "random_event_completions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "random_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      random_events: {
+        Row: {
+          active_from: string | null
+          active_until: string | null
+          created_at: string | null
+          description: string | null
+          event_type: string
+          id: string
+          questions: Json
+          time_limit_seconds: number | null
+          title: string
+          xp_reward: number | null
+        }
+        Insert: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          questions: Json
+          time_limit_seconds?: number | null
+          title: string
+          xp_reward?: number | null
+        }
+        Update: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          questions?: Json
+          time_limit_seconds?: number | null
+          title?: string
+          xp_reward?: number | null
         }
         Relationships: []
       }

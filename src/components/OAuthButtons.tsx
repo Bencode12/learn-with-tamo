@@ -3,32 +3,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const OAuthButtons = () => {
-  const handleGoogleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
-    });
+  const getRedirectUrl = () => {
+    // Use the current origin for the redirect
+    const origin = window.location.origin;
+    return `${origin}/dashboard`;
+  };
 
-    if (error) {
-      toast.error("Failed to sign in with Google");
-      console.error('Google OAuth error:', error);
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: getRedirectUrl(),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Google OAuth error:', error);
+        toast.error("Failed to sign in with Google. Make sure Google OAuth is configured in Supabase.");
+      }
+    } catch (err) {
+      console.error('Google sign in error:', err);
+      toast.error("An error occurred during Google sign in");
     }
   };
 
   const handleMicrosoftSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-        scopes: 'email'
-      }
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: getRedirectUrl(),
+          scopes: 'email profile openid',
+        }
+      });
 
-    if (error) {
-      toast.error("Failed to sign in with Microsoft");
-      console.error('Microsoft OAuth error:', error);
+      if (error) {
+        console.error('Microsoft OAuth error:', error);
+        toast.error("Failed to sign in with Microsoft. Make sure Azure OAuth is configured in Supabase.");
+      }
+    } catch (err) {
+      console.error('Microsoft sign in error:', err);
+      toast.error("An error occurred during Microsoft sign in");
     }
   };
 
@@ -87,6 +107,10 @@ export const OAuthButtons = () => {
           Microsoft
         </Button>
       </div>
+
+      <p className="text-xs text-center text-muted-foreground mt-2">
+        OAuth requires configuration in Supabase Auth settings
+      </p>
     </div>
   );
 };

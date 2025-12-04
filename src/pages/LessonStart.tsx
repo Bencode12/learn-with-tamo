@@ -1,23 +1,25 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, PlayCircle, FileText, CheckCircle, Award, Coins, Clock, Target, ArrowLeft } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { BookOpen, PlayCircle, FileText, CheckCircle, Award, Clock, Target, ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
+import { findLesson, lessonData } from "@/data/lessonContent";
+import { useLearningTime } from "@/hooks/useLearningTime";
 
 const LessonStart = () => {
-  const [searchParams] = useSearchParams();
+  const { subjectId, chapterId, lessonId } = useParams();
   const navigate = useNavigate();
-  
-  const lessonData = {
-    title: searchParams.get("title") || "Introduction to Algebra",
-    subject: searchParams.get("subject") || "Mathematics",
-    chapter: searchParams.get("chapter") || "Algebra Basics",
-    difficulty: searchParams.get("difficulty") || "Beginner",
-    coins: searchParams.get("coins") || "50",
-    duration: searchParams.get("duration") || "30",
-    xp: searchParams.get("xp") || "100"
-  };
+  const { canLearn, formatRemainingTime, isPremium, checkAndWarn } = useLearningTime();
+
+  // Find the lesson from our data
+  const lesson = subjectId && chapterId && lessonId 
+    ? findLesson(subjectId, chapterId, lessonId) 
+    : null;
+
+  // Find subject and chapter names
+  const subject = lessonData.find(s => s.id === subjectId);
+  const chapter = subject?.chapters.find(c => c.id === chapterId);
 
   const lessonSteps = [
     {
@@ -55,13 +57,34 @@ const LessonStart = () => {
   ];
 
   const startLesson = () => {
-    navigate(`/lesson?${searchParams.toString()}`);
+    if (!canLearn()) {
+      checkAndWarn();
+      return;
+    }
+    navigate(`/lesson/${subjectId}/${chapterId}/${lessonId}`);
   };
 
   const handleBack = () => {
-    const subject = searchParams.get('subject') || 'Subjects';
     navigate('/single-mode');
   };
+
+  if (!lesson) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Lesson Not Found</CardTitle>
+            <CardDescription>The requested lesson could not be found.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/single-mode">
+              <Button className="w-full">Back to Lessons</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,7 +95,7 @@ const LessonStart = () => {
             <div className="flex items-center space-x-3">
               <Button variant="ghost" size="sm" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to {searchParams.get('subject') || 'Subjects'}
+                Back to {subject?.name || 'Subjects'}
               </Button>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-blue-600" />
@@ -80,6 +103,12 @@ const LessonStart = () => {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              {!isPremium && (
+                <Badge variant="outline" className="text-sm">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {formatRemainingTime()} left today
+                </Badge>
+              )}
               <LanguageSelector />
             </div>
           </div>
@@ -93,40 +122,33 @@ const LessonStart = () => {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <Badge variant="secondary">{lessonData.subject}</Badge>
-                  <Badge variant="outline">{lessonData.chapter}</Badge>
+                  <Badge variant="secondary">{subject?.name}</Badge>
+                  <Badge variant="outline">{chapter?.name}</Badge>
                 </div>
-                <CardTitle className="text-3xl mb-2">{lessonData.title}</CardTitle>
+                <CardTitle className="text-3xl mb-2">{lesson.title}</CardTitle>
                 <CardDescription className="text-lg">
                   Complete this lesson to master the fundamentals and earn rewards
                 </CardDescription>
               </div>
               <Badge className="bg-yellow-500 text-white">
-                {lessonData.difficulty}
+                {lesson.type === 'leetcode' ? 'Coding' : lesson.type === 'duolingo' ? 'Interactive' : 'Standard'}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
-                <Coins className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Reward</p>
-                  <p className="text-xl font-bold text-yellow-700">+{lessonData.coins} coins</p>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
                 <Clock className="h-8 w-8 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600">Duration</p>
-                  <p className="text-xl font-bold text-blue-700">{lessonData.duration} min</p>
+                  <p className="text-xl font-bold text-blue-700">~35 min</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
                 <Target className="h-8 w-8 text-purple-600" />
                 <div>
                   <p className="text-sm text-gray-600">XP Gain</p>
-                  <p className="text-xl font-bold text-purple-700">+{lessonData.xp} XP</p>
+                  <p className="text-xl font-bold text-purple-700">+100 XP</p>
                 </div>
               </div>
             </div>
@@ -157,9 +179,6 @@ const LessonStart = () => {
                     </div>
                     <p className="text-gray-600">{step.description}</p>
                   </div>
-                  {index < lessonSteps.length - 1 && (
-                    <div className="absolute left-9 mt-12 h-8 w-0.5 bg-gray-200" />
-                  )}
                 </div>
               ))}
             </div>
@@ -174,22 +193,12 @@ const LessonStart = () => {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              <li className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Understand the fundamental concepts and principles</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Apply learned concepts to solve practical problems</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Master key techniques and methodologies</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Build confidence for advanced topics</span>
-              </li>
+              {lesson.keyTakeaways.map((takeaway, idx) => (
+                <li key={idx} className="flex items-start space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>{takeaway}</span>
+                </li>
+              ))}
             </ul>
           </CardContent>
         </Card>
@@ -200,13 +209,21 @@ const LessonStart = () => {
             size="lg" 
             className="w-full md:w-auto px-12 py-6 text-lg bg-blue-600 hover:bg-blue-700"
             onClick={startLesson}
+            disabled={!canLearn()}
           >
             <PlayCircle className="h-6 w-6 mr-2" />
-            Enter Lesson
+            {canLearn() ? 'Enter Lesson' : 'Daily Limit Reached'}
           </Button>
-          <p className="text-sm text-gray-500 mt-4">
-            Ready to begin? Click to start your learning journey!
-          </p>
+          {!canLearn() && (
+            <p className="text-sm text-red-500 mt-4">
+              You've used all your daily learning time. <Link to="/store" className="underline">Upgrade to Premium</Link> for unlimited access.
+            </p>
+          )}
+          {canLearn() && (
+            <p className="text-sm text-gray-500 mt-4">
+              Ready to begin? Click to start your learning journey!
+            </p>
+          )}
         </div>
       </main>
     </div>
