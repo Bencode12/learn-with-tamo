@@ -29,6 +29,8 @@ import ContactUs from "./pages/ContactUs";
 import HelpCenter from "./pages/HelpCenter";
 import StaffHub from "./pages/StaffHub";
 import JobInterviewPrep from "./pages/JobInterviewPrep";
+import PresentationPrep from "./pages/PresentationPrep";
+import HobbyLearning from "./pages/HobbyLearning";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,8 @@ const App = () => (
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/job-interview-prep" element={<ProtectedRoute><JobInterviewPrep /></ProtectedRoute>} />
+            <Route path="/presentation-prep" element={<ProtectedRoute><PresentationPrep /></ProtectedRoute>} />
+            <Route path="/hobby-learning" element={<ProtectedRoute><HobbyLearning /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/help" element={<HelpCenter />} />
