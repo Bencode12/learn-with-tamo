@@ -7,9 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
+// Subscription tier mapping
+const SUBSCRIPTION_TIERS: Record<string, string> = {
+  'prod_TNinUo4za0ebaJ': 'premium',     // Premium Subscription ($9.99)
+  'prod_TiCNPzxrpJVdLs': 'starter',     // Starter Plan ($4.99)
+  'prod_TiCN0wxnUHtLNT': 'enterprise',  // Enterprise Plan ($19.99)
 };
 
 serve(async (req) => {
@@ -47,10 +54,10 @@ serve(async (req) => {
       logStep("No customer found");
       await supabaseClient
         .from('profiles')
-        .update({ is_premium: false, premium_expires_at: null })
+        .update({ is_premium: false, premium_expires_at: null, subscription_tier: 'free' })
         .eq('id', user.id);
         
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({ subscribed: false, tier: 'free' }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -64,11 +71,16 @@ serve(async (req) => {
     
     const hasActiveSub = subscriptions.data.length > 0;
     let subscriptionEnd = null;
+    let tier = 'free';
+    let productId = null;
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { endDate: subscriptionEnd });
+      productId = subscription.items.data[0].price.product as string;
+      tier = SUBSCRIPTION_TIERS[productId] || 'premium';
+      
+      logStep("Active subscription found", { endDate: subscriptionEnd, tier, productId });
       
       // Update profile
       await supabaseClient
@@ -76,6 +88,7 @@ serve(async (req) => {
         .update({ 
           is_premium: true, 
           premium_expires_at: subscriptionEnd,
+          subscription_tier: tier,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id
         })
@@ -83,19 +96,21 @@ serve(async (req) => {
     } else {
       await supabaseClient
         .from('profiles')
-        .update({ is_premium: false, premium_expires_at: null })
+        .update({ is_premium: false, premium_expires_at: null, subscription_tier: 'free' })
         .eq('id', user.id);
     }
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
+      tier,
       subscription_end: subscriptionEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    logStep("ERROR", { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

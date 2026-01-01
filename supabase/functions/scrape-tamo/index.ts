@@ -59,8 +59,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Tamo scraper error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errorMessage,
       note: 'This is a mock implementation. Real Tamo API requires proper authentication flow and HTML parsing.'
     }), {
       status: 500,
