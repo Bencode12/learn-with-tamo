@@ -1,8 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
-import LanguageSelector from "@/components/LanguageSelector";
-import { LivesDisplay } from "./LivesDisplay";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { FriendsPanel } from "./FriendsPanel";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +47,7 @@ const Header = ({
     await signOut();
     navigate('/login');
   };
-  return <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b">
+  return <header className="bg-background/80 backdrop-blur-sm shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-3">
@@ -60,8 +58,8 @@ const Header = ({
                 </Button>
               </Link>}
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">SūdžiusAI</span>
+              <BookOpen className="h-8 w-8 text-primary" />
+              <span className="text-xl font-bold text-foreground">SūdžiusAI</span>
             </Link>
           </div>
           <div className="flex items-center space-x-4">
@@ -69,7 +67,7 @@ const Header = ({
                 <NotificationsPanel />
                 
               </>}
-            <LanguageSelector />
+
             {showFriends && <FriendsPanel />}
             {isStaff && showAuth && (
               <Link to="/staff-hub">

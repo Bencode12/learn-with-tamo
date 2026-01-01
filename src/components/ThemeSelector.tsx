@@ -5,11 +5,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Palette } from "lucide-react";
 
 const ThemeSelector = () => {
-  const [selectedTheme, setSelectedTheme] = useState("auto");
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    return localStorage.getItem('theme') || "auto";
+  });
 
   const getSeasonalTheme = () => {
-    const month = new Date().getMonth();
-    const hour = new Date().getHours();
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    const hour = now.getHours();  // 0-23
     const isDaytime = hour >= 6 && hour < 18;
 
     // Autumn: September (8), October (9), November (10)
@@ -22,19 +25,52 @@ const ThemeSelector = () => {
     }
     // Spring: March (2), April (3), May (4)
     if (month >= 2 && month <= 4) {
-      return isDaytime ? "light" : "dark";
+      return isDaytime ? "forest" : "dark";
     }
     // Summer: June (5), July (6), August (7)
     return isDaytime ? "light" : "dark";
   };
 
-  useEffect(() => {
-    if (selectedTheme === "auto") {
-      const autoTheme = getSeasonalTheme();
-      document.documentElement.setAttribute("data-theme", autoTheme);
-    } else {
-      document.documentElement.setAttribute("data-theme", selectedTheme);
+  const getThemePreviewColor = (themeId: string) => {
+    switch (themeId) {
+      case 'light':
+        return '#f8fafc';
+      case 'dark':
+        return '#0f172a';
+      case 'ocean':
+        return '#e0f2fe';
+      case 'sunset':
+        return '#fff7ed';
+      case 'forest':
+        return '#f0fdf4';
+      default:
+        return '#f8fafc';
     }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('theme', selectedTheme);
+    
+    const updateTheme = () => {
+      if (selectedTheme === "auto") {
+        const autoTheme = getSeasonalTheme();
+        document.documentElement.setAttribute("data-theme", autoTheme);
+      } else {
+        document.documentElement.setAttribute("data-theme", selectedTheme);
+      }
+    };
+    
+    updateTheme();
+    
+    // For auto theme, update periodically to reflect time changes
+    let interval: NodeJS.Timeout;
+    if (selectedTheme === "auto") {
+      interval = setInterval(updateTheme, 60000); // Update every minute
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [selectedTheme]);
 
   const themes = [
@@ -59,22 +95,33 @@ const ThemeSelector = () => {
         <RadioGroup value={selectedTheme} onValueChange={setSelectedTheme}>
           <div className="space-y-3">
             {themes.map((theme) => (
-              <div key={theme.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+              <div 
+                key={theme.id} 
+                className={`flex items-center space-x-3 p-3 border rounded-lg transition-all duration-200 ${selectedTheme === theme.id ? 'ring-2 ring-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+              >
                 <RadioGroupItem value={theme.id} id={theme.id} />
                 <Label htmlFor={theme.id} className="flex-1 cursor-pointer">
                   <div className="font-medium">{theme.name}</div>
-                  <div className="text-sm text-gray-500">{theme.description}</div>
+                  <div className="text-sm text-muted-foreground">{theme.description}</div>
                 </Label>
+                {theme.id !== 'auto' && (
+                  <div 
+                    className="w-6 h-6 rounded-full border"
+                    style={{
+                      backgroundColor: getThemePreviewColor(theme.id)
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
         </RadioGroup>
         {selectedTheme === "auto" && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg dark:bg-blue-900/20">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Current auto theme:</strong> {getSeasonalTheme().charAt(0).toUpperCase() + getSeasonalTheme().slice(1)}
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-blue-600 mt-1 dark:text-blue-400">
               Theme changes automatically based on your timezone, season, and time of day.
             </p>
           </div>

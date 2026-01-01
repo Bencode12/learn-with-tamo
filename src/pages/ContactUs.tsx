@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, ArrowLeft, Mail, MessageSquare, Phone } from "lucide-react";
+import { BookOpen, ArrowLeft, Mail, MessageSquare, Phone, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const ContactUs = () => {
@@ -14,8 +14,8 @@ const ContactUs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-background">
+      <header className="bg-background shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -26,8 +26,8 @@ const ContactUs = () => {
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+                <BookOpen className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
               </Link>
             </div>
           </div>
@@ -76,16 +76,50 @@ const ContactUs = () => {
                 <CardTitle className="text-2xl">Get in Touch</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Mail className="h-5 w-5 text-blue-600 mt-1" />
+                <div className="flex items-start space-x-4">
+                  <Mail className="h-5 w-5 text-primary mt-1" />
                   <div>
-                    <h3 className="font-semibold">Email</h3>
-                    <a href="mailto:support@sudzinas.pw" className="text-blue-600 hover:underline">
+                    <h3 className="font-medium text-foreground">Email Support</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      For general inquiries, send us an email and we'll respond within 24 hours.
+                    </p>
+                    <a href="mailto:support@sudzinas.pw" className="text-sm text-primary hover:underline">
                       support@sudzinas.pw
                     </a>
-                    <p className="text-sm text-gray-600 mt-1">
-                      We typically respond within 24 hours
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <Phone className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-medium text-foreground">Emergency Support</h3>
+                    <p className="text-sm text-muted-foreground">
+                      For urgent matters, call our support hotline (available 9AM-5PM EST).
                     </p>
+                    <p className="text-sm font-medium text-foreground">+1 (555) 123-4567</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <MessageSquare className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-medium text-foreground">Community Support</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Join our Discord community for real-time help from other users and staff.
+                    </p>
+                    <Button variant="link" className="p-0 h-auto text-sm text-primary">
+                      Join Discord Community
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <HelpCircle className="h-5 w-5 text-primary mt-1" />
+                  <div>
+                    <h3 className="font-medium text-foreground">Help Center</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Browse our extensive knowledge base for answers to common questions.
+                    </p>
+                    <Button variant="link" className="p-0 h-auto text-sm text-primary">
+                      Visit Help Center
+                    </Button>
                   </div>
                 </div>
               </CardContent>

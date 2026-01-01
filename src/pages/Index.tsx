@@ -80,13 +80,13 @@ const Index = () => {
 
       <main>
         {/* Features Showcase */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-card">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-4xl font-bold text-foreground mb-4">
                 Powerful Features in Development
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
                 Explore our comprehensive roadmap of cutting-edge educational technologies
               </p>
             </div>
@@ -113,12 +113,12 @@ const Index = () => {
         </section>
 
         {/* Subjects Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
           <div className="max-w-6xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">
+            <h2 className="text-3xl font-bold text-foreground mb-8">
               Master Any Subject
             </h2>
-            <p className="text-lg text-gray-600 mb-12">
+            <p className="text-lg text-muted-foreground mb-12">
               Our AI adapts to help you excel across all academic disciplines
             </p>
             <div className="flex flex-wrap justify-center gap-3">
@@ -132,9 +132,9 @@ const Index = () => {
         </section>
 
         {/* How it Works */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-card">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            <h2 className="text-3xl font-bold text-center text-foreground mb-12">
               How SūdžiusAI Works
             </h2>
             <div className="space-y-12">
@@ -143,8 +143,8 @@ const Index = () => {
                   1
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Choose Your Path</h3>
-                  <p className="text-gray-600">Select from multiple learning modes: solo practice, competitive multiplayer, or team collaboration. Our adaptive system adjusts to your learning style and pace.</p>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Choose Your Path</h3>
+                  <p className="text-muted-foreground">Select from multiple learning modes: solo practice, competitive multiplayer, or team collaboration. Our adaptive system adjusts to your learning style and pace.</p>
                 </div>
               </div>
               <div className="flex items-start space-x-6">
@@ -152,8 +152,8 @@ const Index = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Learn by Doing</h3>
-                  <p className="text-gray-600">Engage with interactive lessons featuring video content, hands-on exercises, and real-time feedback. The hearts system keeps you motivated while our AI provides personalized tips when you need help.</p>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Learn by Doing</h3>
+                  <p className="text-muted-foreground">Engage with interactive lessons featuring video content, hands-on exercises, and real-time feedback. Our wellness check-in system helps track your mental health while our AI provides personalized tips when you need help.</p>
                 </div>
               </div>
               <div className="flex items-start space-x-6">
@@ -161,8 +161,8 @@ const Index = () => {
                   3
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Track & Excel</h3>
-                  <p className="text-gray-600">Monitor your progress with detailed analytics, compete on leaderboards, and earn achievements. Premium users unlock AI-powered insights that identify weak areas and suggest personalized improvement strategies.</p>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Track & Excel</h3>
+                  <p className="text-muted-foreground">Monitor your progress with detailed analytics, compete on leaderboards, and earn achievements. Premium users unlock AI-powered insights that identify weak areas and suggest personalized improvement strategies.</p>
                 </div>
               </div>
             </div>

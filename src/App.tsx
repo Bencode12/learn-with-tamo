@@ -31,7 +31,7 @@ import StaffHub from "./pages/StaffHub";
 import JobInterviewPrep from "./pages/JobInterviewPrep";
 import PresentationPrep from "./pages/PresentationPrep";
 import HobbyLearning from "./pages/HobbyLearning";
-
+import ProgramLearning from "./pages/ProgramLearning";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -64,6 +64,7 @@ const App = () => (
             <Route path="/job-interview-prep" element={<ProtectedRoute><JobInterviewPrep /></ProtectedRoute>} />
             <Route path="/presentation-prep" element={<ProtectedRoute><PresentationPrep /></ProtectedRoute>} />
             <Route path="/hobby-learning" element={<ProtectedRoute><HobbyLearning /></ProtectedRoute>} />
+            <Route path="/program-learning" element={<ProtectedRoute><ProgramLearning /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/help" element={<HelpCenter />} />

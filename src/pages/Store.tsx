@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import LanguageSelector from "@/components/LanguageSelector";
 
 const Store = () => {
   const { user } = useAuth();
@@ -60,7 +59,7 @@ const Store = () => {
                 <h1 className="text-xl font-bold">SūdžiusAI</h1>
               </Link>
             </div>
-            <LanguageSelector />
+
           </div>
         </div>
       </header>

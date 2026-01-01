@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface VoiceChatProps {
@@ -14,6 +14,7 @@ const VoiceChat = ({ roomCode, userId }: VoiceChatProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const participantCount = 3;
 
   useEffect(() => {
     initializeVoiceChat();
@@ -80,22 +81,25 @@ const VoiceChat = ({ roomCode, userId }: VoiceChatProps) => {
   }
 
   return (
-    <div className="flex items-center space-x-2">
-      <Button
-        size="sm"
-        variant={isMuted ? "destructive" : "outline"}
-        onClick={toggleMute}
-      >
-        {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-      </Button>
-      <Button
-        size="sm"
-        variant={isDeafened ? "destructive" : "outline"}
-        onClick={toggleDeafen}
-      >
-        {isDeafened ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-      </Button>
-      <span className="text-sm text-green-600">Connected</span>
+    <div className="flex items-center justify-between p-3 bg-card rounded-lg">
+      <div className="flex items-center space-x-3">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={toggleMute}
+          className={isMuted ? "bg-red-500/10 border-red-500/20 hover:bg-red-500/20" : ""}
+        >
+          {isMuted ? <MicOff className="h-4 w-4 text-red-500" /> : <Mic className="h-4 w-4" />}
+        </Button>
+        <div>
+          <p className="text-sm font-medium">Voice Chat</p>
+          <p className="text-xs text-muted-foreground">{isConnected ? "Connected" : "Connecting..."}</p>
+        </div>
+      </div>
+      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        <Users className="h-4 w-4" />
+        <span>{participantCount}</span>
+      </div>
     </div>
   );
 };

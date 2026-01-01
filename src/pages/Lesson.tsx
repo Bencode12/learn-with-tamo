@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, PlayCircle, FileText, CheckCircle, Download, ArrowLeft, ArrowRight, Trophy } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
 import { findLesson, lessonData } from "@/data/lessonContent";
@@ -95,7 +94,7 @@ const Lesson = () => {
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Lesson Not Found</CardTitle>
@@ -187,10 +186,10 @@ const Lesson = () => {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <RandomEventModal isOpen={isEventOpen} onClose={closeEvent} event={currentEvent} />
 
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <header className="bg-background shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -199,8 +198,8 @@ const Lesson = () => {
                 Exit Lesson
               </Button>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+                <BookOpen className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -218,7 +217,7 @@ const Lesson = () => {
                   </div>
                 ))}
               </div>
-              <LanguageSelector />
+
             </div>
           </div>
           <div className="pb-2">
@@ -247,9 +246,9 @@ const Lesson = () => {
                   className="rounded-lg"
                 ></iframe>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 p-4 rounded-lg dark:bg-blue-900/20">
                 <h4 className="font-semibold mb-2">Key Points:</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   {lesson.keyTakeaways.map((point, idx) => (
                     <li key={idx}>{point}</li>
                   ))}
@@ -268,7 +267,7 @@ const Lesson = () => {
             <CardContent>
               <div className="space-y-6">
                 {lesson.worksheetProblems.map((problem) => (
-                  <div key={problem.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div key={problem.id} className="p-4 bg-card rounded-lg">
                     <Label className="text-base font-semibold mb-2 block">
                       Problem {problem.id}: {problem.problem}
                     </Label>
@@ -295,7 +294,7 @@ const Lesson = () => {
             <CardContent>
               <div className="space-y-6">
                 {lesson.quizQuestions.map((question) => (
-                  <div key={question.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div key={question.id} className="p-4 bg-card rounded-lg">
                     <h4 className="font-semibold mb-4">{question.id}. {question.question}</h4>
                     <RadioGroup
                       value={quizAnswers[question.id]}
@@ -323,26 +322,26 @@ const Lesson = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-200">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-200 dark:from-green-900/20 dark:to-blue-900/20 dark:border-green-800/50">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">Quiz Score</h3>
-                      <p className="text-gray-600">Your performance</p>
+                      <h3 className="text-xl font-bold text-foreground">Quiz Score</h3>
+                      <p className="text-muted-foreground">Your performance</p>
                     </div>
                     <div className="text-4xl font-bold text-green-600">{score}%</div>
                   </div>
                   <Progress value={score} className="h-3" />
                 </div>
 
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center max-w-xs mx-auto">
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center max-w-xs mx-auto dark:bg-purple-900/20 dark:border-purple-800/50">
                   <Trophy className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">XP Gained</p>
+                  <p className="text-sm text-muted-foreground">XP Gained</p>
                   <p className="text-2xl font-bold text-purple-700">+100</p>
                 </div>
 
-                <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="bg-blue-50 p-6 rounded-lg dark:bg-blue-900/20">
                   <h4 className="font-semibold text-lg mb-3">Key Takeaways:</h4>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-muted-foreground">
                     {lesson.keyTakeaways.map((takeaway, idx) => (
                       <li key={idx} className="flex items-start space-x-2">
                         <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -357,14 +356,14 @@ const Lesson = () => {
                     <Download className="h-5 w-5 mr-3" />
                     <div className="text-left">
                       <p className="font-semibold">Lesson PDF</p>
-                      <p className="text-xs text-gray-600">Complete notes</p>
+                      <p className="text-xs text-muted-foreground">Complete notes</p>
                     </div>
                   </Button>
                   <Button variant="outline" className="h-auto p-4 justify-start">
                     <Download className="h-5 w-5 mr-3" />
                     <div className="text-left">
                       <p className="font-semibold">Practice Slides</p>
-                      <p className="text-xs text-gray-600">Additional exercises</p>
+                      <p className="text-xs text-muted-foreground">Additional exercises</p>
                     </div>
                   </Button>
                 </div>

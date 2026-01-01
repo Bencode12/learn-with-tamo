@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BookOpen, Users, Copy, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "sonner";
 
 const DuosMode = () => {
@@ -62,9 +61,9 @@ const DuosMode = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-background shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -75,12 +74,11 @@ const DuosMode = () => {
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+                <BookOpen className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <LanguageSelector />
             </div>
           </div>
         </div>
@@ -90,8 +88,8 @@ const DuosMode = () => {
         {!isInRoom ? (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Duos Learning</h2>
-              <p className="text-gray-600">Join or create a room to learn with a partner (Max 2 players)</p>
+              <h2 className="text-3xl font-bold text-foreground mb-4">Duos Learning</h2>
+              <p className="text-muted-foreground">Join or create a room to learn with a partner (Max 2 players)</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

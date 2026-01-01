@@ -9,15 +9,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import { HeartsDisplay } from "@/components/HeartsDisplay";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import { TherapistModal } from "@/components/TherapistModal";
 import { useTherapistCheckin } from "@/hooks/useTherapistCheckin";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isPremium, setIsPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { shouldShowCheckin, setShouldShowCheckin } = useTherapistCheckin();
@@ -150,16 +151,16 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header showIcons={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
-            <p className="text-gray-600">Here's your learning progress and AI-powered recommendations.</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2">{t('welcomeBack')}</h2>
+            <p className="text-muted-foreground">{t('learningProgress')}</p>
           </div>
-          <HeartsDisplay />
+
         </div>
 
         {/* Grades Section */}
@@ -169,13 +170,13 @@ const Dashboard = () => {
               <div>
                 <CardTitle className="flex items-center space-x-2">
                   <TrendingUp className="h-5 w-5" />
-                  <span>Current Grades</span>
+                  <span>{t('currentGrades')}</span>
                 </CardTitle>
                 <CardDescription>Your latest academic performance</CardDescription>
               </div>
               <Button onClick={handleSyncGrades} size="sm" variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Sync
+                {t('sync')}
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -189,7 +190,7 @@ const Dashboard = () => {
                       </Badge>
                       <span className={`text-sm ${
                         grade.trend === "up" ? "text-green-600" : 
-                        grade.trend === "down" ? "text-red-600" : "text-gray-600"
+                        grade.trend === "down" ? "text-red-600" : "text-muted-foreground"
                       }`}>
                         {grade.trend === "up" ? "↗" : grade.trend === "down" ? "↘" : "→"}
                       </span>
@@ -204,8 +205,8 @@ const Dashboard = () => {
           {/* AI Recommendations - Premium Only */}
           {isPremium && <Card>
             <CardHeader>
-              <CardTitle>Recommendations</CardTitle>
-              <CardDescription>Personalized recommendations based on your performance</CardDescription>
+              <CardTitle>{t('aiRecommendations')}</CardTitle>
+              <CardDescription>{t('personalizedRecommendations')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -221,8 +222,8 @@ const Dashboard = () => {
                           {grade.grade}%
                         </Badge>
                       </div>
-                      <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400">
-                        <p className="text-sm text-gray-700">{suggestions[0]}</p>
+                      <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800/50">
+                        <p className="text-sm text-muted-foreground">{suggestions[0]}</p>
                       </div>
                     </div>
                   );
@@ -235,7 +236,7 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('quickActions')}</CardTitle>
             <CardDescription>Get started with your learning activities</CardDescription>
           </CardHeader>
           <CardContent>
@@ -243,14 +244,14 @@ const Dashboard = () => {
               <Link to="/gamemodes">
                 <Button className="h-20 flex-col space-y-2 w-full bg-blue-600 hover:bg-blue-700">
                   <Play className="h-6 w-6" />
-                  <span>Start Learning</span>
+                  <span>{t('startLearning')}</span>
                 </Button>
               </Link>
               
               <Link to="/progress">
                 <Button variant="outline" className="h-20 flex-col space-y-2 w-full">
                   <TrendingUp className="h-6 w-6" />
-                  <span>View Progress</span>
+                  <span>{t('viewProgress')}</span>
                 </Button>
               </Link>
             </div>

@@ -4,12 +4,12 @@ import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Award, Clock, BookOpen, Target, Star, Trophy, LineChart, BarChart3, PieChart, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { TrendingUp, Award, Clock, BookOpen, Target, Star, Trophy, LineChart, BarChart3, PieChart, ArrowLeft, Heart, Brain, MessageCircle } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PDFExport } from "@/components/PDFExport";
-import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface LessonProgress {
   id: string;
@@ -30,11 +30,23 @@ interface Achievement {
   earned_at?: string;
 }
 
+interface WellnessCheckin {
+  id: string;
+  mood_rating: number | null;
+  stress_level: number | null;
+  notes: string | null;
+  ai_response: string | null;
+  created_at: string;
+}
+
 const Progress = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isPremium, setIsPremium] = useState(false);
   const [lessonsProgress, setLessonsProgress] = useState<LessonProgress[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [wellnessCheckins, setWellnessCheckins] = useState<WellnessCheckin[]>([]);
   const [stats, setStats] = useState({
     totalLessons: 0,
     completedLessons: 0,
@@ -49,6 +61,7 @@ const Progress = () => {
   useEffect(() => {
     if (!user) return;
     fetchProgress();
+    fetchWellnessCheckins();
   }, [user]);
 
   const fetchProgress = async () => {
@@ -107,9 +120,57 @@ const Progress = () => {
     }
   };
 
+  const fetchWellnessCheckins = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('therapist_checkins')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!error && data) {
+      setWellnessCheckins(data);
+    }
+  };
+
   const getSubjectIcon = (subjectId: string) => {
     const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚" };
     return icons[subjectId] || "📖";
+  };
+
+  const getMoodEmoji = (rating: number | null) => {
+    if (!rating) return "😐";
+    if (rating <= 2) return "😞";
+    if (rating <= 3) return "😐";
+    if (rating <= 4) return "🙂";
+    return "😄";
+  };
+
+  const getStressEmoji = (level: number | null) => {
+    if (!level) return "😐";
+    if (level <= 2) return "😌";
+    if (level <= 3) return "😐";
+    if (level <= 4) return "😰";
+    return "😫";
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+    });
+  };
+
+  const daysAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   return (
@@ -121,7 +182,7 @@ const Progress = () => {
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  {t('backTo')} Dashboard
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -130,7 +191,6 @@ const Progress = () => {
               </Link>
             </div>
             <div className="flex items-center space-x-2">
-              <LanguageSelector />
               <PDFExport type="all" />
             </div>
           </div>
@@ -139,14 +199,14 @@ const Progress = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Your Progress</h2>
-          <p className="text-muted-foreground">Track your learning journey and achievements</p>
+          <h2 className="text-3xl font-bold text-foreground mb-2">{t('progress')}</h2>
+          <p className="text-muted-foreground">{t('trackJourney')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Level</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('level')}</CardTitle>
               <Trophy className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -158,43 +218,44 @@ const Progress = () => {
 
           <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('completed')}</CardTitle>
               <Target className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.completedLessons}</div>
-              <p className="text-xs text-muted-foreground mt-1">out of {stats.totalLessons} lessons</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('outOf')} {stats.totalLessons} {t('lessons')}</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('avgScore')}</CardTitle>
               <Star className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.averageScore}%</div>
-              <p className="text-xs text-muted-foreground mt-1">across all quizzes</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('acrossQuizzes')}</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Study Time</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('studyTime')}</CardTitle>
               <Clock className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalHours}h</div>
-              <p className="text-xs text-muted-foreground mt-1">total learning time</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('totalLearningTime')}</p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="lessons" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
-            <TabsTrigger value="lessons">Lessons</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+        <Tabs value={searchParams.get('tab') || 'lessons'} onValueChange={(value) => setSearchParams({ tab: value })} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+            <TabsTrigger value="lessons">{t('lessons')}</TabsTrigger>
+            <TabsTrigger value="trends">{t('trends')}</TabsTrigger>
+            <TabsTrigger value="achievements">{t('achievements')}</TabsTrigger>
+            <TabsTrigger value="wellness">{t('wellness')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="lessons" className="space-y-6">
@@ -202,9 +263,9 @@ const Progress = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BookOpen className="h-5 w-5" />
-                  <span>Recent Activity</span>
+                  <span>{t('recentActivity')}</span>
                 </CardTitle>
-                <CardDescription>Your most recently accessed lessons</CardDescription>
+                <CardDescription>{t('recentlyAccessed')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -252,7 +313,7 @@ const Progress = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <LineChart className="h-5 w-5" />
-                    <span>Weekly Progress</span>
+                    <span>{t('weeklyProgress')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -271,7 +332,7 @@ const Progress = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="h-5 w-5" />
-                    <span>Subject Performance</span>
+                    <span>{t('subjectPerformance')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -301,9 +362,9 @@ const Progress = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Award className="h-5 w-5" />
-                  <span>Achievements</span>
+                  <span>{t('achievements')}</span>
                 </CardTitle>
-                <CardDescription>{achievements.length} achievements unlocked</CardDescription>
+                <CardDescription>{achievements.length} {t('achievementsUnlocked')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -318,6 +379,74 @@ const Progress = () => {
                     <div className="col-span-3 text-center py-12">
                       <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">No achievements yet. Keep learning!</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="wellness" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  <span>{t('wellnessCheckins')}</span>
+                </CardTitle>
+                <CardDescription>Your mental health and wellness journey</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {wellnessCheckins.length > 0 ? (
+                    wellnessCheckins.map((checkin) => (
+                      <div key={checkin.id} className="p-4 rounded-lg border bg-card">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-2xl">{getMoodEmoji(checkin.mood_rating)}</span>
+                              <span className="text-sm font-medium">{t('mood')}: {checkin.mood_rating}/5</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-2xl">{getStressEmoji(checkin.stress_level)}</span>
+                              <span className="text-sm font-medium">{t('stress')}: {checkin.stress_level}/5</span>
+                            </div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(checkin.created_at)} • {t('daysAgo', { count: daysAgo(checkin.created_at) })}
+                          </span>
+                        </div>
+                        
+                        {checkin.notes && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-medium mb-1 flex items-center">
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              {t('notes')}
+                            </h4>
+                            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">{checkin.notes}</p>
+                          </div>
+                        )}
+                        
+                        {checkin.ai_response && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-1 flex items-center">
+                              <Brain className="h-4 w-4 mr-1 text-purple-500" />
+                              {t('aiInsights')}
+                            </h4>
+                            <div className="text-sm text-muted-foreground bg-purple-50 p-2 rounded border border-purple-200">
+                              {checkin.ai_response}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">{t('noCheckinsYet')}</h3>
+                      <p className="text-muted-foreground mb-4">Complete your first wellness check-in to track your mental health journey</p>
+                      <Link to="/dashboard">
+                        <Button>Go to Dashboard</Button>
+                      </Link>
                     </div>
                   )}
                 </div>

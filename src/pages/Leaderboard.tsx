@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Medal, Award, TrendingUp, Users, Crown, Star, Zap, ArrowLeft, BookOpen, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -182,7 +181,7 @@ const Leaderboard = () => {
                 <h1 className="text-xl font-bold">SūdžiusAI</h1>
               </Link>
             </div>
-            <LanguageSelector />
+
           </div>
         </div>
       </header>

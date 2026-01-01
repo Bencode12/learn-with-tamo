@@ -6,7 +6,6 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BookOpen, Target, Brain, Clock, Star, Trophy, ArrowRight, ArrowLeft, Lock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { lessonData, getAccessibleSubjects } from "@/data/lessonContent";
 import { useLearningTime } from "@/hooks/useLearningTime";
 
@@ -55,7 +54,7 @@ const SingleMode = () => {
                   {formatRemainingTime()} left today
                 </Badge>
               )}
-              <LanguageSelector />
+
             </div>
           </div>
         </div>

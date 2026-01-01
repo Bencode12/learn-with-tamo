@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Presentation, Upload, Mic, Video, Play, Pause, CheckCircle, ArrowLeft, BookOpen, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LanguageSelector from '@/components/LanguageSelector';
 import { toast } from 'sonner';
 
 const PresentationPrep = () => {
@@ -85,7 +84,7 @@ const PresentationPrep = () => {
                 <h1 className="text-xl font-bold">SūdžiusAI</h1>
               </Link>
             </div>
-            <LanguageSelector />
+
           </div>
         </div>
       </header>

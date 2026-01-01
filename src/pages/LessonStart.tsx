@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, PlayCircle, FileText, CheckCircle, Award, Clock, Target, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { findLesson, lessonData } from "@/data/lessonContent";
 import { useLearningTime } from "@/hooks/useLearningTime";
 
@@ -70,16 +69,14 @@ const LessonStart = () => {
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Lesson Not Found</CardTitle>
             <CardDescription>The requested lesson could not be found.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/single-mode">
-              <Button className="w-full">Back to Lessons</Button>
-            </Link>
+            <Button onClick={() => navigate('/single-mode')} className="w-full">Back to Lessons</Button>
           </CardContent>
         </Card>
       </div>
@@ -87,9 +84,9 @@ const LessonStart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-background shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -98,8 +95,8 @@ const LessonStart = () => {
                 Back to {subject?.name || 'Subjects'}
               </Button>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+                <BookOpen className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -109,7 +106,7 @@ const LessonStart = () => {
                   {formatRemainingTime()} left today
                 </Badge>
               )}
-              <LanguageSelector />
+
             </div>
           </div>
         </div>
@@ -137,17 +134,17 @@ const LessonStart = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg dark:bg-blue-900/20">
                 <Clock className="h-8 w-8 text-blue-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Duration</p>
+                  <p className="text-sm text-muted-foreground">Duration</p>
                   <p className="text-xl font-bold text-blue-700">~35 min</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg dark:bg-purple-900/20">
                 <Target className="h-8 w-8 text-purple-600" />
                 <div>
-                  <p className="text-sm text-gray-600">XP Gain</p>
+                  <p className="text-sm text-muted-foreground">XP Gain</p>
                   <p className="text-xl font-bold text-purple-700">+100 XP</p>
                 </div>
               </div>
@@ -177,7 +174,7 @@ const LessonStart = () => {
                       </h4>
                       <Badge variant="secondary">{step.duration}</Badge>
                     </div>
-                    <p className="text-gray-600">{step.description}</p>
+                    <p className="text-muted-foreground">{step.description}</p>
                   </div>
                 </div>
               ))}
@@ -220,7 +217,7 @@ const LessonStart = () => {
             </p>
           )}
           {canLearn() && (
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-sm text-muted-foreground mt-4">
               Ready to begin? Click to start your learning journey!
             </p>
           )}

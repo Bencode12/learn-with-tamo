@@ -69,13 +69,13 @@ const Exams = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header showIcons={true} showBackButton={true} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Practice Exams</h1>
-          <p className="text-gray-600">Test your knowledge with timed exams and get detailed analytics</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Practice Exams</h1>
+          <p className="text-muted-foreground">Test your knowledge with timed exams and get detailed analytics</p>
         </div>
 
         {loading ? (
@@ -85,9 +85,9 @@ const Exams = () => {
         ) : exams.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Exams Available</h3>
-              <p className="text-gray-600">Check back later for new practice exams</p>
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Exams Available</h3>
+              <p className="text-muted-foreground">Check back later for new practice exams</p>
             </CardContent>
           </Card>
         ) : (
@@ -121,13 +121,13 @@ const Exams = () => {
                     </div>
 
                     {attemptCount > 0 && (
-                      <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="bg-blue-50 rounded-lg p-3 dark:bg-blue-900/20">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Best Score:</span>
+                          <span className="text-muted-foreground">Best Score:</span>
                           <span className="font-bold text-blue-600">{bestScore?.toFixed(0)}%</span>
                         </div>
                         <div className="flex items-center justify-between text-sm mt-1">
-                          <span className="text-gray-600">Attempts:</span>
+                          <span className="text-muted-foreground">Attempts:</span>
                           <span className="font-medium">{attemptCount}</span>
                         </div>
                       </div>
@@ -163,16 +163,16 @@ const Exams = () => {
                   const percentage = ((attempt.score / attempt.total_questions) * 100).toFixed(0);
                   
                   return (
-                    <div key={attempt.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={attempt.id} className="flex items-center justify-between p-3 bg-card rounded-lg">
                       <div>
                         <p className="font-medium">{exam?.title || 'Unknown Exam'}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {new Date(attempt.completed_at).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg">{percentage}%</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {attempt.score}/{attempt.total_questions} correct
                         </p>
                       </div>

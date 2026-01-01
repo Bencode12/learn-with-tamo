@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, Trophy, Crown, Zap, Target, Users, Timer, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 
 const RankedMode = () => {
   const currentRank = {
@@ -23,9 +22,9 @@ const RankedMode = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-background shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -36,12 +35,11 @@ const RankedMode = () => {
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">SūdžiusAI</h1>
+                <BookOpen className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <LanguageSelector />
             </div>
           </div>
         </div>
@@ -51,8 +49,8 @@ const RankedMode = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Competitive Learning</h2>
-              <p className="text-gray-600">Climb the ranks by competing against players of similar skill</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Competitive Learning</h2>
+              <p className="text-muted-foreground">Climb the ranks by competing against players of similar skill</p>
             </div>
             <Badge className="bg-yellow-500 text-white">
               <Trophy className="h-4 w-4 mr-1" />
@@ -105,33 +103,33 @@ const RankedMode = () => {
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">Select Team Size:</h4>
                   <div className="grid grid-cols-1 gap-3">
-                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-blue-50">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-blue-50 dark:hover:bg-blue-900/20">
                       <div className="flex items-center space-x-2 mb-1">
                         <Target className="h-5 w-5 text-blue-500" />
                         <span className="font-semibold">Solo (1v1)</span>
                       </div>
-                      <p className="text-xs text-gray-600">Compete one-on-one against another player</p>
+                      <p className="text-xs text-muted-foreground">Compete one-on-one against another player</p>
                     </Button>
-                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-green-50">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-green-50 dark:hover:bg-green-900/20">
                       <div className="flex items-center space-x-2 mb-1">
                         <Users className="h-5 w-5 text-green-500" />
                         <span className="font-semibold">Duo (2v2)</span>
                       </div>
-                      <p className="text-xs text-gray-600">Team up with a partner</p>
+                      <p className="text-xs text-muted-foreground">Team up with a partner</p>
                     </Button>
-                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-purple-50">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-purple-50 dark:hover:bg-purple-900/20">
                       <div className="flex items-center space-x-2 mb-1">
                         <Users className="h-5 w-5 text-purple-500" />
                         <span className="font-semibold">Squad (4v4)</span>
                       </div>
-                      <p className="text-xs text-gray-600">Play with a team of 4</p>
+                      <p className="text-xs text-muted-foreground">Play with a team of 4</p>
                     </Button>
-                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-red-50">
+                    <Button variant="outline" className="h-auto p-4 flex flex-col items-start hover:bg-red-50 dark:hover:bg-red-900/20">
                       <div className="flex items-center space-x-2 mb-1">
                         <Users className="h-5 w-5 text-red-500" />
                         <span className="font-semibold">Full Team (5v5)</span>
                       </div>
-                      <p className="text-xs text-gray-600">Compete with a full team of 5</p>
+                      <p className="text-xs text-muted-foreground">Compete with a full team of 5</p>
                     </Button>
                   </div>
                 </div>
@@ -147,7 +145,7 @@ const RankedMode = () => {
               <CardContent>
                 <div className="space-y-3">
                   {recentMatches.map((match, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 bg-card rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Badge 
                           variant={match.result === "Win" ? "default" : "destructive"}
@@ -157,7 +155,7 @@ const RankedMode = () => {
                         </Badge>
                         <div>
                           <p className="font-medium">vs {match.opponent}</p>
-                          <p className="text-sm text-gray-600">{match.subject}</p>
+                          <p className="text-sm text-muted-foreground">{match.subject}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -193,7 +191,7 @@ const RankedMode = () => {
                         <span className="w-8 text-center">{player.badge || `#${player.rank}`}</span>
                         <span className="font-medium">{player.name}</span>
                       </div>
-                      <span className="text-sm text-gray-600">{player.points} pts</span>
+                      <span className="text-sm text-muted-foreground">{player.points} pts</span>
                     </div>
                   ))}
                 </div>

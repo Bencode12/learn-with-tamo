@@ -7,13 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown, ArrowLeft, BookOpen, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import LanguageSelector from "@/components/LanguageSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Profile = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     name: "",
@@ -258,7 +259,7 @@ const Profile = () => {
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  {t('backTo')} Dashboard
                 </Button>
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -266,7 +267,7 @@ const Profile = () => {
                 <h1 className="text-xl font-bold">SūdžiusAI</h1>
               </Link>
             </div>
-            <LanguageSelector />
+
           </div>
         </div>
       </header>
@@ -277,7 +278,7 @@ const Profile = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <UserPlus className="h-5 w-5" />
-                <span>Add People</span>
+                <span>{t('addPeople')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -369,16 +370,16 @@ const Profile = () => {
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-blue-600">{userStats.totalLessons}</div>
-                    <div className="text-sm text-muted-foreground">Lessons</div>
+                    <div className="text-sm text-muted-foreground">{t('lessons')}</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">{userStats.hoursLearned}h</div>
-                    <div className="text-sm text-muted-foreground">Hours</div>
+                    <div className="text-sm text-muted-foreground">{t('hours')}</div>
                   </div>
                 </div>
                 <div className="flex items-center justify-center space-x-2 text-orange-600">
                   <Calendar className="h-5 w-5" />
-                  <span className="font-medium">{userStats.streak} day streak!</span>
+                  <span className="font-medium">{userStats.streak} {t('streak')}</span>
                 </div>
                 <p className="text-xs text-center text-muted-foreground">Member since {userStats.joinDate}</p>
               </CardContent>
@@ -386,14 +387,14 @@ const Profile = () => {
 
             <Button variant="outline" className="w-full" onClick={() => setShowAddPeople(!showAddPeople)}>
               <UserPlus className="h-4 w-4 mr-2" />
-              Add People
+              {t('addPeople')}
             </Button>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
-                  <span>Friends ({friends.length})</span>
+                  <span>{t('friends')} ({friends.length})</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -427,7 +428,7 @@ const Profile = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Trophy className="h-5 w-5" />
-                  <span>Achievements ({achievements.length})</span>
+                  <span>{t('achievements')} ({achievements.length})</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -460,7 +461,7 @@ const Profile = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>{t('recentActivity')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

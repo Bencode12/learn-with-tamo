@@ -1,11 +1,10 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Languages } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const LanguageSelector = () => {
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const { language, changeLanguage } = useLanguage();
 
   const languages = [
     { code: "en", name: "English", flag: "🇺🇸" },
@@ -13,36 +12,31 @@ const LanguageSelector = () => {
     { code: "es", name: "Español", flag: "🇪🇸" },
     { code: "fr", name: "Français", flag: "🇫🇷" },
     { code: "de", name: "Deutsch", flag: "🇩🇪" },
-    { code: "ru", name: "Русский", flag: "🇷🇺" }
+    { code: "ru", name: "Русский", flag: "🇷🇺" },
+    { code: "zh", name: "中文", flag: "🇨🇳" },
+    { code: "ja", name: "日本語", flag: "🇯🇵" },
+    { code: "ko", name: "한국어", flag: "🇰🇷" },
+    { code: "ar", name: "العربية", flag: "🇸🇦" },
+    { code: "pt", name: "Português", flag: "🇵🇹" },
+    { code: "it", name: "Italiano", flag: "🇮🇹" }
   ];
 
-  // Basic translations for common UI elements
-  const translations = {
-    en: { dashboard: "Dashboard", shop: "Shop", profile: "Profile", settings: "Settings" },
-    lt: { dashboard: "Valdymo skydas", shop: "Parduotuvė", profile: "Profilis", settings: "Nustatymai" },
-    es: { dashboard: "Tablero", shop: "Tienda", profile: "Perfil", settings: "Configuración" },
-    fr: { dashboard: "Tableau de bord", shop: "Boutique", profile: "Profil", settings: "Paramètres" },
-    de: { dashboard: "Dashboard", shop: "Shop", profile: "Profil", settings: "Einstellungen" },
-    ru: { dashboard: "Панель", shop: "Магазин", profile: "Профиль", settings: "Настройки" }
-  };
-
-  const t = (key: keyof typeof translations.en) => {
-    return translations[selectedLanguage as keyof typeof translations]?.[key] || translations.en[key];
-  };
-
   const handleLanguageChange = (languageCode: string) => {
-    setSelectedLanguage(languageCode);
-    // Store language preference in localStorage
-    localStorage.setItem('selectedLanguage', languageCode);
+    changeLanguage(languageCode);
     console.log("Language changed to:", languageCode);
   };
 
+  const selectedLanguage = languages.find(lang => lang.code === language) || languages[0];
+
   return (
-    <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+    <Select value={language} onValueChange={handleLanguageChange}>
       <SelectTrigger className="w-40">
         <div className="flex items-center space-x-2">
           <Languages className="h-4 w-4" />
-          <SelectValue />
+          <span className="flex items-center space-x-2 truncate">
+            <span>{selectedLanguage.flag}</span>
+            <span className="truncate">{selectedLanguage.name}</span>
+          </span>
         </div>
       </SelectTrigger>
       <SelectContent>

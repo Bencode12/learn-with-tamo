@@ -131,12 +131,8 @@ export const TherapistModal = ({ open, onOpenChange }: TherapistModalProps) => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200">
-              <h4 className="font-semibold text-lg mb-3 flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-purple-600" />
-                <span>Your Personalized Insight</span>
-              </h4>
-              <p className="text-gray-700 leading-relaxed">{aiResponse}</p>
+            <div className="p-4 bg-card rounded-lg">
+              <p className="text-muted-foreground leading-relaxed">{aiResponse}</p>
             </div>
             <Button onClick={() => onOpenChange(false)} className="w-full">
               Close

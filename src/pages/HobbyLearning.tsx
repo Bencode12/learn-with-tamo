@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Heart, ArrowLeft, BookOpen, Music, Camera, Palette, ChefHat, Wrench, Gamepad2, Dumbbell, Flower2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import LanguageSelector from '@/components/LanguageSelector';
 
 const HobbyLearning = () => {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ const HobbyLearning = () => {
                 <h1 className="text-xl font-bold">SūdžiusAI</h1>
               </Link>
             </div>
-            <LanguageSelector />
+
           </div>
         </div>
       </header>

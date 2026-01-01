@@ -656,11 +656,8 @@ export type Database = {
           experience: number
           id: string
           is_premium: boolean | null
-          last_life_lost_at: string | null
           learning_time_reset: string
           level: number
-          lives: number | null
-          lives_refill_at: string | null
           name_color: string | null
           premium_expires_at: string | null
           staff_badge: string | null
@@ -678,11 +675,8 @@ export type Database = {
           experience?: number
           id: string
           is_premium?: boolean | null
-          last_life_lost_at?: string | null
           learning_time_reset?: string
           level?: number
-          lives?: number | null
-          lives_refill_at?: string | null
           name_color?: string | null
           premium_expires_at?: string | null
           staff_badge?: string | null
@@ -700,11 +694,8 @@ export type Database = {
           experience?: number
           id?: string
           is_premium?: boolean | null
-          last_life_lost_at?: string | null
           learning_time_reset?: string
           level?: number
-          lives?: number | null
-          lives_refill_at?: string | null
           name_color?: string | null
           premium_expires_at?: string | null
           staff_badge?: string | null
