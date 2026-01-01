@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Languages } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -17,20 +16,23 @@ const LanguageSelector = () => {
     { code: "ja", name: "日本語", flag: "🇯🇵" },
     { code: "ko", name: "한국어", flag: "🇰🇷" },
     { code: "ar", name: "العربية", flag: "🇸🇦" },
-    { code: "pt", name: "Português", flag: "🇵🇹" },
-    { code: "it", name: "Italiano", flag: "🇮🇹" }
+    { code: "pt", name: "Português", flag: "🇧🇷" },
+    { code: "it", name: "Italiano", flag: "🇮🇹" },
+    { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
+    { code: "pl", name: "Polski", flag: "🇵🇱" },
+    { code: "uk", name: "Українська", flag: "🇺🇦" },
+    { code: "nl", name: "Nederlands", flag: "🇳🇱" },
+    { code: "tr", name: "Türkçe", flag: "🇹🇷" },
+    { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
+    { code: "th", name: "ไทย", flag: "🇹🇭" },
+    { code: "id", name: "Bahasa Indonesia", flag: "🇮🇩" }
   ];
-
-  const handleLanguageChange = (languageCode: string) => {
-    changeLanguage(languageCode);
-    console.log("Language changed to:", languageCode);
-  };
 
   const selectedLanguage = languages.find(lang => lang.code === language) || languages[0];
 
   return (
-    <Select value={language} onValueChange={handleLanguageChange}>
-      <SelectTrigger className="w-40">
+    <Select value={language} onValueChange={changeLanguage}>
+      <SelectTrigger className="w-44">
         <div className="flex items-center space-x-2">
           <Languages className="h-4 w-4" />
           <span className="flex items-center space-x-2 truncate">
@@ -39,12 +41,12 @@ const LanguageSelector = () => {
           </span>
         </div>
       </SelectTrigger>
-      <SelectContent>
-        {languages.map((language) => (
-          <SelectItem key={language.code} value={language.code}>
+      <SelectContent className="max-h-[300px]">
+        {languages.map((lang) => (
+          <SelectItem key={lang.code} value={lang.code}>
             <div className="flex items-center space-x-2">
-              <span>{language.flag}</span>
-              <span>{language.name}</span>
+              <span>{lang.flag}</span>
+              <span>{lang.name}</span>
             </div>
           </SelectItem>
         ))}

@@ -412,7 +412,7 @@ const Progress = () => {
                             </div>
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            {formatDate(checkin.created_at)} • {t('daysAgo', { count: daysAgo(checkin.created_at) })}
+                            {formatDate(checkin.created_at)} • {daysAgo(checkin.created_at)} days ago
                           </span>
                         </div>
                         

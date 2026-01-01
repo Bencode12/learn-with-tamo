@@ -7,6 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Price IDs for subscription tiers
+const PRICE_IDS: Record<string, string> = {
+  starter: 'price_1SklyMLyIdgaowBry3BZE1yZ',    // Starter Plan $4.99/month
+  premium: 'price_1SQxMILyIdgaowBrcCPXH5e8',   // Premium Plan $9.99/month
+  enterprise: 'price_1SklySLyIdgaowBr9aMSf9tf', // Enterprise Plan $19.99/month
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +31,11 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
+    // Get the requested tier from the request body
+    const body = await req.json().catch(() => ({}));
+    const tier = body.tier || 'premium';
+    const priceId = PRICE_IDS[tier] || PRICE_IDS.premium;
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2025-08-27.basil" 
     });
@@ -39,13 +51,16 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1SQxMILyIdgaowBrcCPXH5e8",
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/store?success=true`,
       cancel_url: `${req.headers.get("origin")}/store?canceled=true`,
+      subscription_data: {
+        trial_period_days: 7,
+      },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -53,7 +68,8 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

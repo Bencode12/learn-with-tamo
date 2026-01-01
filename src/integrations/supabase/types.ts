@@ -666,6 +666,7 @@ export type Database = {
           staff_badge: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_tier: string | null
           total_learning_time: number
           updated_at: string
           username: string
@@ -688,6 +689,7 @@ export type Database = {
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_tier?: string | null
           total_learning_time?: number
           updated_at?: string
           username: string
@@ -710,6 +712,7 @@ export type Database = {
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_tier?: string | null
           total_learning_time?: number
           updated_at?: string
           username?: string
@@ -845,6 +848,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_credentials: {
+        Row: {
+          created_at: string | null
+          encrypted_data: string
+          id: string
+          service_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_data: string
+          id?: string
+          service_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_data?: string
+          id?: string
+          service_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_lives: {
         Row: {
