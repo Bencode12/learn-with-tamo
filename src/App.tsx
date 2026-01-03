@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,12 +15,6 @@ import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import Store from "./pages/Store";
 import GameModes from "./pages/GameModes";
-import SingleMode from "./pages/SingleMode";
-import DuosMode from "./pages/DuosMode";
-import RankedMode from "./pages/RankedMode";
-import TeamMode from "./pages/TeamMode";
-import LessonStart from "./pages/LessonStart";
-import Lesson from "./pages/Lesson";
 import Exams from "./pages/Exams";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -32,6 +25,7 @@ import JobInterviewPrep from "./pages/JobInterviewPrep";
 import PresentationPrep from "./pages/PresentationPrep";
 import HobbyLearning from "./pages/HobbyLearning";
 import ProgramLearning from "./pages/ProgramLearning";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -53,12 +47,6 @@ const App = () => (
             <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
             <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
-            <Route path="/single-mode" element={<ProtectedRoute><SingleMode /></ProtectedRoute>} />
-            <Route path="/duos-mode" element={<ProtectedRoute><DuosMode /></ProtectedRoute>} />
-            <Route path="/ranked-mode" element={<ProtectedRoute><RankedMode /></ProtectedRoute>} />
-            <Route path="/team-mode" element={<ProtectedRoute><TeamMode /></ProtectedRoute>} />
-            <Route path="/lesson-start/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><LessonStart /></ProtectedRoute>} />
-            <Route path="/lesson/:subjectId/:chapterId/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/job-interview-prep" element={<ProtectedRoute><JobInterviewPrep /></ProtectedRoute>} />

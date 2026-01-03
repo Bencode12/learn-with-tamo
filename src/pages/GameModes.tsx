@@ -1,12 +1,75 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, ArrowLeft, Code, School, User, Briefcase, Presentation, Heart, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BookOpen, ArrowLeft, Code, School, User, Briefcase, Presentation, Heart, Sparkles, Play, Settings, Plus, CheckCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import LanguageSelector from "@/components/LanguageSelector";
+
+interface LearningPlan {
+  id: string;
+  name: string;
+  subject: string;
+  fields: string[];
+  duration_months: number;
+  current_week: number;
+  status: string;
+  created_at: string;
+}
 
 const GameModes = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const [existingPlans, setExistingPlans] = useState<LearningPlan[]>([]);
+  const [showPlanSelector, setShowPlanSelector] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadExistingPlans();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadExistingPlans = async () => {
+    const { data, error } = await supabase
+      .from('learning_plans')
+      .select('*')
+      .eq('user_id', user?.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setExistingPlans(data as LearningPlan[]);
+    }
+    setLoading(false);
+  };
+
+  const handleProgramLearningClick = () => {
+    if (existingPlans.length === 0) {
+      // No plans, go to create new
+      navigate("/program-learning");
+    } else if (existingPlans.length === 1) {
+      // Single plan, show options
+      setShowPlanSelector(true);
+    } else {
+      // Multiple plans, show selector
+      setShowPlanSelector(true);
+    }
+  };
+
+  const handleContinuePlan = (planId?: string) => {
+    // For now, just navigate - in future this would start the lesson
+    setShowPlanSelector(false);
+    navigate("/program-learning");
+  };
   
   const learningPathways = [
     {
@@ -15,8 +78,8 @@ const GameModes = () => {
       description: t('programLearningDesc'),
       icon: Code,
       color: "bg-primary",
-      route: "/program-learning",
-      isPrimary: true
+      isPrimary: true,
+      hasPlans: existingPlans.length > 0
     },
     {
       id: "school",
@@ -146,13 +209,67 @@ const GameModes = () => {
                       </Link>
                     ))}
                   </div>
+                ) : pathway.id === "program" ? (
+                  // Program Learning with plan management
+                  <div className="space-y-3">
+                    {existingPlans.length > 0 ? (
+                      <>
+                        <div className="p-3 bg-primary/10 rounded-lg mb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle className="h-4 w-4 text-primary" />
+                            <span className="font-medium text-sm">
+                              {existingPlans.length} Active Plan{existingPlans.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {existingPlans[0].name}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-col h-auto py-3"
+                            onClick={() => navigate("/program-learning")}
+                          >
+                            <Settings className="h-4 w-4 mb-1" />
+                            <span className="text-xs">Modify</span>
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-col h-auto py-3"
+                            onClick={() => navigate("/program-learning")}
+                          >
+                            <Plus className="h-4 w-4 mb-1" />
+                            <span className="text-xs">New Plan</span>
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="flex-col h-auto py-3 bg-primary"
+                            onClick={handleProgramLearningClick}
+                          >
+                            <Play className="h-4 w-4 mb-1" />
+                            <span className="text-xs">Continue</span>
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Button 
+                        className="w-full bg-primary hover:bg-primary/90"
+                        onClick={() => navigate("/program-learning")}
+                      >
+                        {t('startPersonalizedPlan')}
+                      </Button>
+                    )}
+                  </div>
                 ) : (
-                  <Link to={pathway.route} className="block">
+                  <Link to={pathway.route || "#"} className="block">
                     <Button 
-                      className={`w-full ${pathway.isPrimary ? 'bg-primary hover:bg-primary/90' : ''}`}
-                      variant={pathway.isPrimary ? 'default' : 'secondary'}
+                      className="w-full"
+                      variant="secondary"
                     >
-                      {pathway.isPrimary ? t('startPersonalizedPlan') : t('selectPathway')}
+                      {t('selectPathway')}
                     </Button>
                   </Link>
                 )}
@@ -161,6 +278,52 @@ const GameModes = () => {
           ))}
         </div>
       </main>
+
+      {/* Plan Selector Dialog */}
+      <Dialog open={showPlanSelector} onOpenChange={setShowPlanSelector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Your Learning Plans</DialogTitle>
+            <DialogDescription>
+              Choose a plan to continue or manage your plans
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {existingPlans.map((plan) => (
+              <Card 
+                key={plan.id} 
+                className="cursor-pointer hover:border-primary transition-colors"
+                onClick={() => handleContinuePlan(plan.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">{plan.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Week {plan.current_week} of {plan.duration_months * 4}
+                      </p>
+                    </div>
+                    <Badge>{plan.fields.length} fields</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowPlanSelector(false);
+                  navigate("/program-learning");
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Plan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
