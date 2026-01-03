@@ -4,7 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, ArrowLeft, Code, School, User, Briefcase, Presentation, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import LanguageSelector from "@/components/LanguageSelector";
+
+const GameModes = () => {
+  const { t } = useLanguage();
+  
   const learningPathways = [
     {
       id: "program",
