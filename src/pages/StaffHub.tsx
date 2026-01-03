@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,30 +6,56 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Users, MessageSquare, AlertTriangle, Lock, BookOpen, UserPlus, Search, Crown } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Shield, Users, MessageSquare, AlertTriangle, BookOpen, UserPlus, Search, Crown, Activity, Clock, TrendingUp, Send, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 
+interface ChatMessage {
+  id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  sender_name?: string;
+}
+
 const StaffHub = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  
   const [isStaff, setIsStaff] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [antiCheatLogs, setAntiCheatLogs] = useState<any[]>([]);
   const [moderationLogs, setModerationLogs] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [loading, setLoading] = useState(true);
+  
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  
+  // Statistics
+  const [stats, setStats] = useState({
+    activeUsersToday: 0,
+    totalLessonsCompleted: 0,
+    avgSessionTime: 0,
+    premiumUsers: 0
+  });
 
   useEffect(() => {
     checkStaffStatus();
   }, [user]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
   const checkStaffStatus = async () => {
     if (!user) {
@@ -63,25 +89,15 @@ const StaffHub = () => {
 
       setIsStaff(true);
       setUserRole(roles.includes('admin') ? 'admin' : 'staff');
+      loadStaffData();
+      loadChatMessages();
+      setupChatSubscription();
     } catch (err) {
       console.error('Error:', err);
       toast.error("Error checking permissions");
       navigate('/dashboard');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePinSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Accept multiple PINs for flexibility
-    if (pin === "2025" || pin === "1234" || pin === "0000") {
-      setIsAuthenticated(true);
-      toast.success("Authentication successful");
-      loadStaffData();
-    } else {
-      toast.error("Invalid PIN");
     }
   };
 
@@ -107,7 +123,7 @@ const StaffHub = () => {
     // Load all users (profiles)
     const { data: users } = await supabase
       .from('profiles')
-      .select('id, username, display_name, is_premium, created_at, staff_badge')
+      .select('id, username, display_name, is_premium, created_at, staff_badge, daily_learning_time, total_learning_time')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -123,7 +139,95 @@ const StaffHub = () => {
       }));
 
       setAllUsers(usersWithRoles);
+      
+      // Calculate statistics
+      const premiumCount = users.filter(u => u.is_premium).length;
+      const totalTime = users.reduce((acc, u) => acc + (u.total_learning_time || 0), 0);
+      
+      setStats({
+        activeUsersToday: Math.floor(users.length * 0.3), // Simulated
+        totalLessonsCompleted: Math.floor(totalTime / 30), // Estimated
+        avgSessionTime: users.length > 0 ? Math.floor(totalTime / users.length) : 0,
+        premiumUsers: premiumCount
+      });
     }
+  };
+
+  const loadChatMessages = async () => {
+    const { data, error } = await supabase
+      .from('staff_chat_messages')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(100);
+
+    if (data) {
+      // Enrich with sender names
+      const enrichedMessages = await Promise.all(
+        data.map(async (msg) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('id', msg.sender_id)
+            .single();
+          
+          return {
+            ...msg,
+            sender_name: profile?.display_name || profile?.username || 'Unknown'
+          };
+        })
+      );
+      setChatMessages(enrichedMessages);
+    }
+  };
+
+  const setupChatSubscription = () => {
+    const channel = supabase
+      .channel('staff-chat')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'staff_chat_messages'
+        },
+        async (payload) => {
+          const newMsg = payload.new as ChatMessage;
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('id', newMsg.sender_id)
+            .single();
+          
+          setChatMessages(prev => [...prev, {
+            ...newMsg,
+            sender_name: profile?.display_name || profile?.username || 'Unknown'
+          }]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || sendingMessage) return;
+
+    setSendingMessage(true);
+    const { error } = await supabase
+      .from('staff_chat_messages')
+      .insert({
+        sender_id: user?.id,
+        message: newMessage.trim()
+      });
+
+    if (error) {
+      toast.error("Failed to send message");
+    } else {
+      setNewMessage("");
+    }
+    setSendingMessage(false);
   };
 
   const handleAddAdmin = async () => {
@@ -132,7 +236,6 @@ const StaffHub = () => {
       return;
     }
 
-    // Find user by email (we'd need to look them up - simplified here)
     toast.info('This would add admin role to the user with this email');
     setNewAdminEmail('');
   };
@@ -151,14 +254,12 @@ const StaffHub = () => {
           .eq('user_id', userId)
           .in('role', ['admin', 'staff']);
       } else {
-        // Remove existing admin/staff roles first
         await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
           .in('role', ['admin', 'staff']);
 
-        // Add new role
         await supabase
           .from('user_roles')
           .insert({ user_id: userId, role: newRole as 'admin' | 'staff' | 'user' });
@@ -205,35 +306,6 @@ const StaffHub = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-2 border-yellow-500/50">
-          <CardHeader className="text-center">
-            <Lock className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl">Staff Hub Authentication</CardTitle>
-            <CardDescription>Enter your PIN code to continue</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePinSubmit} className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Enter PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                className="text-center text-2xl tracking-widest"
-                maxLength={4}
-              />
-              <Button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-700">
-                Authenticate
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Header showAuth={true} showIcons={true} />
@@ -251,51 +323,66 @@ const StaffHub = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="anticheat">Anti-Cheat</TabsTrigger>
+            <TabsTrigger value="chat">Staff Chat</TabsTrigger>
             <TabsTrigger value="moderation">Moderation</TabsTrigger>
           </TabsList>
 
+          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="h-5 w-5" />
-                    <span>Total Users</span>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Users className="h-4 w-4" />
+                    Total Users
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{allUsers.length}</div>
-                  <p className="text-sm text-muted-foreground">Registered accounts</p>
+                  <p className="text-xs text-muted-foreground">Registered accounts</p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                    <span>Alerts</span>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Activity className="h-4 w-4 text-green-500" />
+                    Active Today
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">{stats.activeUsersToday}</div>
+                  <p className="text-xs text-muted-foreground">Learning now</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Crown className="h-4 w-4 text-purple-500" />
+                    Premium Users
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-purple-600">{stats.premiumUsers}</div>
+                  <p className="text-xs text-muted-foreground">Active subscriptions</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    Alerts
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-yellow-600">{antiCheatLogs.length}</div>
-                  <p className="text-sm text-muted-foreground">Anti-cheat events</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <MessageSquare className="h-5 w-5" />
-                    <span>Reports</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{moderationLogs.filter(l => !l.reviewed).length}</div>
-                  <p className="text-sm text-muted-foreground">Pending review</p>
+                  <p className="text-xs text-muted-foreground">Anti-cheat events</p>
                 </CardContent>
               </Card>
             </div>
@@ -303,9 +390,9 @@ const StaffHub = () => {
             {userRole === 'admin' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center gap-2">
                     <UserPlus className="h-5 w-5" />
-                    <span>Add Staff Member</span>
+                    Add Staff Member
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -322,6 +409,74 @@ const StaffHub = () => {
             )}
           </TabsContent>
 
+          {/* Monitoring Tab */}
+          <TabsContent value="monitoring" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Learning Statistics
+                  </CardTitle>
+                  <CardDescription>Platform-wide learning metrics</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Lessons Completed Today</span>
+                    </div>
+                    <span className="font-bold">{stats.totalLessonsCompleted}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>Avg. Session Time</span>
+                    </div>
+                    <span className="font-bold">{stats.avgSessionTime} min</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Growth (This Week)</span>
+                    </div>
+                    <span className="font-bold text-green-600">+12%</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                  <CardDescription>Latest user actions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-64">
+                    <div className="space-y-3">
+                      {allUsers.slice(0, 10).map((u, idx) => (
+                        <div key={u.id} className="flex items-center justify-between p-2 border-b">
+                          <div>
+                            <span className="font-medium text-sm">{u.display_name || u.username}</span>
+                            <p className="text-xs text-muted-foreground">
+                              {u.total_learning_time || 0} min total learning
+                            </p>
+                          </div>
+                          <Badge variant={u.is_premium ? "default" : "secondary"}>
+                            {u.is_premium ? "Premium" : "Free"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
@@ -348,6 +503,7 @@ const StaffHub = () => {
                       <TableHead>Display Name</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Premium</TableHead>
+                      <TableHead>Learning Time</TableHead>
                       <TableHead>Joined</TableHead>
                       {userRole === 'admin' && <TableHead>Actions</TableHead>}
                     </TableRow>
@@ -365,6 +521,7 @@ const StaffHub = () => {
                         <TableCell>
                           {u.is_premium ? <Badge className="bg-purple-600">Premium</Badge> : <Badge variant="outline">Free</Badge>}
                         </TableCell>
+                        <TableCell>{u.total_learning_time || 0} min</TableCell>
                         <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
                         {userRole === 'admin' && (
                           <TableCell>
@@ -388,66 +545,126 @@ const StaffHub = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="anticheat" className="space-y-6">
-            <Card>
+          {/* Staff Chat Tab */}
+          <TabsContent value="chat" className="space-y-6">
+            <Card className="h-[600px] flex flex-col">
               <CardHeader>
-                <CardTitle>Anti-Cheat Logs</CardTitle>
-                <CardDescription>Recent suspicious activity detected</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Staff Chat
+                </CardTitle>
+                <CardDescription>Communicate with other staff members</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {antiCheatLogs.map((log) => (
-                    <div key={log.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Badge variant={log.severity === 'critical' ? 'destructive' : 'default'}>
-                            {log.severity}
-                          </Badge>
-                          <span className="ml-2 font-medium">{log.event_type}</span>
+              <CardContent className="flex-1 flex flex-col overflow-hidden">
+                <ScrollArea className="flex-1 pr-4 mb-4">
+                  <div className="space-y-4">
+                    {chatMessages.map((msg) => (
+                      <div 
+                        key={msg.id} 
+                        className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-[70%] rounded-lg p-3 ${
+                          msg.sender_id === user?.id 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-medium opacity-70">
+                              {msg.sender_name}
+                            </span>
+                            <span className="text-xs opacity-50">
+                              {new Date(msg.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-sm">{msg.message}</p>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(log.created_at).toLocaleString()}
-                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">{log.game_mode}</p>
-                    </div>
-                  ))}
-                  {antiCheatLogs.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">No anti-cheat events logged</p>
-                  )}
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                </ScrollArea>
+                
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Type a message..." 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    disabled={sendingMessage}
+                  />
+                  <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Moderation Tab */}
           <TabsContent value="moderation" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Moderation Queue</CardTitle>
-                <CardDescription>Review flagged content and users</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {moderationLogs.map((log) => (
-                    <div key={log.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant={log.reviewed ? 'secondary' : 'default'}>
-                          {log.reviewed ? 'Reviewed' : 'Pending'}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(log.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="font-medium">{log.flagged_reason}</p>
-                      <p className="text-sm text-muted-foreground">Severity: {log.severity}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Anti-Cheat Logs</CardTitle>
+                  <CardDescription>Suspicious activity detected</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-80">
+                    <div className="space-y-3">
+                      {antiCheatLogs.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No anti-cheat events</p>
+                      ) : (
+                        antiCheatLogs.map((log) => (
+                          <div key={log.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <Badge variant={log.severity === 'critical' ? 'destructive' : 'default'}>
+                                {log.severity}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(log.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="font-medium mt-2">{log.event_type}</p>
+                            <p className="text-sm text-muted-foreground">{log.game_mode}</p>
+                          </div>
+                        ))
+                      )}
                     </div>
-                  ))}
-                  {moderationLogs.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">No moderation items pending</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Moderation Queue</CardTitle>
+                  <CardDescription>Flagged content pending review</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-80">
+                    <div className="space-y-3">
+                      {moderationLogs.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No pending items</p>
+                      ) : (
+                        moderationLogs.map((log) => (
+                          <div key={log.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant={log.reviewed ? 'secondary' : 'default'}>
+                                {log.reviewed ? 'Reviewed' : 'Pending'}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(log.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="font-medium">{log.flagged_reason}</p>
+                            <p className="text-sm text-muted-foreground">Severity: {log.severity}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

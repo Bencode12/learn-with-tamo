@@ -1,12 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy, Crown } from "lucide-react";
+import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy, Crown, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +17,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [isPremium, setIsPremium] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { shouldShowCheckin, setShouldShowCheckin } = useTherapistCheckin();
   const [grades, setGrades] = useState([
@@ -32,23 +30,33 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     
-    const checkPremium = async () => {
-      const { data } = await supabase
+    const checkUserStatus = async () => {
+      // Check premium status
+      const { data: profile } = await supabase
         .from('profiles')
         .select('is_premium')
         .eq('id', user.id)
         .single();
       
-      if (data) {
-        setIsPremium(data.is_premium || false);
+      if (profile) {
+        setIsPremium(profile.is_premium || false);
+      }
+
+      // Check staff status
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      
+      if (roles) {
+        const userRoles = roles.map(r => r.role);
+        setIsStaff(userRoles.includes('admin') || userRoles.includes('staff'));
       }
     };
     
-    checkPremium();
+    checkUserStatus();
   }, [user]);
 
-  const [selectedLesson, setSelectedLesson] = useState("");
-  
   const lessons = [
     { id: "algebra", name: "Algebra Basics", subject: "Mathematics" },
     { id: "geometry", name: "Geometry Fundamentals", subject: "Mathematics" },
@@ -91,63 +99,11 @@ const Dashboard = () => {
         "Focus on key turning points"
       ]
     };
-    return suggestions[lessonId] || ["Select a lesson to see AI recommendations"];
+    return suggestions[lessonId] || ["Focus on improving your understanding of core concepts"];
   };
-
-  const [showGameModeSelection, setShowGameModeSelection] = useState(false);
-  const [selectedGameMode, setSelectedGameMode] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedField, setSelectedField] = useState("");
-
-  const gameModes = [
-    {
-      id: "single",
-      name: "Single Player",
-      description: "Learn at your own pace with AI guidance",
-      icon: Target,
-      color: "bg-green-500"
-    },
-    {
-      id: "ranked",
-      name: "Ranked",
-      description: "Compete against others in your skill level",
-      icon: Trophy,
-      color: "bg-yellow-500"
-    },
-    {
-      id: "team",
-      name: "Team",
-      description: "Learn together with friends (2-4 players)",
-      icon: Users,
-      color: "bg-blue-500"
-    },
-    {
-      id: "competitive",
-      name: "Competitive",
-      description: "5v5 tournament-style learning battles",
-      icon: Zap,
-      color: "bg-red-500"
-    }
-  ];
-
-  const subjects = [
-    "Mathematics", "Science", "History", "Literature", "Chemistry", "Physics", "Biology", "Geography"
-  ];
-
-  const mathFields = [
-    "Algebra", "Geometry", "Calculus", "Statistics", "Trigonometry", "Linear Algebra"
-  ];
 
   const handleSyncGrades = () => {
-    // TODO: Implement TamoAPI grade sync
     console.log("Syncing grades from TamoAPI...");
-  };
-
-  const startTutoring = () => {
-    setShowGameModeSelection(false);
-    // Here you would start the actual tutoring session
-    console.log(`Starting ${selectedGameMode} mode in ${selectedSubject} - ${selectedField}`);
-    // Navigate to ai-tutoring with the selected options
   };
 
   return (
@@ -160,7 +116,16 @@ const Dashboard = () => {
             <h2 className="text-2xl font-bold text-foreground mb-2">{t('welcomeBack')}</h2>
             <p className="text-muted-foreground">{t('learningProgress')}</p>
           </div>
-
+          
+          {/* Staff Hub Button - Only shown to staff */}
+          {isStaff && (
+            <Link to="/staff-hub">
+              <Button variant="outline" className="gap-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950">
+                <Shield className="h-4 w-4" />
+                Staff Hub
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Grades Section */}
@@ -203,34 +168,36 @@ const Dashboard = () => {
           </Card>
 
           {/* AI Recommendations - Premium Only */}
-          {isPremium && <Card>
-            <CardHeader>
-              <CardTitle>{t('aiRecommendations')}</CardTitle>
-              <CardDescription>{t('personalizedRecommendations')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {grades.map((grade, index) => {
-                  const lessonForSubject = lessons.find(l => l.subject === grade.subject);
-                  const suggestions = lessonForSubject ? getAISuggestions(lessonForSubject.id) : ["Focus on improving your understanding of core concepts"];
-                  
-                  return (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">{grade.subject}</span>
-                        <Badge variant={grade.grade >= 85 ? "default" : grade.grade >= 70 ? "secondary" : "destructive"}>
-                          {grade.grade}%
-                        </Badge>
+          {isPremium && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('aiRecommendations')}</CardTitle>
+                <CardDescription>{t('personalizedRecommendations')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {grades.map((grade, index) => {
+                    const lessonForSubject = lessons.find(l => l.subject === grade.subject);
+                    const suggestions = lessonForSubject ? getAISuggestions(lessonForSubject.id) : ["Focus on improving your understanding of core concepts"];
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{grade.subject}</span>
+                          <Badge variant={grade.grade >= 85 ? "default" : grade.grade >= 70 ? "secondary" : "destructive"}>
+                            {grade.grade}%
+                          </Badge>
+                        </div>
+                        <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800/50">
+                          <p className="text-sm text-muted-foreground">{suggestions[0]}</p>
+                        </div>
                       </div>
-                      <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800/50">
-                        <p className="text-sm text-muted-foreground">{suggestions[0]}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>}
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Quick Actions */}

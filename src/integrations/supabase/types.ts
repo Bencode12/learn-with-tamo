@@ -399,6 +399,60 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_plans: {
+        Row: {
+          assessment_answers: Json | null
+          assessment_score: number | null
+          completed_at: string | null
+          created_at: string
+          current_week: number
+          duration_months: number
+          fields: string[]
+          id: string
+          name: string
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+          weekly_plan: Json | null
+        }
+        Insert: {
+          assessment_answers?: Json | null
+          assessment_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          current_week?: number
+          duration_months?: number
+          fields?: string[]
+          id?: string
+          name: string
+          started_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+          weekly_plan?: Json | null
+        }
+        Update: {
+          assessment_answers?: Json | null
+          assessment_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          current_week?: number
+          duration_months?: number
+          fields?: string[]
+          id?: string
+          name?: string
+          started_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+          weekly_plan?: Json | null
+        }
+        Relationships: []
+      }
       lesson_progress: {
         Row: {
           chapter_id: string
@@ -787,6 +841,27 @@ export type Database = {
           time_limit_seconds?: number | null
           title?: string
           xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      staff_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
         }
         Relationships: []
       }
