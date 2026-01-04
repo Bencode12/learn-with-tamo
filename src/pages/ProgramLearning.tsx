@@ -25,14 +25,85 @@ const mathFields = [
   { id: "differential_equations", name: "Differential Equations", icon: "∂" },
 ];
 
+// Science subfields
+const scienceFields = [
+  { id: "physics_mechanics", name: "Classical Mechanics", icon: "⚙️" },
+  { id: "physics_em", name: "Electromagnetism", icon: "⚡" },
+  { id: "physics_quantum", name: "Quantum Mechanics", icon: "🔬" },
+  { id: "physics_thermo", name: "Thermodynamics", icon: "🌡️" },
+  { id: "chemistry_organic", name: "Organic Chemistry", icon: "🧪" },
+  { id: "chemistry_inorganic", name: "Inorganic Chemistry", icon: "⚗️" },
+  { id: "chemistry_physical", name: "Physical Chemistry", icon: "🔥" },
+  { id: "biology_cell", name: "Cell Biology", icon: "🦠" },
+  { id: "biology_genetics", name: "Genetics", icon: "🧬" },
+  { id: "biology_ecology", name: "Ecology", icon: "🌿" },
+];
+
+// History subfields
+const historyFields = [
+  { id: "ancient_history", name: "Ancient History", icon: "🏛️" },
+  { id: "medieval_history", name: "Medieval History", icon: "⚔️" },
+  { id: "modern_history", name: "Modern History", icon: "🏭" },
+  { id: "world_wars", name: "World Wars", icon: "🎖️" },
+  { id: "american_history", name: "American History", icon: "🗽" },
+  { id: "european_history", name: "European History", icon: "🏰" },
+  { id: "asian_history", name: "Asian History", icon: "🏯" },
+  { id: "art_history", name: "Art History", icon: "🎨" },
+];
+
+// Programming subfields
+const codingFields = [
+  { id: "python", name: "Python", icon: "🐍" },
+  { id: "javascript", name: "JavaScript", icon: "📜" },
+  { id: "typescript", name: "TypeScript", icon: "💎" },
+  { id: "react", name: "React", icon: "⚛️" },
+  { id: "algorithms", name: "Algorithms", icon: "🔄" },
+  { id: "data_structures", name: "Data Structures", icon: "📦" },
+  { id: "databases", name: "Databases", icon: "🗄️" },
+  { id: "web_dev", name: "Web Development", icon: "🌐" },
+  { id: "machine_learning", name: "Machine Learning", icon: "🤖" },
+];
+
+// Languages subfields
+const languagesFields = [
+  { id: "spanish", name: "Spanish", icon: "🇪🇸" },
+  { id: "french", name: "French", icon: "🇫🇷" },
+  { id: "german", name: "German", icon: "🇩🇪" },
+  { id: "japanese", name: "Japanese", icon: "🇯🇵" },
+  { id: "chinese", name: "Chinese (Mandarin)", icon: "🇨🇳" },
+  { id: "korean", name: "Korean", icon: "🇰🇷" },
+  { id: "italian", name: "Italian", icon: "🇮🇹" },
+  { id: "portuguese", name: "Portuguese", icon: "🇵🇹" },
+];
+
+// Music subfields
+const musicFields = [
+  { id: "music_theory", name: "Music Theory", icon: "🎼" },
+  { id: "piano", name: "Piano", icon: "🎹" },
+  { id: "guitar", name: "Guitar", icon: "🎸" },
+  { id: "composition", name: "Composition", icon: "✍️" },
+  { id: "ear_training", name: "Ear Training", icon: "👂" },
+  { id: "music_production", name: "Music Production", icon: "🎧" },
+];
+
+// Art subfields
+const artFields = [
+  { id: "drawing", name: "Drawing Fundamentals", icon: "✏️" },
+  { id: "painting", name: "Painting", icon: "🎨" },
+  { id: "digital_art", name: "Digital Art", icon: "💻" },
+  { id: "graphic_design", name: "Graphic Design", icon: "🖼️" },
+  { id: "ui_ux", name: "UI/UX Design", icon: "📱" },
+  { id: "3d_modeling", name: "3D Modeling", icon: "🧊" },
+];
+
 const subjects = [
   { id: "math", name: "Mathematics", icon: Calculator, fields: mathFields },
-  { id: "science", name: "Science", icon: Atom, fields: [] },
-  { id: "history", name: "History", icon: History, fields: [] },
-  { id: "languages", name: "Languages", icon: Languages, fields: [] },
-  { id: "coding", name: "Programming", icon: Code, fields: [] },
-  { id: "music", name: "Music", icon: Music, fields: [] },
-  { id: "art", name: "Art & Design", icon: Palette, fields: [] },
+  { id: "science", name: "Science", icon: Atom, fields: scienceFields },
+  { id: "history", name: "History", icon: History, fields: historyFields },
+  { id: "languages", name: "Languages", icon: Languages, fields: languagesFields },
+  { id: "coding", name: "Programming", icon: Code, fields: codingFields },
+  { id: "music", name: "Music", icon: Music, fields: musicFields },
+  { id: "art", name: "Art & Design", icon: Palette, fields: artFields },
 ];
 
 const timeframes = [
