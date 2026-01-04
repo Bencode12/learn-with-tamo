@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.ai-tutor]
 verify_jwt = true
+
+[functions.generate-lesson]
+verify_jwt = false
