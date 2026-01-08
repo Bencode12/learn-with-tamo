@@ -8,6 +8,7 @@ import {
 import { AnimatedHero } from "@/components/AnimatedHero";
 import { ScrollRevealSection } from "@/components/ScrollRevealSection";
 import { FeatureCard } from "@/components/FeatureCard";
+import { TiltCard } from "@/components/TiltCard";
 
 const Index = () => {
   const features = [
@@ -115,12 +116,12 @@ const Index = () => {
         <section className="relative py-24 px-6 lg:px-20">
           <div className="max-w-7xl mx-auto">
             <ScrollRevealSection className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 px-4 py-2 rounded-full text-sm mb-6">
+              <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm mb-6">
                 <Zap className="h-4 w-4 text-violet-400" />
                 <span className="text-violet-300 font-medium">Why Choose Us</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Learn smarter, <span className="text-emerald-400">not harder</span>
+                Learn smarter, <span className="text-gradient-animate">not harder</span>
               </h2>
               <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                 Our AI-powered platform adapts to your unique learning style for maximum efficiency
@@ -141,7 +142,7 @@ const Index = () => {
         <section className="relative py-24 px-6 lg:px-20 bg-slate-900/50">
           <div className="max-w-6xl mx-auto">
             <ScrollRevealSection className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full text-sm mb-6">
+              <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm mb-6">
                 <BookOpen className="h-4 w-4 text-emerald-400" />
                 <span className="text-emerald-300 font-medium">Subjects</span>
               </div>
@@ -156,15 +157,20 @@ const Index = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {subjects.map((subject, index) => (
                 <ScrollRevealSection key={index} delay={index * 80}>
-                  <Card className="group bg-slate-900/50 border-slate-800 hover:border-emerald-500/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <CardContent className="pt-6 text-center">
-                      <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
-                        {subject.icon}
-                      </div>
-                      <h3 className="font-semibold text-white">{subject.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1">{subject.courses}+ courses</p>
-                    </CardContent>
-                  </Card>
+                  <TiltCard tiltAmount={15}>
+                    <Card className="group bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-500 cursor-pointer overflow-hidden">
+                      <CardContent className="pt-6 text-center relative">
+                        {/* Hover glow effect */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        
+                        <div className="text-5xl mb-3 group-hover:scale-125 group-hover:-rotate-6 transition-all duration-300">
+                          {subject.icon}
+                        </div>
+                        <h3 className="font-semibold text-white group-hover:text-emerald-400 transition-colors">{subject.name}</h3>
+                        <p className="text-xs text-slate-500 mt-1">{subject.courses}+ courses</p>
+                      </CardContent>
+                    </Card>
+                  </TiltCard>
                 </ScrollRevealSection>
               ))}
             </div>
@@ -175,7 +181,7 @@ const Index = () => {
         <section className="relative py-24 px-6 lg:px-20">
           <div className="max-w-5xl mx-auto">
             <ScrollRevealSection className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full text-sm mb-6">
+              <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm mb-6">
                 <Play className="h-4 w-4 text-blue-400" />
                 <span className="text-blue-300 font-medium">How It Works</span>
               </div>
@@ -187,17 +193,19 @@ const Index = () => {
             <div className="grid md:grid-cols-3 gap-8">
               {steps.map((item, index) => (
                 <ScrollRevealSection key={item.step} delay={index * 150}>
-                  <div className="text-center relative">
+                  <div className="text-center relative group">
                     {/* Connector line */}
                     {index < steps.length - 1 && (
                       <div className="hidden md:block absolute top-10 left-[60%] w-full h-0.5 bg-gradient-to-r from-slate-700 to-transparent" />
                     )}
                     
-                    <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg relative`}>
+                    <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg relative group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
                       <span className="text-3xl font-bold text-white">{item.step}</span>
+                      {/* Glow effect */}
+                      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${item.gradient} blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
-                    <p className="text-slate-400">{item.desc}</p>
+                    <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">{item.title}</h3>
+                    <p className="text-slate-400 group-hover:text-slate-300 transition-colors">{item.desc}</p>
                   </div>
                 </ScrollRevealSection>
               ))}
@@ -209,7 +217,7 @@ const Index = () => {
         <section className="relative py-24 px-6 lg:px-20 bg-slate-900/50">
           <div className="max-w-6xl mx-auto">
             <ScrollRevealSection className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full text-sm mb-6">
+              <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm mb-6">
                 <Star className="h-4 w-4 text-amber-400" />
                 <span className="text-amber-300 font-medium">Testimonials</span>
               </div>
@@ -221,26 +229,28 @@ const Index = () => {
             <div className="grid md:grid-cols-3 gap-6">
               {testimonials.map((t, idx) => (
                 <ScrollRevealSection key={idx} delay={idx * 150}>
-                  <Card className="bg-slate-900/80 border-slate-800 h-full">
-                    <CardContent className="pt-6">
-                      <Quote className="h-8 w-8 text-slate-700 mb-4" />
-                      <div className="flex gap-1 mb-4">
-                        {[...Array(t.rating)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                      <p className="text-slate-300 mb-6 leading-relaxed">"{t.content}"</p>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-semibold">
-                          {t.avatar}
+                  <TiltCard tiltAmount={6}>
+                    <Card className="bg-slate-900/80 border-slate-800 h-full hover:border-amber-500/30 transition-all duration-500 group">
+                      <CardContent className="pt-6">
+                        <Quote className="h-8 w-8 text-slate-700 mb-4 group-hover:text-amber-500/50 transition-colors" />
+                        <div className="flex gap-1 mb-4">
+                          {[...Array(t.rating)].map((_, i) => (
+                            <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" style={{ transitionDelay: `${i * 50}ms` }} />
+                          ))}
                         </div>
-                        <div>
-                          <p className="font-semibold text-white">{t.name}</p>
-                          <p className="text-sm text-slate-500">{t.role}</p>
+                        <p className="text-slate-300 mb-6 leading-relaxed group-hover:text-white transition-colors">"{t.content}"</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-semibold group-hover:scale-110 transition-transform">
+                            {t.avatar}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-white">{t.name}</p>
+                            <p className="text-sm text-slate-500">{t.role}</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </TiltCard>
                 </ScrollRevealSection>
               ))}
             </div>
@@ -264,7 +274,10 @@ const Index = () => {
               
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
                 <Link to="/signup">
-                  <Button size="lg" className="text-lg px-10 py-7 bg-white text-emerald-600 hover:bg-slate-100 font-semibold shadow-2xl">
+                  <Button 
+                    size="lg" 
+                    className="text-lg px-10 py-7 bg-white text-emerald-600 hover:bg-slate-100 font-semibold shadow-2xl btn-revolut hover:scale-105 active:scale-95 transition-all duration-300"
+                  >
                     Get Started Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -272,18 +285,12 @@ const Index = () => {
               </div>
               
               <div className="flex flex-wrap items-center justify-center gap-6 text-emerald-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>No credit card</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>Free forever plan</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>Cancel anytime</span>
-                </div>
+                {['No credit card', 'Free forever plan', 'Cancel anytime'].map((text, i) => (
+                  <div key={i} className="flex items-center gap-2 hover:text-white transition-colors cursor-default">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>{text}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </ScrollRevealSection>
