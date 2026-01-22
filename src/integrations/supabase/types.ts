@@ -1031,51 +1031,7 @@ export type Database = {
       }
     }
     Views: {
-      safe_profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          daily_learning_time: number | null
-          display_name: string | null
-          experience: number | null
-          id: string | null
-          is_premium: boolean | null
-          level: number | null
-          lives: number | null
-          staff_badge: string | null
-          total_learning_time: number | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          daily_learning_time?: number | null
-          display_name?: string | null
-          experience?: number | null
-          id?: string | null
-          is_premium?: boolean | null
-          level?: number | null
-          lives?: number | null
-          staff_badge?: string | null
-          total_learning_time?: number | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          daily_learning_time?: number | null
-          display_name?: string | null
-          experience?: number | null
-          id?: string | null
-          is_premium?: boolean | null
-          level?: number | null
-          lives?: number | null
-          staff_badge?: string | null
-          total_learning_time?: number | null
-          username?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {

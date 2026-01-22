@@ -169,15 +169,12 @@ const GameModes = () => {
           {learningPathways.map((pathway) => (
             <Card 
               key={pathway.id} 
-              className={`relative overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 group ${
+              className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
                 pathway.isPrimary 
                   ? 'border-2 border-primary ring-2 ring-primary/20' 
                   : 'hover:border-primary/50'
               }`}
             >
-              {/* Hover glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              
               {pathway.isPrimary && (
                 <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-bl-lg">
                   {t('recommended')}
@@ -185,11 +182,11 @@ const GameModes = () => {
               )}
               <CardHeader className="pb-4">
                 <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 ${pathway.color} rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                  <div className={`w-14 h-14 ${pathway.color} rounded-xl flex items-center justify-center shrink-0 shadow-lg`}>
                     <pathway.icon className="h-7 w-7 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-xl mb-1 group-hover:text-primary transition-colors">{pathway.name}</CardTitle>
+                    <CardTitle className="text-xl mb-1">{pathway.name}</CardTitle>
                     <CardDescription className="text-sm line-clamp-2">{pathway.description}</CardDescription>
                   </div>
                 </div>
@@ -201,7 +198,7 @@ const GameModes = () => {
                       <Link key={module.id} to={module.route}>
                         <Button 
                           variant="outline" 
-                          className="w-full h-auto py-3 px-4 flex items-start gap-3 justify-start text-left hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                          className="w-full h-auto py-3 px-4 flex items-start gap-3 justify-start text-left hover:bg-muted/50"
                         >
                           <module.icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                           <div className="min-w-0">
@@ -213,6 +210,7 @@ const GameModes = () => {
                     ))}
                   </div>
                 ) : pathway.id === "program" ? (
+                  // Program Learning with plan management
                   <div className="space-y-3">
                     {existingPlans.length > 0 ? (
                       <>
@@ -231,7 +229,7 @@ const GameModes = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="flex-col h-auto py-3 hover:scale-105 active:scale-95 transition-transform"
+                            className="flex-col h-auto py-3"
                             onClick={() => navigate("/program-learning")}
                           >
                             <Settings className="h-4 w-4 mb-1" />
@@ -240,7 +238,7 @@ const GameModes = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="flex-col h-auto py-3 hover:scale-105 active:scale-95 transition-transform"
+                            className="flex-col h-auto py-3"
                             onClick={() => navigate("/program-learning")}
                           >
                             <Plus className="h-4 w-4 mb-1" />
@@ -248,7 +246,7 @@ const GameModes = () => {
                           </Button>
                           <Button 
                             size="sm"
-                            className="flex-col h-auto py-3 bg-primary hover:scale-105 active:scale-95 transition-transform"
+                            className="flex-col h-auto py-3 bg-primary"
                             onClick={handleProgramLearningClick}
                           >
                             <Play className="h-4 w-4 mb-1" />
@@ -258,7 +256,7 @@ const GameModes = () => {
                       </>
                     ) : (
                       <Button 
-                        className="w-full bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                        className="w-full bg-primary hover:bg-primary/90"
                         onClick={() => navigate("/program-learning")}
                       >
                         {t('startPersonalizedPlan')}
@@ -268,7 +266,7 @@ const GameModes = () => {
                 ) : (
                   <Link to={pathway.route || "#"} className="block">
                     <Button 
-                      className="w-full hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                      className="w-full"
                       variant="secondary"
                     >
                       {t('selectPathway')}

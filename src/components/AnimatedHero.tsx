@@ -1,14 +1,95 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Sparkles, ArrowRight, Play, CheckCircle2 } from "lucide-react";
-import { AnimatedBackground } from "./AnimatedBackground";
-import { CursorTrail } from "./CursorTrail";
+import { BookOpen, Sparkles, Trophy, Brain, Users, Zap } from "lucide-react";
 
-// Eraser reveal effect hook
-const useEraserReveal = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
-  const [isRevealed, setIsRevealed] = useState(false);
-  const revealPercentage = useRef(0);
+// Mascot component - Duolingo-style owl character
+const Mascot = ({ className = "" }: { className?: string }) => (
+  <div className={`relative ${className}`}>
+    <div className="w-32 h-32 relative animate-bounce-slow">
+      {/* Owl body */}
+      <div className="absolute inset-0 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-full shadow-xl" />
+      {/* Eyes */}
+      <div className="absolute top-6 left-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner">
+        <div className="w-5 h-5 bg-gray-900 rounded-full animate-look" />
+      </div>
+      <div className="absolute top-6 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner">
+        <div className="w-5 h-5 bg-gray-900 rounded-full animate-look" />
+      </div>
+      {/* Beak */}
+      <div className="absolute top-14 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-12 border-l-transparent border-r-transparent border-t-orange-400" />
+      {/* Wings */}
+      <div className="absolute -left-3 top-12 w-8 h-16 bg-gradient-to-b from-emerald-500 to-emerald-700 rounded-full animate-wave" />
+      <div className="absolute -right-3 top-12 w-8 h-16 bg-gradient-to-b from-emerald-500 to-emerald-700 rounded-full animate-wave-reverse" />
+      {/* Graduation cap */}
+      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+        <div className="w-16 h-4 bg-gray-800 rounded" />
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-10 h-10 bg-gray-800 rotate-45" />
+        <div className="absolute -top-3 left-1/2 translate-x-4 w-8 h-1 bg-yellow-400" />
+        <div className="absolute -top-2 left-1/2 translate-x-8 w-3 h-3 bg-yellow-400 rounded-full" />
+      </div>
+    </div>
+  </div>
+);
+
+// Floating card component
+const FloatingCard = ({ 
+  icon: Icon, 
+  label, 
+  color, 
+  delay = 0,
+  position 
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  color: string;
+  delay?: number;
+  position: string;
+}) => (
+  <div 
+    className={`absolute ${position} bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-2xl animate-float`}
+    style={{ animationDelay: `${delay}s` }}
+  >
+    <div className={`${color} w-12 h-12 rounded-xl flex items-center justify-center mb-2`}>
+      <Icon className="h-6 w-6 text-white" />
+    </div>
+    <span className="text-sm font-semibold text-gray-800">{label}</span>
+  </div>
+);
+
+// Stats counter component
+const StatCounter = ({ value, label }: { value: string; label: string }) => {
+  const [count, setCount] = useState(0);
+  const numericValue = parseInt(value.replace(/[^0-9]/g, ''));
+  
+  useEffect(() => {
+    let start = 0;
+    const increment = numericValue / 50;
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= numericValue) {
+        setCount(numericValue);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 30);
+    return () => clearInterval(timer);
+  }, [numericValue]);
+
+  return (
+    <div className="text-center">
+      <div className="text-4xl md:text-5xl font-black text-white mb-2">
+        {count.toLocaleString()}{value.includes('+') ? '+' : ''}{value.includes('M') ? 'M' : ''}
+      </div>
+      <div className="text-blue-100 text-sm md:text-base">{label}</div>
+    </div>
+  );
+};
+
+export const AnimatedHero = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -17,369 +98,241 @@ const useEraserReveal = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const resize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+      color: string;
+      originalX: number;
+      originalY: number;
+    }> = [];
+
+    const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      particles.push({
+        x,
+        y,
+        originalX: x,
+        originalY: y,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        radius: Math.random() * 4 + 2,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(17, 24, 39, 0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle, i) => {
+        // Mouse interaction
+        const dx = mousePosition.x - particle.x;
+        const dy = mousePosition.y - particle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 150) {
+          const force = (150 - distance) / 150;
+          particle.vx -= (dx / distance) * force * 0.5;
+          particle.vy -= (dy / distance) * force * 0.5;
+        }
+
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        // Friction
+        particle.vx *= 0.99;
+        particle.vy *= 0.99;
+
+        // Return to original position
+        particle.vx += (particle.originalX - particle.x) * 0.001;
+        particle.vy += (particle.originalY - particle.y) * 0.001;
+
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+
+        // Glow effect
+        const gradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.radius * 2
+        );
+        gradient.addColorStop(0, particle.color);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius * 2, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = particle.color;
+        ctx.fill();
+
+        // Connect nearby particles
+        particles.slice(i + 1).forEach(otherParticle => {
+          const dx = particle.x - otherParticle.x;
+          const dy = particle.y - otherParticle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - distance / 120) * 0.3})`;
+            ctx.lineWidth = 1;
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(otherParticle.x, otherParticle.y);
+            ctx.stroke();
+          }
+        });
+      });
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // Fill with dark overlay
-      ctx.fillStyle = '#0a0a0f';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
-
-    resize();
-
-    let isDrawing = false;
-    let lastX = 0;
-    let lastY = 0;
-    const eraserSize = 120;
-
-    const erase = (x: number, y: number) => {
-      ctx.globalCompositeOperation = 'destination-out';
-      
-      // Create soft eraser brush
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, eraserSize);
-      gradient.addColorStop(0, 'rgba(0,0,0,1)');
-      gradient.addColorStop(0.5, 'rgba(0,0,0,0.8)');
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, eraserSize, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw line between points for smooth erasing
-      if (isDrawing) {
-        ctx.lineWidth = eraserSize * 1.5;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      }
-
-      lastX = x;
-      lastY = y;
-
-      // Calculate reveal percentage
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let transparentPixels = 0;
-      for (let i = 3; i < imageData.data.length; i += 4) {
-        if (imageData.data[i] < 128) transparentPixels++;
-      }
-      revealPercentage.current = (transparentPixels / (canvas.width * canvas.height)) * 100;
-      
-      if (revealPercentage.current > 30 && !isRevealed) {
-        setIsRevealed(true);
-        // Auto-reveal rest
-        autoReveal();
-      }
-    };
-
-    const autoReveal = () => {
-      let opacity = 1;
-      const fade = () => {
-        opacity -= 0.05;
-        if (opacity > 0) {
-          ctx.globalAlpha = opacity;
-          ctx.fillStyle = '#0a0a0f';
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.globalAlpha = opacity;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          requestAnimationFrame(fade);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-      };
-      fade();
-    };
-
-    const handleMouseDown = (e: MouseEvent) => {
-      isDrawing = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      erase(e.clientX, e.clientY);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDrawing) {
-        // Light erase on hover
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
-        ctx.beginPath();
-        ctx.arc(e.clientX, e.clientY, 60, 0, Math.PI * 2);
-        ctx.fill();
-        return;
-      }
-      erase(e.clientX, e.clientY);
+      setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
-    const handleMouseUp = () => {
-      isDrawing = false;
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      isDrawing = true;
-      const touch = e.touches[0];
-      lastX = touch.clientX;
-      lastY = touch.clientY;
-      erase(touch.clientX, touch.clientY);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isDrawing) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      erase(touch.clientX, touch.clientY);
-    };
-
-    window.addEventListener('resize', resize);
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleMouseUp);
-
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('mousemove', handleMouseMove);
+    
     return () => {
-      window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseUp);
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleMouseUp);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [canvasRef, isRevealed]);
-
-  return isRevealed;
-};
-
-// Animated counter
-const Counter = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
-  const [count, setCount] = useState(0);
-  
-  useEffect(() => {
-    let start = 0;
-    const increment = value / 40;
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= value) {
-        setCount(value);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 40);
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return <span>{count.toLocaleString()}{suffix}</span>;
-};
-
-// Floating orb component
-const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
-  <div 
-    className={`absolute rounded-full blur-[100px] animate-float-slow ${className}`}
-    style={{ animationDelay: `${delay}s` }}
-  />
-);
-
-// Revolut-style button
-const RevolutButton = ({ children, variant = "primary", className = "", ...props }: {
-  children: React.ReactNode;
-  variant?: "primary" | "secondary";
-  className?: string;
-  [key: string]: any;
-}) => {
-  const baseStyles = "relative overflow-hidden font-semibold transition-all duration-300 transform";
-  const variants = {
-    primary: "bg-emerald-500 hover:bg-emerald-400 text-white shadow-xl shadow-emerald-500/25 hover:shadow-emerald-400/40 hover:scale-105 active:scale-95",
-    secondary: "bg-white/5 border border-white/20 text-white hover:bg-white/10 hover:border-white/30 hover:scale-105 active:scale-95"
-  };
+  }, [mousePosition]);
 
   return (
-    <Button 
-      size="lg" 
-      className={`${baseStyles} ${variants[variant]} btn-revolut ${className}`}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-};
-
-export const AnimatedHero = () => {
-  const eraserCanvasRef = useRef<HTMLCanvasElement>(null);
-  const isRevealed = useEraserReveal(eraserCanvasRef);
-
-  return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* Cursor trail effect */}
-      <CursorTrail />
-
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <canvas ref={canvasRef} className="absolute inset-0" />
       
-      {/* Animated particle network background */}
-      <AnimatedBackground />
-      
-      {/* Animated mesh gradient - Revolut style */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-conic from-emerald-500/20 via-transparent to-transparent animate-spin-slow opacity-30" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-conic from-indigo-500/20 via-transparent to-transparent animate-spin-slow-reverse opacity-30" />
+      {/* Animated gradient orbs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-500 rounded-full mix-blend-multiply filter blur-[120px] opacity-20 animate-blob" />
+        <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-blue-500 rounded-full mix-blend-multiply filter blur-[120px] opacity-20 animate-blob animation-delay-2000" />
+        <div className="absolute bottom-1/4 left-1/3 w-[550px] h-[550px] bg-purple-500 rounded-full mix-blend-multiply filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
+        <div className="absolute bottom-0 right-1/3 w-[400px] h-[400px] bg-yellow-500 rounded-full mix-blend-multiply filter blur-[120px] opacity-15 animate-blob animation-delay-6000" />
       </div>
-      
-      {/* Grid pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px'
-        }}
-      />
-
-      {/* Floating morphing orbs */}
-      <FloatingOrb className="top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 animate-morph" delay={0} />
-      <FloatingOrb className="bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/20 animate-morph" delay={2} />
-      <FloatingOrb className="top-1/2 left-1/2 w-64 h-64 bg-violet-500/15 animate-morph" delay={4} />
-      <FloatingOrb className="bottom-1/3 left-1/3 w-48 h-48 bg-blue-500/15 animate-morph" delay={6} />
-
-      {/* Eraser overlay canvas */}
-      <canvas 
-        ref={eraserCanvasRef} 
-        className="absolute inset-0 z-30 cursor-crosshair"
-        style={{ touchAction: 'none' }}
-      />
 
       {/* Navigation */}
-      <nav className="relative z-40 flex items-center justify-between px-6 py-5 md:px-12 lg:px-20">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <div className="absolute inset-0 bg-emerald-500 rounded-xl blur-lg opacity-50 group-hover:opacity-80 transition-all duration-300" />
-            <div className="relative bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
-              <BookOpen className="h-6 w-6 text-white" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-white tracking-tight">SūdžiusAI</span>
-        </Link>
-        
-        <div className="hidden md:flex items-center gap-8">
-          {['Features', 'Leaderboard', 'Help'].map((item, i) => (
-            <Link 
-              key={item}
-              to={item === 'Features' ? '/gamemodes' : `/${item.toLowerCase()}`} 
-              className="relative text-slate-300 hover:text-white transition-colors text-sm font-medium group"
-            >
-              {item}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300" />
-            </Link>
-          ))}
-        </div>
-
+      <nav className="relative z-20 flex items-center justify-between px-6 py-4 md:px-12">
         <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2 rounded-xl shadow-lg">
+            <BookOpen className="h-7 w-7 text-white" />
+          </div>
+          <span className="text-2xl font-black text-white">SūdžiusAI</span>
+        </div>
+        <div className="flex items-center gap-4">
           <Link to="/login">
-            <Button 
-              variant="ghost" 
-              className="text-white hover:bg-white/10 hidden sm:inline-flex transition-all duration-300 hover:scale-105"
-            >
+            <Button variant="ghost" className="text-white hover:bg-white/10 hidden sm:inline-flex">
               Sign In
             </Button>
           </Link>
           <Link to="/signup">
-            <RevolutButton variant="primary" className="text-base px-6 py-5">
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg">
               Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </RevolutButton>
+            </Button>
           </Link>
         </div>
       </nav>
 
-      {/* Eraser hint */}
-      {!isRevealed && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 text-center pointer-events-none animate-pulse">
-          <div className="glass rounded-2xl px-8 py-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center animate-glow-pulse">
-              <div className="w-8 h-8 border-2 border-white/60 rounded-full" />
-            </div>
-            <p className="text-white/90 text-lg font-medium">Drag to reveal</p>
-            <p className="text-white/50 text-sm mt-1">Erase the darkness</p>
-          </div>
-        </div>
-      )}
+      {/* Floating cards - interactive elements */}
+      <FloatingCard icon={Trophy} label="+500 XP" color="bg-yellow-500" position="top-32 left-[10%] hidden lg:block" delay={0} />
+      <FloatingCard icon={Sparkles} label="AI Powered" color="bg-purple-500" position="top-48 right-[12%] hidden lg:block" delay={0.5} />
+      <FloatingCard icon={Users} label="2M+ Users" color="bg-blue-500" position="bottom-48 left-[8%] hidden lg:block" delay={1} />
+      <FloatingCard icon={Zap} label="Fast Learning" color="bg-emerald-500" position="bottom-32 right-[10%] hidden lg:block" delay={1.5} />
 
       {/* Main content */}
-      <div className={`relative z-20 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] px-6 transition-all duration-1000 ${isRevealed ? 'opacity-100' : 'opacity-50'}`}>
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm mb-8 animate-fade-in-up">
-            <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-            <span className="text-emerald-300 font-medium">AI-Powered Learning Platform</span>
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-[0.95] tracking-tight animate-fade-in-up animation-delay-200">
-            Master any skill
-            <br />
-            <span className="text-gradient-animate">
-              10x faster
-            </span>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-            Personalized AI tutoring that adapts to how you learn. 
-            Interactive lessons, real-time feedback, and gamified progress.
-          </p>
-
-          {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up animation-delay-600">
-            <Link to="/signup">
-              <RevolutButton variant="primary" className="text-base px-8 py-6">
-                Start Learning Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </RevolutButton>
-            </Link>
-            <RevolutButton variant="secondary" className="text-base px-8 py-6">
-              <Play className="mr-2 h-5 w-5" />
-              Watch Demo
-            </RevolutButton>
-          </div>
-
-          {/* Trust indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500 animate-fade-in-up animation-delay-800">
-            {['No credit card required', 'Free forever plan', 'Cancel anytime'].map((text, i) => (
-              <div key={i} className="flex items-center gap-2 hover:text-slate-300 transition-colors cursor-default">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="mt-20 grid grid-cols-3 gap-8 md:gap-16 animate-fade-in-up animation-delay-1000">
-          {[
-            { value: 2, suffix: 'M+', label: 'Active Learners' },
-            { value: 50, suffix: '+', label: 'Subjects' },
-            { value: 98, suffix: '%', label: 'Success Rate' }
-          ].map((stat, i) => (
-            <div key={i} className="text-center group cursor-default">
-              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors duration-300">
-                <Counter value={stat.value} suffix={stat.suffix} />
-              </div>
-              <div className="text-slate-500 text-sm group-hover:text-slate-400 transition-colors">{stat.label}</div>
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
+        <div className="flex flex-col lg:flex-row items-center gap-12 max-w-7xl mx-auto">
+          {/* Text content */}
+          <div className="flex-1 animate-fade-in-up">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full text-sm text-white mb-6">
+              <Sparkles className="h-4 w-4 text-yellow-400" />
+              <span>The #1 AI Learning Platform</span>
             </div>
-          ))}
+
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight">
+              Learn anything,
+              <br />
+              <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                master everything
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto lg:mx-0">
+              Personalized AI tutoring that adapts to your learning style. Interactive lessons, gamified progress, and real results.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
+              <Link to="/signup">
+                <Button size="lg" className="text-lg px-10 py-7 bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-2xl shadow-emerald-500/30 transform hover:scale-105 transition-all group">
+                  Start Learning Free
+                  <Sparkles className="ml-2 h-5 w-5 group-hover:animate-spin" />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button size="lg" variant="outline" className="text-lg px-10 py-7 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/20 hover:border-white/50">
+                  I have an account
+                </Button>
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-8 pt-8 border-t border-white/10">
+              <StatCounter value="2M+" label="Active Learners" />
+              <StatCounter value="50+" label="Subjects" />
+              <StatCounter value="98%" label="Success Rate" />
+            </div>
+          </div>
+
+          {/* Mascot section */}
+          <div className="flex-shrink-0 relative hidden lg:block">
+            <div className="relative w-80 h-80">
+              {/* Glow behind mascot */}
+              <div className="absolute inset-0 bg-emerald-500 rounded-full blur-3xl opacity-30 animate-pulse" />
+              
+              {/* Mascot */}
+              <div className="relative z-10 flex items-center justify-center h-full">
+                <Mascot />
+              </div>
+              
+              {/* Orbiting elements */}
+              <div className="absolute inset-0 animate-spin-slow">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-yellow-400 rounded-full shadow-lg flex items-center justify-center">
+                  <span className="text-lg">⭐</span>
+                </div>
+              </div>
+              <div className="absolute inset-0 animate-spin-slow-reverse">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 bg-purple-400 rounded-full shadow-lg flex items-center justify-center">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-        <div className="w-6 h-10 border-2 border-white/20 rounded-full flex items-start justify-center p-1.5 hover:border-emerald-400/50 transition-colors cursor-pointer">
-          <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-scroll-down" />
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <div className="w-8 h-12 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+          <div className="w-2 h-2 bg-white rounded-full animate-scroll-down" />
         </div>
       </div>
     </div>

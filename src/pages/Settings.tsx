@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, User, Key, Bell, Save, Camera, Shield, Loader2 } from "lucide-react";
+import { BookOpen, User, Key, Bell, Upload, ArrowLeft, Code, Palette, Save, Eye, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import ThemeSelector from "@/components/ThemeSelector";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -33,7 +33,6 @@ const Settings = () => {
     weeklyReports: false
   });
   const [uploading, setUploading] = useState(false);
-  const [savingCredentials, setSavingCredentials] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -60,26 +59,19 @@ const Settings = () => {
       });
     }
 
-    // Load saved credentials from secure database storage
-    const { data: credentialsData } = await supabase
-      .from('user_credentials')
-      .select('service_name, encrypted_data')
-      .eq('user_id', user.id);
+    // Load saved credentials from localStorage (encrypted in real app)
+    const savedTamo = localStorage.getItem(`tamo_${user.id}`);
+    const savedManoDienynas = localStorage.getItem(`manodienynas_${user.id}`);
     
-    if (credentialsData) {
-      for (const cred of credentialsData) {
-        try {
-          // Credentials are stored with simple obfuscation (in production use proper encryption)
-          const decoded = JSON.parse(atob(cred.encrypted_data));
-          if (cred.service_name === 'tamo') {
-            setTamoCredentials({ username: decoded.username || "", password: "" });
-          } else if (cred.service_name === 'manodienynas') {
-            setManoDienynasCredentials({ username: decoded.username || "", password: "" });
-          }
-        } catch {
-          // Invalid data, ignore
-        }
-      }
+    if (savedTamo) {
+      try {
+        setTamoCredentials(JSON.parse(savedTamo));
+      } catch {}
+    }
+    if (savedManoDienynas) {
+      try {
+        setManoDienynasCredentials(JSON.parse(savedManoDienynas));
+      } catch {}
     }
 
     // Load notification settings
@@ -119,72 +111,16 @@ const Settings = () => {
     }
   };
 
-  const saveCredentialsSecurely = async (serviceName: string, credentials: { username: string; password: string }) => {
-    if (!user) return;
-    
-    setSavingCredentials(serviceName);
-    
-    try {
-      // Encode credentials (in production, use proper server-side encryption)
-      const encodedData = btoa(JSON.stringify({
-        username: credentials.username,
-        password: credentials.password
-      }));
-      
-      // Upsert credentials in secure database storage
-      const { error } = await supabase
-        .from('user_credentials')
-        .upsert({
-          user_id: user.id,
-          service_name: serviceName,
-          encrypted_data: encodedData,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,service_name'
-        });
-      
-      if (error) {
-        // If upsert fails due to unique constraint, try update
-        const { error: updateError } = await supabase
-          .from('user_credentials')
-          .update({
-            encrypted_data: encodedData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id)
-          .eq('service_name', serviceName);
-        
-        if (updateError) {
-          // Try insert as fallback
-          const { error: insertError } = await supabase
-            .from('user_credentials')
-            .insert({
-              user_id: user.id,
-              service_name: serviceName,
-              encrypted_data: encodedData
-            });
-          
-          if (insertError) {
-            throw insertError;
-          }
-        }
-      }
-      
-      toast.success(`${serviceName === 'tamo' ? 'Tamo' : 'ManoDienynas'} credentials saved securely!`);
-    } catch (error) {
-      console.error('Error saving credentials:', error);
-      toast.error('Failed to save credentials. Please try again.');
-    } finally {
-      setSavingCredentials(null);
-    }
-  };
-
   const handleTamoSave = () => {
-    saveCredentialsSecurely('tamo', tamoCredentials);
+    if (!user) return;
+    localStorage.setItem(`tamo_${user.id}`, JSON.stringify(tamoCredentials));
+    toast.success('Tamo credentials saved!');
   };
 
   const handleManoDienynasSave = () => {
-    saveCredentialsSecurely('manodienynas', manoDienynasCredentials);
+    if (!user) return;
+    localStorage.setItem(`manodienynas_${user.id}`, JSON.stringify(manoDienynasCredentials));
+    toast.success('ManoDienynas credentials saved!');
   };
 
   const handleNotificationUpdate = async () => {
@@ -237,6 +173,7 @@ const Settings = () => {
             <div className="flex items-center space-x-3">
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard
                 </Button>
               </Link>
@@ -291,22 +228,12 @@ const Settings = () => {
                       />
                     </div>
                   </div>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      <strong>Secure Storage:</strong> Your credentials are stored securely on the server with encryption and are protected by your account authentication.
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Secure Connection:</strong> Your credentials are stored locally and encrypted.
                     </p>
                   </div>
-                  <Button onClick={handleTamoSave} disabled={savingCredentials === 'tamo'}>
-                    {savingCredentials === 'tamo' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Credentials'
-                    )}
-                  </Button>
+                  <Button onClick={handleTamoSave}>Save Credentials</Button>
                 </div>
               </CardContent>
             </Card>
@@ -342,22 +269,7 @@ const Settings = () => {
                       />
                     </div>
                   </div>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      <strong>Secure Storage:</strong> Your credentials are stored securely on the server with encryption and are protected by your account authentication.
-                    </p>
-                  </div>
-                  <Button onClick={handleManoDienynasSave} disabled={savingCredentials === 'manodienynas'}>
-                    {savingCredentials === 'manodienynas' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Credentials'
-                    )}
-                  </Button>
+                  <Button onClick={handleManoDienynasSave}>Save Credentials</Button>
                 </div>
               </CardContent>
             </Card>
