@@ -192,6 +192,16 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide scrollbar while allowing scroll */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }
 
 /* Custom animations for hero */
