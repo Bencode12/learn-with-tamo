@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, User, Key, Bell, Upload, ArrowLeft, Code, Palette, Save, Eye, Camera } from "lucide-react";
-import { Link } from "react-router-dom";
+import { User, Key, Bell, Camera, Save, Globe } from "lucide-react";
 import ThemeSelector from "@/components/ThemeSelector";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AppLayout } from "@/components/AppLayout";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -43,7 +43,6 @@ const Settings = () => {
   const loadSettings = async () => {
     if (!user) return;
 
-    // Load profile
     const { data: profileData } = await supabase
       .from('profiles')
       .select('username, display_name, avatar_url')
@@ -59,7 +58,6 @@ const Settings = () => {
       });
     }
 
-    // Load saved credentials from localStorage (encrypted in real app)
     const savedTamo = localStorage.getItem(`tamo_${user.id}`);
     const savedManoDienynas = localStorage.getItem(`manodienynas_${user.id}`);
     
@@ -74,7 +72,6 @@ const Settings = () => {
       } catch {}
     }
 
-    // Load notification settings
     const { data: settings } = await supabase
       .from('user_settings')
       .select('*')
@@ -107,20 +104,20 @@ const Settings = () => {
     if (error) {
       toast.error('Failed to update profile');
     } else {
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully');
     }
   };
 
   const handleTamoSave = () => {
     if (!user) return;
     localStorage.setItem(`tamo_${user.id}`, JSON.stringify(tamoCredentials));
-    toast.success('Tamo credentials saved!');
+    toast.success('Credentials saved');
   };
 
   const handleManoDienynasSave = () => {
     if (!user) return;
     localStorage.setItem(`manodienynas_${user.id}`, JSON.stringify(manoDienynasCredentials));
-    toast.success('ManoDienynas credentials saved!');
+    toast.success('Credentials saved');
   };
 
   const handleNotificationUpdate = async () => {
@@ -134,7 +131,7 @@ const Settings = () => {
       });
 
     if (!error) {
-      toast.success('Notification settings saved!');
+      toast.success('Preferences saved');
     }
   };
 
@@ -144,7 +141,6 @@ const Settings = () => {
 
     setUploading(true);
     
-    // Convert to base64 for simple storage (in production, use Supabase storage)
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -156,7 +152,7 @@ const Settings = () => {
 
       if (!error) {
         setProfile(prev => ({ ...prev, avatarUrl: base64 }));
-        toast.success('Profile picture updated!');
+        toast.success('Profile picture updated');
       } else {
         toast.error('Failed to update profile picture');
       }
@@ -166,232 +162,220 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold">SūdžiusAI</h1>
-              </Link>
-            </div>
-            <LanguageSelector />
-          </div>
-        </div>
-      </header>
+    <AppLayout title="Settings" subtitle="Manage your account preferences">
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="bg-muted/50 border border-border/40">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
+          <TabsTrigger value="accounts" className="data-[state=active]:bg-background">Accounts</TabsTrigger>
+          <TabsTrigger value="appearance" className="data-[state=active]:bg-background">Appearance</TabsTrigger>
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
+        </TabsList>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="account" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="themes">Themes</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="account" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Key className="h-5 w-5" />
-                  <span>Tamo Credentials</span>
-                </CardTitle>
-                <CardDescription>Connect your Tamo account to sync grades automatically</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tamoUsername">Tamo Username</Label>
-                      <Input
-                        id="tamoUsername"
-                        placeholder="Enter your Tamo username"
-                        value={tamoCredentials.username}
-                        onChange={(e) => setTamoCredentials({...tamoCredentials, username: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tamoPassword">Tamo Password</Label>
-                      <Input
-                        id="tamoPassword"
-                        type="password"
-                        placeholder="Enter your Tamo password"
-                        value={tamoCredentials.password}
-                        onChange={(e) => setTamoCredentials({...tamoCredentials, password: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Secure Connection:</strong> Your credentials are stored locally and encrypted.
-                    </p>
-                  </div>
-                  <Button onClick={handleTamoSave}>Save Credentials</Button>
+        <TabsContent value="profile" className="space-y-6">
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5" />
+                Profile Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={profile.avatarUrl} />
+                    <AvatarFallback className="bg-muted text-lg">
+                      {profile.displayName?.slice(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label className="absolute bottom-0 right-0 bg-foreground text-background rounded-full p-2 cursor-pointer hover:bg-foreground/90 transition-colors">
+                    <Camera className="h-3.5 w-3.5" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploading} />
+                  </label>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Key className="h-5 w-5" />
-                  <span>ManoDienynas Credentials</span>
-                </CardTitle>
-                <CardDescription>Connect your ManoDienynas account to sync grades automatically</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mdUsername">ManoDienynas Username</Label>
-                      <Input
-                        id="mdUsername"
-                        placeholder="Enter your username"
-                        value={manoDienynasCredentials.username}
-                        onChange={(e) => setManoDienynasCredentials({...manoDienynasCredentials, username: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mdPassword">ManoDienynas Password</Label>
-                      <Input
-                        id="mdPassword"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={manoDienynasCredentials.password}
-                        onChange={(e) => setManoDienynasCredentials({...manoDienynasCredentials, password: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <Button onClick={handleManoDienynasSave}>Save Credentials</Button>
+                <div className="flex-1">
+                  <p className="font-medium">Profile Picture</p>
+                  <p className="text-sm text-muted-foreground">Click the camera to upload</p>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
 
-          <TabsContent value="profile" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5" />
-                  <span>Profile Settings</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center space-x-6">
-                  <div className="relative">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={profile.avatarUrl} />
-                      <AvatarFallback className="text-2xl">{profile.displayName?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90">
-                      <Camera className="h-4 w-4" />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploading} />
-                    </label>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <p className="font-medium">Profile Picture</p>
-                    <p className="text-sm text-muted-foreground">Click the camera icon to upload a new picture</p>
-                  </div>
+              <div className="grid gap-4 max-w-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={profile.username}
+                    onChange={(e) => setProfile({...profile, username: e.target.value})}
+                    className="bg-muted/50 border-border/50"
+                  />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="displayName">Display Name</Label>
+                  <Input
+                    id="displayName"
+                    value={profile.displayName}
+                    onChange={(e) => setProfile({...profile, displayName: e.target.value})}
+                    className="bg-muted/50 border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    placeholder="Tell others about yourself..."
+                    rows={3}
+                    value={profile.bio}
+                    onChange={(e) => setProfile({...profile, bio: e.target.value})}
+                    className="bg-muted/50 border-border/50"
+                  />
+                </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="username">Username</Label>
+              <Button onClick={handleProfileUpdate} className="bg-foreground text-background hover:bg-foreground/90">
+                <Save className="h-4 w-4 mr-2" />
+                Save Profile
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="accounts" className="space-y-6">
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Key className="h-5 w-5" />
+                Tamo Credentials
+              </CardTitle>
+              <CardDescription>Connect your Tamo account to sync grades</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 max-w-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tamoUsername">Username</Label>
                     <Input
-                      id="username"
-                      value={profile.username}
-                      onChange={(e) => setProfile({...profile, username: e.target.value})}
+                      id="tamoUsername"
+                      placeholder="Tamo username"
+                      value={tamoCredentials.username}
+                      onChange={(e) => setTamoCredentials({...tamoCredentials, username: e.target.value})}
+                      className="bg-muted/50 border-border/50"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="displayName">Display Name</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="tamoPassword">Password</Label>
                     <Input
-                      id="displayName"
-                      value={profile.displayName}
-                      onChange={(e) => setProfile({...profile, displayName: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      placeholder="Tell others about yourself..."
-                      rows={4}
-                      value={profile.bio}
-                      onChange={(e) => setProfile({...profile, bio: e.target.value})}
+                      id="tamoPassword"
+                      type="password"
+                      placeholder="Tamo password"
+                      value={tamoCredentials.password}
+                      onChange={(e) => setTamoCredentials({...tamoCredentials, password: e.target.value})}
+                      className="bg-muted/50 border-border/50"
                     />
                   </div>
                 </div>
-
-                <Button onClick={handleProfileUpdate}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Profile
+                <p className="text-sm text-muted-foreground">
+                  Credentials are stored locally and encrypted.
+                </p>
+                <Button onClick={handleTamoSave} variant="outline" className="w-fit border-border/40">
+                  Save Credentials
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="themes" className="space-y-6">
-            <ThemeSelector />
-          </TabsContent>
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Key className="h-5 w-5" />
+                ManoDienynas Credentials
+              </CardTitle>
+              <CardDescription>Connect your ManoDienynas account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 max-w-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mdUsername">Username</Label>
+                    <Input
+                      id="mdUsername"
+                      placeholder="Username"
+                      value={manoDienynasCredentials.username}
+                      onChange={(e) => setManoDienynasCredentials({...manoDienynasCredentials, username: e.target.value})}
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mdPassword">Password</Label>
+                    <Input
+                      id="mdPassword"
+                      type="password"
+                      placeholder="Password"
+                      value={manoDienynasCredentials.password}
+                      onChange={(e) => setManoDienynasCredentials({...manoDienynasCredentials, password: e.target.value})}
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleManoDienynasSave} variant="outline" className="w-fit border-border/40">
+                  Save Credentials
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5" />
-                  <span>Notifications</span>
-                </CardTitle>
-                <CardDescription>Manage your notification preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+        <TabsContent value="appearance" className="space-y-6">
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Globe className="h-5 w-5" />
+                Language
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LanguageSelector />
+            </CardContent>
+          </Card>
+          
+          <ThemeSelector />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-6">
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bell className="h-5 w-5" />
+                Notifications
+              </CardTitle>
+              <CardDescription>Manage your notification preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {[
+                { key: 'examResults', label: 'Exam Results', desc: 'Receive notifications about exam results' },
+                { key: 'friendRequests', label: 'Friend Requests', desc: 'Get notified when someone sends a friend request' },
+                { key: 'achievements', label: 'Achievements', desc: 'Get notified when you earn achievements' },
+                { key: 'weeklyReports', label: 'Weekly Reports', desc: 'Receive weekly learning summaries' },
+              ].map((item) => (
+                <div key={item.key} className="flex items-center justify-between max-w-lg">
                   <div className="space-y-0.5">
-                    <Label className="text-base">Exam Results</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications about exam results</p>
+                    <Label className="text-base font-medium">{item.label}</Label>
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
                   </div>
                   <Switch
-                    checked={notifications.examResults}
-                    onCheckedChange={(checked) => setNotifications({...notifications, examResults: checked})}
+                    checked={notifications[item.key as keyof typeof notifications]}
+                    onCheckedChange={(checked) => setNotifications({...notifications, [item.key]: checked})}
                   />
                 </div>
+              ))}
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Friend Requests</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when someone sends you a friend request</p>
-                  </div>
-                  <Switch
-                    checked={notifications.friendRequests}
-                    onCheckedChange={(checked) => setNotifications({...notifications, friendRequests: checked})}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Achievements</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when you earn new achievements</p>
-                  </div>
-                  <Switch
-                    checked={notifications.achievements}
-                    onCheckedChange={(checked) => setNotifications({...notifications, achievements: checked})}
-                  />
-                </div>
-
-                <Button onClick={handleNotificationUpdate}>Save Preferences</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+              <Button onClick={handleNotificationUpdate} className="bg-foreground text-background hover:bg-foreground/90">
+                Save Preferences
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </AppLayout>
   );
 };
 

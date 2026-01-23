@@ -1,11 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, BookOpen } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { OAuthButtons } from "@/components/OAuthButtons";
 
@@ -37,30 +35,41 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your learning account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-background flex">
+      {/* Left side - Form */}
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          {/* Logo */}
+          <Link to="/" className="flex items-center justify-center gap-2 mb-12">
+            <div className="w-10 h-10 bg-foreground rounded-xl flex items-center justify-center">
+              <span className="text-background font-bold text-lg">S</span>
+            </div>
+            <span className="font-semibold text-xl text-foreground tracking-tight">SūdžiusAI</span>
+          </Link>
+
+          <h1 className="text-3xl font-bold text-foreground tracking-tight text-center mb-2">
+            Welcome back
+          </h1>
+          <p className="text-muted-foreground text-center mb-8">
+            Sign in to continue your learning journey
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-12 bg-muted/50 border-border/50 focus:border-foreground"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -69,33 +78,55 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="h-12 bg-muted/50 border-border/50 focus:border-foreground pr-12"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-4 hover:bg-transparent text-muted-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 font-medium" 
+              disabled={loading}
+            >
               {loading ? "Signing in..." : "Sign In"}
+              {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
           </form>
-          
-          <OAuthButtons />
-          
-          <div className="mt-4 text-center text-sm">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-blue-600 hover:underline">
-              Sign up
-            </Link>
+
+          <div className="mt-6">
+            <OAuthButtons />
           </div>
-        </CardContent>
-      </Card>
+
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/signup" className="font-medium text-foreground hover:underline">
+              Create one
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Visual */}
+      <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center p-12">
+        <div className="max-w-lg text-center">
+          <div className="text-6xl mb-6">📚</div>
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            Learn smarter, not harder
+          </h2>
+          <p className="text-muted-foreground">
+            Our AI-powered platform adapts to your learning style, helping you master any subject efficiently.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, ArrowLeft, Code, School, User, Briefcase, Presentation, Heart, Sparkles, Play, Settings, Plus, CheckCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Code, School, User, Briefcase, Presentation, Heart, Play, Plus, CheckCircle, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import LanguageSelector from "@/components/LanguageSelector";
+import { AppLayout } from "@/components/AppLayout";
 
 interface LearningPlan {
   id: string;
@@ -54,19 +54,13 @@ const GameModes = () => {
 
   const handleProgramLearningClick = () => {
     if (existingPlans.length === 0) {
-      // No plans, go to create new
       navigate("/program-learning");
-    } else if (existingPlans.length === 1) {
-      // Single plan, show options
-      setShowPlanSelector(true);
     } else {
-      // Multiple plans, show selector
       setShowPlanSelector(true);
     }
   };
 
   const handleContinuePlan = (planId?: string) => {
-    // For now, just navigate - in future this would start the lesson
     setShowPlanSelector(false);
     navigate("/program-learning");
   };
@@ -74,225 +68,181 @@ const GameModes = () => {
   const learningPathways = [
     {
       id: "program",
-      name: t('programLearning'),
-      description: t('programLearningDesc'),
+      name: "Personalized Learning",
+      description: "AI-generated curriculum tailored to your goals and learning style",
       icon: Code,
-      color: "bg-primary",
       isPrimary: true,
       hasPlans: existingPlans.length > 0
     },
     {
       id: "school",
-      name: t('schoolLearning'),
-      description: t('schoolLearningDesc'),
+      name: "School Curriculum",
+      description: "Follow your school's syllabus with AI-enhanced explanations",
       icon: School,
-      color: "bg-emerald-500",
       route: "/school-learning"
     },
     {
       id: "self",
-      name: t('selfLearning'),
-      description: t('selfLearningDesc'),
+      name: "Self-Paced",
+      description: "Explore topics freely at your own pace",
       icon: User,
-      color: "bg-violet-500",
       route: "/self-learning"
     },
     {
       id: "other",
-      name: t('otherModules'),
-      description: t('otherModulesDesc'),
+      name: "Special Modules",
+      description: "Job prep, presentations, hobbies and more",
       icon: Briefcase,
-      color: "bg-amber-500",
-      route: "/other-modules"
+      route: "/other-modules",
+      isGroup: true
     }
   ];
 
-  const otherModules = [
+  const specialModules = [
     {
       id: "job-interview",
-      name: t('jobInterviewPrep'),
-      description: t('jobInterviewPrepDesc'),
+      name: "Job Interview Prep",
+      description: "Practice common interview questions",
       icon: Briefcase,
       route: "/job-interview-prep"
     },
     {
       id: "presentation",
-      name: t('presentationPrep'),
-      description: t('presentationPrepDesc'),
+      name: "Presentation Skills",
+      description: "Master public speaking",
       icon: Presentation,
       route: "/presentation-prep"
     },
     {
       id: "hobby",
-      name: t('hobbyLearning'),
-      description: t('hobbyLearningDesc'),
+      name: "Hobby Learning",
+      description: "Explore personal interests",
       icon: Heart,
       route: "/hobby-learning"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-background/80 backdrop-blur-sm shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t('backTo')} {t('dashboard')}</span>
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-7 w-7 text-primary" />
-                <h1 className="text-lg font-bold hidden sm:block">SūdžiusAI</h1>
-              </Link>
-            </div>
-            <LanguageSelector />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <Sparkles className="h-4 w-4" />
-            {t('learningModules')}
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('learningPathways')}</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            {t('learningPathwaysDesc')}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {learningPathways.map((pathway) => (
-            <Card 
-              key={pathway.id} 
-              className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                pathway.isPrimary 
-                  ? 'border-2 border-primary ring-2 ring-primary/20' 
-                  : 'hover:border-primary/50'
-              }`}
-            >
-              {pathway.isPrimary && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-bl-lg">
-                  {t('recommended')}
+    <AppLayout title="Learning" subtitle="Choose your learning pathway">
+      <div className="grid md:grid-cols-2 gap-6">
+        {learningPathways.map((pathway) => (
+          <Card 
+            key={pathway.id} 
+            className={`relative border-border/40 hover:border-foreground/20 transition-all duration-300 ${
+              pathway.isPrimary ? 'ring-1 ring-foreground/10' : ''
+            }`}
+          >
+            {pathway.isPrimary && (
+              <div className="absolute top-4 right-4">
+                <Badge variant="outline" className="bg-foreground/5 border-foreground/10 text-foreground">
+                  Recommended
+                </Badge>
+              </div>
+            )}
+            
+            <CardHeader className="pb-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-foreground/5 rounded-xl flex items-center justify-center">
+                  <pathway.icon className="h-6 w-6 text-foreground" />
                 </div>
-              )}
-              <CardHeader className="pb-4">
-                <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 ${pathway.color} rounded-xl flex items-center justify-center shrink-0 shadow-lg`}>
-                    <pathway.icon className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-xl mb-1">{pathway.name}</CardTitle>
-                    <CardDescription className="text-sm line-clamp-2">{pathway.description}</CardDescription>
-                  </div>
+                <div className="flex-1 min-w-0 pr-16">
+                  <CardTitle className="text-lg mb-1">{pathway.name}</CardTitle>
+                  <CardDescription className="text-sm">{pathway.description}</CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {pathway.id === "other" ? (
-                  <div className="space-y-3">
-                    {otherModules.map((module) => (
-                      <Link key={module.id} to={module.route}>
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              {pathway.isGroup ? (
+                <div className="space-y-2">
+                  {specialModules.map((module) => (
+                    <Button 
+                      key={module.id}
+                      variant="outline" 
+                      className="w-full justify-between h-auto py-3 px-4 border-border/40 hover:bg-muted/50"
+                      onClick={() => navigate(module.route)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <module.icon className="h-4 w-4 text-muted-foreground" />
+                        <div className="text-left">
+                          <div className="font-medium text-sm">{module.name}</div>
+                          <div className="text-xs text-muted-foreground">{module.description}</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  ))}
+                </div>
+              ) : pathway.id === "program" ? (
+                <div className="space-y-3">
+                  {existingPlans.length > 0 ? (
+                    <>
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CheckCircle className="h-4 w-4 text-foreground" />
+                          <span className="font-medium text-sm">
+                            {existingPlans.length} Active Plan{existingPlans.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{existingPlans[0].name}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
                         <Button 
                           variant="outline" 
-                          className="w-full h-auto py-3 px-4 flex items-start gap-3 justify-start text-left hover:bg-muted/50"
+                          className="border-border/40"
+                          onClick={() => navigate("/program-learning")}
                         >
-                          <module.icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm">{module.name}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-1">{module.description}</div>
-                          </div>
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Plan
                         </Button>
-                      </Link>
-                    ))}
-                  </div>
-                ) : pathway.id === "program" ? (
-                  // Program Learning with plan management
-                  <div className="space-y-3">
-                    {existingPlans.length > 0 ? (
-                      <>
-                        <div className="p-3 bg-primary/10 rounded-lg mb-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle className="h-4 w-4 text-primary" />
-                            <span className="font-medium text-sm">
-                              {existingPlans.length} Active Plan{existingPlans.length > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {existingPlans[0].name}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-col h-auto py-3"
-                            onClick={() => navigate("/program-learning")}
-                          >
-                            <Settings className="h-4 w-4 mb-1" />
-                            <span className="text-xs">Modify</span>
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-col h-auto py-3"
-                            onClick={() => navigate("/program-learning")}
-                          >
-                            <Plus className="h-4 w-4 mb-1" />
-                            <span className="text-xs">New Plan</span>
-                          </Button>
-                          <Button 
-                            size="sm"
-                            className="flex-col h-auto py-3 bg-primary"
-                            onClick={handleProgramLearningClick}
-                          >
-                            <Play className="h-4 w-4 mb-1" />
-                            <span className="text-xs">Continue</span>
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <Button 
-                        className="w-full bg-primary hover:bg-primary/90"
-                        onClick={() => navigate("/program-learning")}
-                      >
-                        {t('startPersonalizedPlan')}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Link to={pathway.route || "#"} className="block">
+                        <Button 
+                          className="bg-foreground text-background hover:bg-foreground/90"
+                          onClick={handleProgramLearningClick}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Continue
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
                     <Button 
-                      className="w-full"
-                      variant="secondary"
+                      className="w-full bg-foreground text-background hover:bg-foreground/90"
+                      onClick={() => navigate("/program-learning")}
                     >
-                      {t('selectPathway')}
+                      Get Started
+                      <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </main>
+                  )}
+                </div>
+              ) : (
+                <Button 
+                  variant="outline"
+                  className="w-full border-border/40"
+                  onClick={() => navigate(pathway.route || "#")}
+                >
+                  Select
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Plan Selector Dialog */}
       <Dialog open={showPlanSelector} onOpenChange={setShowPlanSelector}>
-        <DialogContent>
+        <DialogContent className="border-border/40">
           <DialogHeader>
             <DialogTitle>Your Learning Plans</DialogTitle>
             <DialogDescription>
-              Choose a plan to continue or manage your plans
+              Choose a plan to continue or create a new one
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {existingPlans.map((plan) => (
               <Card 
                 key={plan.id} 
-                className="cursor-pointer hover:border-primary transition-colors"
+                className="cursor-pointer hover:bg-muted/50 border-border/40 transition-colors"
                 onClick={() => handleContinuePlan(plan.id)}
               >
                 <CardContent className="p-4">
@@ -303,28 +253,26 @@ const GameModes = () => {
                         Week {plan.current_week} of {plan.duration_months * 4}
                       </p>
                     </div>
-                    <Badge>{plan.fields.length} fields</Badge>
+                    <Badge variant="outline" className="border-border/40">{plan.fields.length} fields</Badge>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            <div className="flex gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  setShowPlanSelector(false);
-                  navigate("/program-learning");
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Plan
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              className="w-full border-border/40"
+              onClick={() => {
+                setShowPlanSelector(false);
+                navigate("/program-learning");
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Plan
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppLayout>
   );
 };
 
