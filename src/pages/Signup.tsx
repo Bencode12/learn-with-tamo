@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, BookOpen } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { OAuthButtons } from "@/components/OAuthButtons";
@@ -17,7 +16,6 @@ const Signup = () => {
     confirmPassword: ""
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +60,6 @@ const Signup = () => {
     const { error } = await signUp(formData.email, formData.password, formData.username);
     
     if (!error) {
-      // User will be automatically logged in due to auto-confirm
       navigate('/dashboard');
     }
     
@@ -70,19 +67,41 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-          <CardDescription>Start your personalized learning journey</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-background flex">
+      {/* Left side - Visual */}
+      <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center p-12">
+        <div className="max-w-lg text-center">
+          <div className="text-6xl mb-6">🚀</div>
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            Start your learning journey
+          </h2>
+          <p className="text-muted-foreground">
+            Join thousands of learners using AI to master new skills and achieve their goals.
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          {/* Logo */}
+          <Link to="/" className="flex items-center justify-center gap-2 mb-12">
+            <div className="w-10 h-10 bg-foreground rounded-xl flex items-center justify-center">
+              <span className="text-background font-bold text-lg">S</span>
+            </div>
+            <span className="font-semibold text-xl text-foreground tracking-tight">SūdžiusAI</span>
+          </Link>
+
+          <h1 className="text-3xl font-bold text-foreground tracking-tight text-center mb-2">
+            Create your account
+          </h1>
+          <p className="text-muted-foreground text-center mb-8">
+            It's free to get started
+          </p>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
               <Input
                 id="username"
                 name="username"
@@ -90,22 +109,26 @@ const Signup = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 required
+                className="h-12 bg-muted/50 border-border/50 focus:border-foreground"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="name@example.com"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+                className="h-12 bg-muted/50 border-border/50 focus:border-foreground"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -115,56 +138,56 @@ const Signup = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  className="h-12 bg-muted/50 border-border/50 focus:border-foreground pr-12"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-4 hover:bg-transparent text-muted-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                required
+                className="h-12 bg-muted/50 border-border/50 focus:border-foreground"
+              />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 font-medium mt-2" 
+              disabled={loading}
+            >
               {loading ? "Creating account..." : "Create Account"}
+              {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
           </form>
-          
-          <OAuthButtons />
-          
-          <div className="mt-4 text-center text-sm">
+
+          <div className="mt-6">
+            <OAuthButtons />
+          </div>
+
+          <p className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 hover:underline">
+            <Link to="/login" className="font-medium text-foreground hover:underline">
               Sign in
             </Link>
-          </div>
-        </CardContent>
-      </Card>
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

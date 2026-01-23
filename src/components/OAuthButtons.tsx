@@ -29,11 +29,11 @@ export const OAuthButtons = () => {
 
       if (error) {
         console.error('Google OAuth error:', error);
-        toast.error("Failed to sign in with Google. Please try again.");
+        toast.error("Failed to sign in with Google");
       }
     } catch (err) {
       console.error('Google sign in error:', err);
-      toast.error("An error occurred during Google sign in");
+      toast.error("An error occurred");
     } finally {
       setLoadingGoogle(false);
     }
@@ -52,24 +52,24 @@ export const OAuthButtons = () => {
 
       if (error) {
         console.error('Microsoft OAuth error:', error);
-        toast.error("Failed to sign in with Microsoft. Please try again.");
+        toast.error("Failed to sign in with Microsoft");
       }
     } catch (err) {
       console.error('Microsoft sign in error:', err);
-      toast.error("An error occurred during Microsoft sign in");
+      toast.error("An error occurred");
     } finally {
       setLoadingMicrosoft(false);
     }
   };
 
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4">
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
+          <span className="w-full border-t border-border/50" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
         </div>
       </div>
       
@@ -79,7 +79,7 @@ export const OAuthButtons = () => {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loadingGoogle || loadingMicrosoft}
-          className="w-full h-11 font-medium"
+          className="h-12 font-medium border-border/50 hover:bg-muted/50"
         >
           {loadingGoogle ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -111,7 +111,7 @@ export const OAuthButtons = () => {
           type="button"
           onClick={handleMicrosoftSignIn}
           disabled={loadingGoogle || loadingMicrosoft}
-          className="w-full h-11 font-medium"
+          className="h-12 font-medium border-border/50 hover:bg-muted/50"
         >
           {loadingMicrosoft ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

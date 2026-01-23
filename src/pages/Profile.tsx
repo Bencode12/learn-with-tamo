@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Trophy, Target, Award, Calendar, Clock, TrendingUp, UserPlus, Users, Search, Star, Zap, Crown, ArrowLeft, BookOpen, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Trophy, Calendar, Clock, UserPlus, Users, Search, Star, Zap, Crown, Loader2 } from "lucide-react";
+import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,21 +33,18 @@ const Profile = () => {
   });
 
   const [achievements, setAchievements] = useState<any[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [showAddPeople, setShowAddPeople] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [showAllAchievements, setShowAllAchievements] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserData();
       fetchFriends();
       fetchAchievements();
-      fetchRecentActivity();
     }
   }, [user]);
 
@@ -83,7 +80,7 @@ const Profile = () => {
         joinDate: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
         totalLessons: completedLessons,
         hoursLearned: Math.round(totalMinutes / 60),
-        streak: calculateStreak(lessons || []),
+        streak: 0,
         level: profile.level || 1,
         xp: profile.experience || 0,
         nextLevelXp: (profile.level || 1) * 1000,
@@ -93,22 +90,6 @@ const Profile = () => {
       });
     }
     setLoading(false);
-  };
-
-  const calculateStreak = (lessons: any[]) => {
-    if (!lessons.length) return 0;
-    const dates = lessons.map(l => new Date(l.last_accessed).toDateString());
-    const uniqueDates = [...new Set(dates)].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    
-    let streak = 0;
-    const today = new Date();
-    for (let i = 0; i < uniqueDates.length; i++) {
-      const date = new Date(uniqueDates[i]);
-      const diffDays = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-      if (diffDays === i) streak++;
-      else break;
-    }
-    return streak;
   };
 
   const fetchFriends = async () => {
@@ -128,7 +109,7 @@ const Profile = () => {
         .in('id', friendIds);
 
       if (profiles) {
-        setFriends(profiles.map(p => ({ ...p, friendshipId: friendships.find(f => f.friend_id === p.id || f.user_id === p.id)?.id })));
+        setFriends(profiles);
       }
     }
 
@@ -153,42 +134,15 @@ const Profile = () => {
     const { data } = await supabase
       .from('user_achievements')
       .select('*, achievements(*)')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .limit(6);
 
     if (data) {
       setAchievements(data.map(a => ({
         ...a.achievements,
-        earned: true,
         earnedAt: a.earned_at
       })));
     }
-  };
-
-  const fetchRecentActivity = async () => {
-    if (!user) return;
-
-    const { data } = await supabase
-      .from('lesson_progress')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('last_accessed', { ascending: false })
-      .limit(5);
-
-    if (data) {
-      setRecentActivity(data.map(l => ({
-        color: l.completed ? 'bg-green-500' : 'bg-blue-500',
-        text: `${l.completed ? 'Completed' : 'Started'} ${l.lesson_id.replace(/-/g, ' ')} lesson`,
-        time: formatTimeAgo(new Date(l.last_accessed))
-      })));
-    }
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    return `${Math.floor(seconds / 86400)} days ago`;
   };
 
   const handleSearch = async () => {
@@ -218,7 +172,7 @@ const Profile = () => {
     if (error) {
       toast.error('Failed to send friend request');
     } else {
-      toast.success('Friend request sent!');
+      toast.success('Friend request sent');
       setSearchResults(prev => prev.filter(r => r.id !== friendId));
     }
   };
@@ -230,259 +184,223 @@ const Profile = () => {
       .eq('id', friendshipId);
 
     if (!error) {
-      toast.success('Friend request accepted!');
+      toast.success('Friend request accepted');
       fetchFriends();
     }
   };
 
-  const getRankIcon = (isPremium: boolean, isStaff: boolean, isAdmin: boolean) => {
-    if (isAdmin) return <Crown className="h-4 w-4 text-red-500" />;
-    if (isStaff) return <Star className="h-4 w-4 text-yellow-500" />;
-    if (isPremium) return <Zap className="h-4 w-4 text-blue-500" />;
-    return null;
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AppLayout title="Profile">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {t('backTo')} Dashboard
-                </Button>
-              </Link>
-              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <BookOpen className="h-8 w-8 text-blue-600" />
-                <h1 className="text-xl font-bold">SūdžiusAI</h1>
-              </Link>
-            </div>
+    <AppLayout>
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Profile Card */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="border-border/40">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <Avatar className="w-24 h-24 mx-auto">
+                  <AvatarImage src={userStats.avatar_url} />
+                  <AvatarFallback className="bg-muted text-2xl">
+                    {userStats.name?.slice(0, 2).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div>
+                  <div className="flex items-center justify-center gap-2">
+                    <h2 className="text-xl font-bold">{userStats.name}</h2>
+                    {userStats.isAdmin && <Crown className="h-4 w-4 text-red-500" />}
+                    {userStats.isStaff && !userStats.isAdmin && <Star className="h-4 w-4 text-yellow-500" />}
+                    {userStats.isPremium && <Zap className="h-4 w-4 text-blue-500" />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{userStats.email}</p>
+                </div>
 
-          </div>
-        </div>
-      </header>
+                <div className="flex justify-center gap-2">
+                  <Badge variant="outline" className="border-border/40">Level {userStats.level}</Badge>
+                  {userStats.isPremium && <Badge className="bg-foreground text-background">Premium</Badge>}
+                </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {showAddPeople && (
-          <Card className="mb-8 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <UserPlus className="h-5 w-5" />
-                <span>{t('addPeople')}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">XP Progress</span>
+                    <span>{userStats.xp}/{userStats.nextLevelXp}</span>
+                  </div>
+                  <Progress value={(userStats.xp / userStats.nextLevelXp) * 100} className="h-2" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{userStats.totalLessons}</div>
+                    <div className="text-sm text-muted-foreground">Lessons</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{userStats.hoursLearned}h</div>
+                    <div className="text-sm text-muted-foreground">Learned</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-muted-foreground pt-2">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm">Joined {userStats.joinDate}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Add Friends */}
+          <Button 
+            variant="outline" 
+            className="w-full border-border/40"
+            onClick={() => setShowAddPeople(!showAddPeople)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Friends
+          </Button>
+
+          {showAddPeople && (
+            <Card className="border-border/40">
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search users..." 
+                      value={searchQuery} 
+                      onChange={(e) => setSearchQuery(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="pl-10 bg-muted/50 border-border/50" 
+                    />
+                  </div>
+                  <Button onClick={handleSearch} disabled={searching} size="sm">
+                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                  </Button>
+                </div>
+                
+                {searchResults.length > 0 && (
+                  <div className="space-y-2">
+                    {searchResults.map((result) => (
+                      <div key={result.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={result.avatar_url} />
+                            <AvatarFallback className="bg-muted text-xs">
+                              {(result.display_name || result.username)?.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">{result.display_name || result.username}</span>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => sendFriendRequest(result.id)}>
+                          Add
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {pendingRequests.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Pending Requests</p>
+                    {pendingRequests.map((req) => (
+                      <div key={req.friendshipId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={req.avatar_url} />
+                            <AvatarFallback className="bg-muted text-xs">
+                              {(req.display_name || req.username)?.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">{req.display_name || req.username}</span>
+                        </div>
+                        <Button size="sm" onClick={() => acceptFriendRequest(req.friendshipId)}>Accept</Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Friends List */}
+          <Card className="border-border/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Friends ({friends.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search for people..." 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)} 
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-10" 
-                  />
-                </div>
-                <Button onClick={handleSearch} disabled={searching}>
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
-                </Button>
-              </div>
-              {searchResults.length > 0 && (
+            <CardContent>
+              {friends.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No friends yet</p>
+              ) : (
                 <div className="space-y-2">
-                  {searchResults.map((result) => (
-                    <div key={result.id} className="flex items-center justify-between p-3 bg-card rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={result.avatar_url} />
-                          <AvatarFallback>{(result.display_name || result.username)?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{result.display_name || result.username}</p>
-                          <p className="text-sm text-muted-foreground">Level {result.level}</p>
-                        </div>
+                  {friends.slice(0, 5).map((friend) => (
+                    <div key={friend.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={friend.avatar_url} />
+                        <AvatarFallback className="bg-muted text-xs">
+                          {(friend.display_name || friend.username)?.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{friend.display_name || friend.username}</p>
+                        <p className="text-xs text-muted-foreground">Level {friend.level}</p>
                       </div>
-                      <Button size="sm" onClick={() => sendFriendRequest(result.id)}>
-                        <UserPlus className="h-4 w-4 mr-1" /> Add
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {pendingRequests.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Pending Requests</h4>
-                  {pendingRequests.map((req) => (
-                    <div key={req.friendshipId} className="flex items-center justify-between p-3 bg-card rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={req.avatar_url} />
-                          <AvatarFallback>{(req.display_name || req.username)?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <p className="font-medium">{req.display_name || req.username}</p>
-                      </div>
-                      <Button size="sm" onClick={() => acceptFriendRequest(req.friendshipId)}>Accept</Button>
                     </div>
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
-        )}
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader className="text-center">
-                <Avatar className="w-24 h-24 mx-auto mb-4">
-                  <AvatarImage src={userStats.avatar_url} />
-                  <AvatarFallback className="text-2xl">{userStats.name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback>
-                </Avatar>
-                <div className="flex items-center justify-center space-x-2">
-                  <CardTitle>{userStats.name}</CardTitle>
-                  {getRankIcon(userStats.isPremium, userStats.isStaff, userStats.isAdmin)}
+        {/* Achievements */}
+        <div className="lg:col-span-2">
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                Achievements ({achievements.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {achievements.length === 0 ? (
+                <div className="text-center py-8">
+                  <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No achievements yet</p>
+                  <p className="text-sm text-muted-foreground">Complete lessons to earn achievements</p>
                 </div>
-                <CardDescription>{userStats.email}</CardDescription>
-                <div className="flex justify-center gap-2 mt-2">
-                  <Badge variant="secondary">Level {userStats.level}</Badge>
-                  {userStats.isPremium && <Badge className="bg-purple-600">Premium</Badge>}
-                  {userStats.isAdmin && <Badge className="bg-red-600">Admin</Badge>}
-                  {userStats.isStaff && !userStats.isAdmin && <Badge className="bg-yellow-600">Staff</Badge>}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>XP Progress</span>
-                    <span>{userStats.xp}/{userStats.nextLevelXp}</span>
-                  </div>
-                  <Progress value={(userStats.xp / userStats.nextLevelXp) * 100} />
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{userStats.totalLessons}</div>
-                    <div className="text-sm text-muted-foreground">{t('lessons')}</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">{userStats.hoursLearned}h</div>
-                    <div className="text-sm text-muted-foreground">{t('hours')}</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center space-x-2 text-orange-600">
-                  <Calendar className="h-5 w-5" />
-                  <span className="font-medium">{userStats.streak} {t('streak')}</span>
-                </div>
-                <p className="text-xs text-center text-muted-foreground">Member since {userStats.joinDate}</p>
-              </CardContent>
-            </Card>
-
-            <Button variant="outline" className="w-full" onClick={() => setShowAddPeople(!showAddPeople)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              {t('addPeople')}
-            </Button>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="h-5 w-5" />
-                  <span>{t('friends')} ({friends.length})</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {friends.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No friends yet. Add some!</p>
-                  ) : (
-                    friends.map((friend) => (
-                      <div key={friend.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={friend.avatar_url} />
-                          <AvatarFallback>{(friend.display_name || friend.username)?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {achievements.map((achievement) => (
+                    <div 
+                      key={achievement.id} 
+                      className="p-4 rounded-xl bg-muted/30 border border-border/40"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl">{achievement.icon}</div>
                         <div className="flex-1">
-                          <div className="flex items-center space-x-1">
-                            <p className="font-medium text-sm">{friend.display_name || friend.username}</p>
-                            {friend.is_premium && <Zap className="h-3 w-3 text-blue-500" />}
-                          </div>
-                          <p className="text-xs text-muted-foreground">Level {friend.level}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Trophy className="h-5 w-5" />
-                  <span>{t('achievements')} ({achievements.length})</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(showAllAchievements ? achievements : achievements.slice(0, 4)).map((achievement) => (
-                    <div key={achievement.id} className="p-4 rounded-lg border bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200 dark:from-yellow-900/20 dark:to-orange-900/20">
-                      <div className="flex items-start space-x-3">
-                        <div className="text-2xl">{achievement.icon}</div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{achievement.name}</h3>
+                          <h4 className="font-medium">{achievement.name}</h4>
                           <p className="text-sm text-muted-foreground">{achievement.description}</p>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {achievements.length === 0 && (
-                    <div className="col-span-2 text-center py-8">
-                      <Award className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No achievements yet. Keep learning!</p>
-                    </div>
-                  )}
                 </div>
-                {achievements.length > 4 && !showAllAchievements && (
-                  <Button variant="outline" className="w-full" onClick={() => setShowAllAchievements(true)}>
-                    See all Achievements
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('recentActivity')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentActivity.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">No recent activity</p>
-                  ) : (
-                    recentActivity.map((item, i) => (
-                      <div key={i} className="flex items-center space-x-3 text-sm">
-                        <div className={`w-2 h-2 ${item.color} rounded-full`} />
-                        <span className="text-muted-foreground">{item.text}</span>
-                        <span className="text-muted-foreground/60 ml-auto">{item.time}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 

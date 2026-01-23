@@ -3,12 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, RefreshCw, Play, Target, Users, Zap, Trophy, Crown, Shield } from "lucide-react";
+import { TrendingUp, RefreshCw, Play, Target, BookOpen, Clock, Flame, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
+import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import { TherapistModal } from "@/components/TherapistModal";
 import { useTherapistCheckin } from "@/hooks/useTherapistCheckin";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -17,140 +16,141 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [isPremium, setIsPremium] = useState(false);
-  const [isStaff, setIsStaff] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { shouldShowCheckin, setShouldShowCheckin } = useTherapistCheckin();
+  const [stats, setStats] = useState({
+    totalLessons: 0,
+    hoursLearned: 0,
+    streak: 7,
+    level: 1,
+    xp: 0,
+  });
+
   const [grades, setGrades] = useState([
-    { subject: "Mathematics", grade: 85, trend: "up" },
-    { subject: "Science", grade: 78, trend: "down" },
-    { subject: "English", grade: 92, trend: "up" },
-    { subject: "History", grade: 80, trend: "stable" }
+    { subject: "Mathematics", grade: 85, trend: "up" as const },
+    { subject: "Science", grade: 78, trend: "down" as const },
+    { subject: "English", grade: 92, trend: "up" as const },
+    { subject: "History", grade: 80, trend: "stable" as const }
   ]);
 
   useEffect(() => {
     if (!user) return;
     
     const checkUserStatus = async () => {
-      // Check premium status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_premium')
+        .select('is_premium, level, experience')
         .eq('id', user.id)
         .single();
       
       if (profile) {
         setIsPremium(profile.is_premium || false);
-      }
-
-      // Check staff status
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
-      
-      if (roles) {
-        const userRoles = roles.map(r => r.role);
-        setIsStaff(userRoles.includes('admin') || userRoles.includes('staff'));
+        setStats(prev => ({
+          ...prev,
+          level: profile.level || 1,
+          xp: profile.experience || 0
+        }));
       }
     };
     
     checkUserStatus();
   }, [user]);
 
-  const lessons = [
-    { id: "algebra", name: "Algebra Basics", subject: "Mathematics" },
-    { id: "geometry", name: "Geometry Fundamentals", subject: "Mathematics" },
-    { id: "scientific-method", name: "Scientific Method", subject: "Science" },
-    { id: "chemistry-basics", name: "Chemistry Basics", subject: "Science" },
-    { id: "essay-writing", name: "Essay Writing", subject: "English" },
-    { id: "wwii", name: "World War II", subject: "History" }
-  ];
-
-  const getAISuggestions = (lessonId: string) => {
-    const suggestions: Record<string, string[]> = {
-      algebra: [
-        "Start with linear equations - they form the foundation",
-        "Practice solving for x in different scenarios",
-        "Try 15 minutes daily for consistent improvement"
-      ],
-      geometry: [
-        "Focus on understanding angle relationships",
-        "Draw diagrams to visualize problems",
-        "Review Pythagorean theorem applications"
-      ],
-      "scientific-method": [
-        "Break down experiments into clear steps",
-        "Practice forming testable hypotheses",
-        "Learn to identify variables in experiments"
-      ],
-      "chemistry-basics": [
-        "Master the periodic table layout first",
-        "Understand atomic structure concepts",
-        "Practice balancing chemical equations"
-      ],
-      "essay-writing": [
-        "Create strong thesis statements",
-        "Use the PEEL paragraph structure",
-        "Read example essays for inspiration"
-      ],
-      wwii: [
-        "Study the timeline of major events",
-        "Understand the causes and consequences",
-        "Focus on key turning points"
-      ]
-    };
-    return suggestions[lessonId] || ["Focus on improving your understanding of core concepts"];
-  };
-
   const handleSyncGrades = () => {
-    console.log("Syncing grades from TamoAPI...");
+    console.log("Syncing grades...");
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header showIcons={true} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">{t('welcomeBack')}</h2>
-            <p className="text-muted-foreground">{t('learningProgress')}</p>
-          </div>
-          
-          {/* Staff Hub Button - Only shown to staff */}
-          {isStaff && (
-            <Link to="/staff-hub">
-              <Button variant="outline" className="gap-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950">
-                <Shield className="h-4 w-4" />
-                Staff Hub
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        {/* Grades Section */}
-        <div className={`grid grid-cols-1 ${isPremium ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8 mb-8`}>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5" />
-                  <span>{t('currentGrades')}</span>
-                </CardTitle>
-                <CardDescription>Your latest academic performance</CardDescription>
+    <AppLayout title="Dashboard" subtitle="Track your learning progress">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="bg-muted/30 border-border/40">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-foreground/5 rounded-lg flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-foreground" />
               </div>
-              <Button onClick={handleSyncGrades} size="sm" variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {t('sync')}
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.totalLessons}</p>
+                <p className="text-sm text-muted-foreground">Lessons</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/30 border-border/40">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-foreground/5 rounded-lg flex items-center justify-center">
+                <Clock className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.hoursLearned}h</p>
+                <p className="text-sm text-muted-foreground">Hours</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/30 border-border/40">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-foreground/5 rounded-lg flex items-center justify-center">
+                <Flame className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.streak}</p>
+                <p className="text-sm text-muted-foreground">Day Streak</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted/30 border-border/40">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-foreground/5 rounded-lg flex items-center justify-center">
+                <Target className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.level}</p>
+                <p className="text-sm text-muted-foreground">Level</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Grades Section */}
+        <div className="lg:col-span-2">
+          <Card className="border-border/40">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div>
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Current Grades
+                </CardTitle>
+                <CardDescription>Your academic performance</CardDescription>
+              </div>
+              <Button onClick={handleSyncGrades} size="sm" variant="outline" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Sync
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {grades.map((grade, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{grade.subject}</span>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={grade.grade >= 85 ? "default" : grade.grade >= 70 ? "secondary" : "destructive"}>
+                    <span className="font-medium text-foreground">{grade.subject}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant="outline"
+                        className={
+                          grade.grade >= 85 ? "border-foreground/20 bg-foreground/5" : 
+                          grade.grade >= 70 ? "border-border" : 
+                          "border-destructive/50 bg-destructive/10"
+                        }
+                      >
                         {grade.grade}%
                       </Badge>
                       <span className={`text-sm ${
@@ -166,76 +166,58 @@ const Dashboard = () => {
               ))}
             </CardContent>
           </Card>
-
-          {/* AI Recommendations - Premium Only */}
-          {isPremium && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('aiRecommendations')}</CardTitle>
-                <CardDescription>{t('personalizedRecommendations')}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {grades.map((grade, index) => {
-                    const lessonForSubject = lessons.find(l => l.subject === grade.subject);
-                    const suggestions = lessonForSubject ? getAISuggestions(lessonForSubject.id) : ["Focus on improving your understanding of core concepts"];
-                    
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">{grade.subject}</span>
-                          <Badge variant={grade.grade >= 85 ? "default" : grade.grade >= 70 ? "secondary" : "destructive"}>
-                            {grade.grade}%
-                          </Badge>
-                        </div>
-                        <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-purple-400 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800/50">
-                          <p className="text-sm text-muted-foreground">{suggestions[0]}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('quickActions')}</CardTitle>
-            <CardDescription>Get started with your learning activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link to="/gamemodes">
-                <Button className="h-20 flex-col space-y-2 w-full bg-blue-600 hover:bg-blue-700">
-                  <Play className="h-6 w-6" />
-                  <span>{t('startLearning')}</span>
+        <div className="space-y-4">
+          <Card className="border-border/40">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link to="/gamemodes" className="block">
+                <Button className="w-full justify-between bg-foreground text-background hover:bg-foreground/90 h-12">
+                  <span className="flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    Start Learning
+                  </span>
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               
-              <Link to="/progress">
-                <Button variant="outline" className="h-20 flex-col space-y-2 w-full">
-                  <TrendingUp className="h-6 w-6" />
-                  <span>{t('viewProgress')}</span>
+              <Link to="/progress" className="block">
+                <Button variant="outline" className="w-full justify-between h-12 border-border/40">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    View Progress
+                  </span>
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+            </CardContent>
+          </Card>
 
-      <PremiumUpgradeModal 
-        open={showPremiumModal} 
-        onOpenChange={setShowPremiumModal} 
-      />
+          {/* XP Progress */}
+          <Card className="border-border/40">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Level {stats.level}</span>
+                <span className="text-sm text-muted-foreground">{stats.xp} / {stats.level * 1000} XP</span>
+              </div>
+              <Progress value={(stats.xp / (stats.level * 1000)) * 100} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                {stats.level * 1000 - stats.xp} XP to next level
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       
       <TherapistModal
         open={shouldShowCheckin}
         onOpenChange={setShouldShowCheckin}
       />
-    </div>
+    </AppLayout>
   );
 };
 
