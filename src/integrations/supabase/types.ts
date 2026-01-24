@@ -107,6 +107,77 @@ export type Database = {
         }
         Relationships: []
       }
+      class_students: {
+        Row: {
+          class_id: string
+          id: string
+          joined_at: string | null
+          status: string | null
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          class_code: string
+          created_at: string | null
+          description: string | null
+          grade_level: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          subject: string | null
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          class_code?: string
+          created_at?: string | null
+          description?: string | null
+          grade_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          subject?: string | null
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          class_code?: string
+          created_at?: string | null
+          description?: string | null
+          grade_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          subject?: string | null
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       daily_challenge_completions: {
         Row: {
           challenge_id: string
@@ -865,6 +936,54 @@ export type Database = {
         }
         Relationships: []
       }
+      synced_grades: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          grade: number | null
+          grade_type: string | null
+          id: string
+          notes: string | null
+          raw_data: Json | null
+          semester: string | null
+          source: string
+          subject: string
+          synced_at: string | null
+          teacher_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          grade?: number | null
+          grade_type?: string | null
+          id?: string
+          notes?: string | null
+          raw_data?: Json | null
+          semester?: string | null
+          source: string
+          subject: string
+          synced_at?: string | null
+          teacher_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          grade?: number | null
+          grade_type?: string | null
+          id?: string
+          notes?: string | null
+          raw_data?: Json | null
+          semester?: string | null
+          source?: string
+          subject?: string
+          synced_at?: string | null
+          teacher_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       therapist_checkins: {
         Row: {
           ai_response: string | null
@@ -1088,7 +1207,7 @@ export type Database = {
       refill_user_lives: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "staff" | "user"
+      app_role: "admin" | "staff" | "user" | "teacher"
       friendship_status: "pending" | "accepted" | "rejected"
       game_mode: "single" | "ranked" | "team" | "competitive"
     }
@@ -1218,7 +1337,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "user"],
+      app_role: ["admin", "staff", "user", "teacher"],
       friendship_status: ["pending", "accepted", "rejected"],
       game_mode: ["single", "ranked", "team", "competitive"],
     },

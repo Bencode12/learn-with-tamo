@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, RefreshCw, Play, Target, BookOpen, Clock, Flame, ArrowRight } from "lucide-react";
+import { TrendingUp, RefreshCw, Play, Target, BookOpen, Clock, Flame, ArrowRight, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,11 +11,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { TherapistModal } from "@/components/TherapistModal";
 import { useTherapistCheckin } from "@/hooks/useTherapistCheckin";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
+import { JoinClassDialog } from "@/components/JoinClassDialog";
+
+interface SyncedGrade {
+  subject: string;
+  grade: number;
+  source: string;
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [isPremium, setIsPremium] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { shouldShowCheckin, setShouldShowCheckin } = useTherapistCheckin();
   const [stats, setStats] = useState({
     totalLessons: 0,
@@ -25,7 +36,7 @@ const Dashboard = () => {
     xp: 0,
   });
 
-  const [grades, setGrades] = useState([
+  const [grades, setGrades] = useState<{ subject: string; grade: number; trend: 'up' | 'down' | 'stable' }[]>([
     { subject: "Mathematics", grade: 85, trend: "up" as const },
     { subject: "Science", grade: 78, trend: "down" as const },
     { subject: "English", grade: 92, trend: "up" as const },
@@ -50,13 +61,95 @@ const Dashboard = () => {
           xp: profile.experience || 0
         }));
       }
+
+      // Check if user is a teacher
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['teacher', 'admin']);
+
+      setIsTeacher(!!roles && roles.length > 0);
+
+      // Load synced grades
+      const { data: syncedGrades } = await supabase
+        .from('synced_grades')
+        .select('subject, grade')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(20);
+
+      if (syncedGrades && syncedGrades.length > 0) {
+        // Group by subject and get average
+        const subjectGrades: Record<string, number[]> = {};
+        syncedGrades.forEach((g: SyncedGrade) => {
+          if (!subjectGrades[g.subject]) subjectGrades[g.subject] = [];
+          subjectGrades[g.subject].push(g.grade);
+        });
+
+        const processedGrades = Object.entries(subjectGrades).slice(0, 4).map(([subject, gradeList]) => ({
+          subject,
+          grade: Math.round(gradeList.reduce((a, b) => a + b, 0) / gradeList.length * 10), // Convert to percentage
+          trend: 'stable' as const
+        }));
+
+        if (processedGrades.length > 0) {
+          setGrades(processedGrades);
+        }
+      }
+
+      // Load lesson stats
+      const { data: lessons } = await supabase
+        .from('lesson_progress')
+        .select('completed, time_spent')
+        .eq('user_id', user.id);
+
+      if (lessons) {
+        const completed = lessons.filter(l => l.completed).length;
+        const totalMinutes = lessons.reduce((sum, l) => sum + (l.time_spent || 0), 0);
+        setStats(prev => ({
+          ...prev,
+          totalLessons: completed,
+          hoursLearned: Math.round(totalMinutes / 60)
+        }));
+      }
     };
     
     checkUserStatus();
   }, [user]);
 
-  const handleSyncGrades = () => {
-    console.log("Syncing grades...");
+  const handleSyncGrades = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-grades', {
+        body: { source: 'tamo', action: 'sync' }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Grades Synced",
+          description: data.message
+        });
+        // Reload the page to show new grades
+        window.location.reload();
+      } else if (data.requiresSetup) {
+        toast({
+          title: "Setup Required",
+          description: "Please save your Tamo credentials in Settings first.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Failed",
+        description: "Could not sync grades. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -132,9 +225,15 @@ const Dashboard = () => {
                 </CardTitle>
                 <CardDescription>Your academic performance</CardDescription>
               </div>
-              <Button onClick={handleSyncGrades} size="sm" variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Sync
+              <Button 
+                onClick={handleSyncGrades} 
+                size="sm" 
+                variant="outline" 
+                className="gap-2"
+                disabled={syncing}
+              >
+                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -194,6 +293,20 @@ const Dashboard = () => {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
+
+              <JoinClassDialog />
+
+              {isTeacher && (
+                <Link to="/teacher" className="block">
+                  <Button variant="outline" className="w-full justify-between h-12 border-border/40">
+                    <span className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Teacher Dashboard
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 
