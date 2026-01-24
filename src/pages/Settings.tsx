@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Key, Bell, Camera, Save, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { User, Key, Bell, Camera, Save, Globe, Shield, CheckCircle } from "lucide-react";
 import ThemeSelector from "@/components/ThemeSelector";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +27,9 @@ const Settings = () => {
 
   const [tamoCredentials, setTamoCredentials] = useState({ username: "", password: "" });
   const [manoDienynasCredentials, setManoDienynasCredentials] = useState({ username: "", password: "" });
+  const [tamoConnected, setTamoConnected] = useState(false);
+  const [manoDienynasConnected, setManoDienynasConnected] = useState(false);
+  const [savingCredentials, setSavingCredentials] = useState(false);
   const [notifications, setNotifications] = useState({
     examResults: true,
     friendRequests: true,
@@ -53,23 +57,20 @@ const Settings = () => {
       setProfile({
         username: profileData.username || "",
         displayName: profileData.display_name || "",
-        bio: localStorage.getItem(`bio_${user.id}`) || "",
+        bio: "",
         avatarUrl: profileData.avatar_url || ""
       });
     }
 
-    const savedTamo = localStorage.getItem(`tamo_${user.id}`);
-    const savedManoDienynas = localStorage.getItem(`manodienynas_${user.id}`);
-    
-    if (savedTamo) {
-      try {
-        setTamoCredentials(JSON.parse(savedTamo));
-      } catch {}
-    }
-    if (savedManoDienynas) {
-      try {
-        setManoDienynasCredentials(JSON.parse(savedManoDienynas));
-      } catch {}
+    // Check if credentials are saved (server-side)
+    const { data: credentials } = await supabase
+      .from('user_credentials')
+      .select('service_name')
+      .eq('user_id', user.id);
+
+    if (credentials) {
+      setTamoConnected(credentials.some(c => c.service_name === 'tamo'));
+      setManoDienynasConnected(credentials.some(c => c.service_name === 'manodienynas'));
     }
 
     const { data: settings } = await supabase
@@ -91,15 +92,22 @@ const Settings = () => {
   const handleProfileUpdate = async () => {
     if (!user) return;
 
+    // Validate inputs - SQL injection protection
+    const cleanUsername = profile.username.trim().replace(/[<>'";&]/g, '').substring(0, 50);
+    const cleanDisplayName = profile.displayName.trim().replace(/[<>'";&]/g, '').substring(0, 100);
+
+    if (cleanUsername.length < 3) {
+      toast.error('Username must be at least 3 characters');
+      return;
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
-        username: profile.username,
-        display_name: profile.displayName
+        username: cleanUsername,
+        display_name: cleanDisplayName
       })
       .eq('id', user.id);
-
-    localStorage.setItem(`bio_${user.id}`, profile.bio);
 
     if (error) {
       toast.error('Failed to update profile');
@@ -108,16 +116,54 @@ const Settings = () => {
     }
   };
 
-  const handleTamoSave = () => {
+  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas') => {
     if (!user) return;
-    localStorage.setItem(`tamo_${user.id}`, JSON.stringify(tamoCredentials));
-    toast.success('Credentials saved');
-  };
 
-  const handleManoDienynasSave = () => {
-    if (!user) return;
-    localStorage.setItem(`manodienynas_${user.id}`, JSON.stringify(manoDienynasCredentials));
-    toast.success('Credentials saved');
+    const credentials = source === 'tamo' ? tamoCredentials : manoDienynasCredentials;
+    
+    // Validate inputs
+    if (!credentials.username.trim() || !credentials.password) {
+      toast.error('Please enter both username and password');
+      return;
+    }
+
+    if (credentials.username.length < 3 || credentials.username.length > 100) {
+      toast.error('Invalid username length');
+      return;
+    }
+
+    setSavingCredentials(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-grades', {
+        body: { 
+          source, 
+          action: 'save_credentials',
+          username: credentials.username.trim(),
+          password: credentials.password
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Credentials saved securely');
+        if (source === 'tamo') {
+          setTamoConnected(true);
+          setTamoCredentials({ username: '', password: '' });
+        } else {
+          setManoDienynasConnected(true);
+          setManoDienynasCredentials({ username: '', password: '' });
+        }
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Save credentials error:', error);
+      toast.error('Failed to save credentials');
+    } finally {
+      setSavingCredentials(false);
+    }
   };
 
   const handleNotificationUpdate = async () => {
@@ -138,6 +184,17 @@ const Settings = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      toast.error('Image must be less than 2MB');
+      return;
+    }
 
     setUploading(true);
     
@@ -166,7 +223,7 @@ const Settings = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="bg-muted/50 border border-border/40">
           <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
-          <TabsTrigger value="accounts" className="data-[state=active]:bg-background">Accounts</TabsTrigger>
+          <TabsTrigger value="accounts" className="data-[state=active]:bg-background">School Accounts</TabsTrigger>
           <TabsTrigger value="appearance" className="data-[state=active]:bg-background">Appearance</TabsTrigger>
           <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
         </TabsList>
@@ -195,7 +252,7 @@ const Settings = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Profile Picture</p>
-                  <p className="text-sm text-muted-foreground">Click the camera to upload</p>
+                  <p className="text-sm text-muted-foreground">Click the camera to upload (max 2MB)</p>
                 </div>
               </div>
 
@@ -207,6 +264,7 @@ const Settings = () => {
                     value={profile.username}
                     onChange={(e) => setProfile({...profile, username: e.target.value})}
                     className="bg-muted/50 border-border/50"
+                    maxLength={50}
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,6 +274,7 @@ const Settings = () => {
                     value={profile.displayName}
                     onChange={(e) => setProfile({...profile, displayName: e.target.value})}
                     className="bg-muted/50 border-border/50"
+                    maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
@@ -227,6 +286,7 @@ const Settings = () => {
                     value={profile.bio}
                     onChange={(e) => setProfile({...profile, bio: e.target.value})}
                     className="bg-muted/50 border-border/50"
+                    maxLength={500}
                   />
                 </div>
               </div>
@@ -240,13 +300,34 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="accounts" className="space-y-6">
+          <div className="bg-muted/30 border border-border/40 rounded-lg p-4 flex items-start gap-3">
+            <Shield className="h-5 w-5 text-foreground mt-0.5" />
+            <div>
+              <p className="font-medium">Secure Credential Storage</p>
+              <p className="text-sm text-muted-foreground">
+                Your school credentials are encrypted and stored securely on our servers. 
+                They are only used to sync your grades and are never shared.
+              </p>
+            </div>
+          </div>
+
           <Card className="border-border/40">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Key className="h-5 w-5" />
-                Tamo Credentials
-              </CardTitle>
-              <CardDescription>Connect your Tamo account to sync grades</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5" />
+                    Tamo
+                  </CardTitle>
+                  <CardDescription>Connect your Tamo account to sync grades</CardDescription>
+                </div>
+                {tamoConnected && (
+                  <Badge variant="outline" className="gap-1 border-green-500/50 text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 max-w-lg">
@@ -259,6 +340,7 @@ const Settings = () => {
                       value={tamoCredentials.username}
                       onChange={(e) => setTamoCredentials({...tamoCredentials, username: e.target.value})}
                       className="bg-muted/50 border-border/50"
+                      maxLength={100}
                     />
                   </div>
                   <div className="space-y-2">
@@ -273,11 +355,13 @@ const Settings = () => {
                     />
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Credentials are stored locally and encrypted.
-                </p>
-                <Button onClick={handleTamoSave} variant="outline" className="w-fit border-border/40">
-                  Save Credentials
+                <Button 
+                  onClick={() => handleCredentialsSave('tamo')} 
+                  variant="outline" 
+                  className="w-fit border-border/40"
+                  disabled={savingCredentials}
+                >
+                  {savingCredentials ? 'Saving...' : (tamoConnected ? 'Update Credentials' : 'Save Credentials')}
                 </Button>
               </div>
             </CardContent>
@@ -285,11 +369,21 @@ const Settings = () => {
 
           <Card className="border-border/40">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Key className="h-5 w-5" />
-                ManoDienynas Credentials
-              </CardTitle>
-              <CardDescription>Connect your ManoDienynas account</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5" />
+                    ManoDienynas
+                  </CardTitle>
+                  <CardDescription>Connect your ManoDienynas account</CardDescription>
+                </div>
+                {manoDienynasConnected && (
+                  <Badge variant="outline" className="gap-1 border-green-500/50 text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 max-w-lg">
@@ -302,6 +396,7 @@ const Settings = () => {
                       value={manoDienynasCredentials.username}
                       onChange={(e) => setManoDienynasCredentials({...manoDienynasCredentials, username: e.target.value})}
                       className="bg-muted/50 border-border/50"
+                      maxLength={100}
                     />
                   </div>
                   <div className="space-y-2">
@@ -316,8 +411,13 @@ const Settings = () => {
                     />
                   </div>
                 </div>
-                <Button onClick={handleManoDienynasSave} variant="outline" className="w-fit border-border/40">
-                  Save Credentials
+                <Button 
+                  onClick={() => handleCredentialsSave('manodienynas')} 
+                  variant="outline" 
+                  className="w-fit border-border/40"
+                  disabled={savingCredentials}
+                >
+                  {savingCredentials ? 'Saving...' : (manoDienynasConnected ? 'Update Credentials' : 'Save Credentials')}
                 </Button>
               </div>
             </CardContent>

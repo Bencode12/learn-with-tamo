@@ -25,6 +25,7 @@ import JobInterviewPrep from "./pages/JobInterviewPrep";
 import PresentationPrep from "./pages/PresentationPrep";
 import HobbyLearning from "./pages/HobbyLearning";
 import ProgramLearning from "./pages/ProgramLearning";
+import TeacherDashboard from "./pages/TeacherDashboard";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,8 @@ const App = () => (
             <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
+            <Route path="/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
+            <Route path="/teacher-dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/job-interview-prep" element={<ProtectedRoute><JobInterviewPrep /></ProtectedRoute>} />
             <Route path="/presentation-prep" element={<ProtectedRoute><PresentationPrep /></ProtectedRoute>} />
             <Route path="/hobby-learning" element={<ProtectedRoute><HobbyLearning /></ProtectedRoute>} />

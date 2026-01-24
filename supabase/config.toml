@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.generate-lesson]
 verify_jwt = false
+
+[functions.sync-grades]
+verify_jwt = true

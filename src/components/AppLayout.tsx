@@ -8,12 +8,16 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  TrendingUp,
+  GraduationCap,
+  Shield
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationsPanel } from "./NotificationsPanel";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,19 +25,39 @@ interface AppLayoutProps {
   subtitle?: string;
 }
 
-const navItems = [
+const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/gamemodes", label: "Learning", icon: BookOpen },
+  { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export const AppLayout = ({ children, title, subtitle }: AppLayoutProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    const checkRoles = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (data) {
+        setIsTeacher(data.some(r => r.role === 'teacher' || r.role === 'admin'));
+        setIsStaff(data.some(r => r.role === 'admin' || r.role === 'staff'));
+      }
+    };
+
+    checkRoles();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -41,6 +65,13 @@ export const AppLayout = ({ children, title, subtitle }: AppLayoutProps) => {
   };
 
   const isActive = (href: string) => location.pathname === href;
+
+  // Build navigation items based on user roles
+  const navItems = [
+    ...baseNavItems,
+    ...(isTeacher ? [{ href: "/teacher", label: "Teacher", icon: GraduationCap }] : []),
+    ...(isStaff ? [{ href: "/staff-hub", label: "Staff", icon: Shield }] : []),
+  ];
 
   return (
     <div className="min-h-screen bg-background">
