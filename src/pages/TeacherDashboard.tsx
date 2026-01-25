@@ -100,7 +100,7 @@ const TeacherDashboard = () => {
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .in('role', ['teacher', 'admin']);
+      .in('role', ['teacher', 'admin', 'staff']);
 
     if (!data || data.length === 0) {
       toast({

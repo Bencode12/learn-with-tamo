@@ -51,7 +51,7 @@ export const AppLayout = ({ children, title, subtitle }: AppLayoutProps) => {
         .eq('user_id', user.id);
 
       if (data) {
-        setIsTeacher(data.some(r => r.role === 'teacher' || r.role === 'admin'));
+        setIsTeacher(data.some(r => r.role === 'teacher' || r.role === 'admin' || r.role === 'staff'));
         setIsStaff(data.some(r => r.role === 'admin' || r.role === 'staff'));
       }
     };
