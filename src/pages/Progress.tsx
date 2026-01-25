@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +18,13 @@ import {
   AreaChart, 
   BarChart, 
   LineChart, 
-  PieChart,
-  ScatterChart3D,
-  BarChart3D 
+  PieChart
 } from "@/components/charts";
 import { useToast } from "@/hooks/use-toast";
+
+// Lazy load 3D components to avoid bundling issues
+const ScatterChart3D = lazy(() => import("@/components/charts/ScatterChart3D").then(m => ({ default: m.ScatterChart3D })));
+const BarChart3D = lazy(() => import("@/components/charts/BarChart3D").then(m => ({ default: m.BarChart3D })));
 
 interface LessonProgress {
   id: string;
@@ -547,27 +549,38 @@ const Progress = () => {
 
         {/* 3D View Tab */}
         <TabsContent value="3d-view" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ScatterChart3D 
-              data={scatter3DData.length > 0 ? scatter3DData : [
-                { x: 85, y: 30, z: 10, label: "Lesson 1" },
-                { x: 72, y: 45, z: 20, label: "Lesson 2" },
-                { x: 91, y: 25, z: 30, label: "Lesson 3" },
-                { x: 68, y: 60, z: 40, label: "Lesson 4" },
-              ]}
-              title="Learning Performance 3D"
-              xLabel="Score"
-              yLabel="Time"
-              zLabel="Progress"
-            />
-            <BarChart3D 
-              data={subjectPerformance.slice(0, 5).map(d => ({
-                label: d.subject,
-                value: d.score
-              }))}
-              title="Subject Scores 3D"
-            />
-          </div>
+          <Suspense fallback={
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-border/40 h-80 flex items-center justify-center">
+                <div className="text-muted-foreground">Loading 3D visualization...</div>
+              </Card>
+              <Card className="border-border/40 h-80 flex items-center justify-center">
+                <div className="text-muted-foreground">Loading 3D visualization...</div>
+              </Card>
+            </div>
+          }>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ScatterChart3D 
+                data={scatter3DData.length > 0 ? scatter3DData : [
+                  { x: 85, y: 30, z: 10, label: "Lesson 1" },
+                  { x: 72, y: 45, z: 20, label: "Lesson 2" },
+                  { x: 91, y: 25, z: 30, label: "Lesson 3" },
+                  { x: 68, y: 60, z: 40, label: "Lesson 4" },
+                ]}
+                title="Learning Performance 3D"
+                xLabel="Score"
+                yLabel="Time"
+                zLabel="Progress"
+              />
+              <BarChart3D 
+                data={subjectPerformance.slice(0, 5).map(d => ({
+                  label: d.subject,
+                  value: d.score
+                }))}
+                title="Subject Scores 3D"
+              />
+            </div>
+          </Suspense>
         </TabsContent>
 
         {/* Grades Tab */}

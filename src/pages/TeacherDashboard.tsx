@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,7 @@ import {
   AreaChart, 
   BarChart, 
   LineChart, 
-  PieChart,
-  ScatterChart3D,
-  BarChart3D 
+  PieChart
 } from "@/components/charts";
 import { 
   Users, 
@@ -35,6 +33,10 @@ import {
   Target,
   GraduationCap
 } from "lucide-react";
+
+// Lazy load 3D components to avoid bundling issues
+const ScatterChart3D = lazy(() => import("@/components/charts/ScatterChart3D").then(m => ({ default: m.ScatterChart3D })));
+const BarChart3D = lazy(() => import("@/components/charts/BarChart3D").then(m => ({ default: m.BarChart3D })));
 
 interface ClassData {
   id: string;
@@ -636,25 +638,36 @@ const TeacherDashboard = () => {
 
         {/* 3D Charts Tab */}
         <TabsContent value="3d-charts" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ScatterChart3D 
-              data={scatter3DData.length > 0 ? scatter3DData : [
-                { x: 85, y: 120, z: 45, label: "Student A" },
-                { x: 72, y: 80, z: 30, label: "Student B" },
-                { x: 91, y: 150, z: 60, label: "Student C" },
-                { x: 68, y: 60, z: 20, label: "Student D" },
-                { x: 78, y: 100, z: 40, label: "Student E" },
-              ]}
-              title="Student Performance 3D View"
-              xLabel="Score"
-              yLabel="XP"
-              zLabel="Lessons"
-            />
-            <BarChart3D 
-              data={bar3DData}
-              title="Subject Performance 3D"
-            />
-          </div>
+          <Suspense fallback={
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-border/40 h-80 flex items-center justify-center">
+                <div className="text-muted-foreground">Loading 3D visualization...</div>
+              </Card>
+              <Card className="border-border/40 h-80 flex items-center justify-center">
+                <div className="text-muted-foreground">Loading 3D visualization...</div>
+              </Card>
+            </div>
+          }>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ScatterChart3D 
+                data={scatter3DData.length > 0 ? scatter3DData : [
+                  { x: 85, y: 120, z: 45, label: "Student A" },
+                  { x: 72, y: 80, z: 30, label: "Student B" },
+                  { x: 91, y: 150, z: 60, label: "Student C" },
+                  { x: 68, y: 60, z: 20, label: "Student D" },
+                  { x: 78, y: 100, z: 40, label: "Student E" },
+                ]}
+                title="Student Performance 3D View"
+                xLabel="Score"
+                yLabel="XP"
+                zLabel="Lessons"
+              />
+              <BarChart3D 
+                data={bar3DData}
+                title="Subject Performance 3D"
+              />
+            </div>
+          </Suspense>
         </TabsContent>
       </Tabs>
     </AppLayout>
