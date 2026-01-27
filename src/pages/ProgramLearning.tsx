@@ -377,7 +377,7 @@ const ProgramLearning = () => {
               </Link>
               <Link to="/" className="flex items-center gap-2">
                 <BookOpen className="h-7 w-7 text-primary" />
-                <h1 className="text-lg font-bold hidden sm:block">SūdžiusAI</h1>
+                <h1 className="text-lg font-bold hidden sm:block">KnowIt AI</h1>
               </Link>
             </div>
           </div>

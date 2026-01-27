@@ -53,7 +53,7 @@ export const PremiumUpgradeModal = ({ open, onOpenChange }: PremiumUpgradeModalP
             </div>
           </div>
           <DialogTitle className="text-center text-2xl">
-            Upgrade to SūdžiusAI Plus
+            Upgrade to KnowIt AI Plus
           </DialogTitle>
           <DialogDescription className="text-center text-base">
             Unlock unlimited learning potential with premium features

@@ -27,7 +27,7 @@ const ContactUs = () => {
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
+                <h1 className="text-xl font-bold text-foreground">KnowIt AI</h1>
               </Link>
             </div>
           </div>

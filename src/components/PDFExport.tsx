@@ -38,7 +38,7 @@ export const PDFExport = ({ type }: PDFExportProps) => {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SūdžiusAI Progress Report</title>
+  <title>KnowIt AI Progress Report</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     @page { margin: 20mm; size: A4; }
@@ -82,7 +82,7 @@ export const PDFExport = ({ type }: PDFExportProps) => {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">📚 SūdžiusAI</div>
+      <div class="logo">📚 KnowIt AI</div>
       <div class="subtitle">Learning Progress Report</div>
       <div class="user-info">
         <div class="avatar">${profile?.display_name?.[0] || profile?.username?.[0] || 'U'}</div>
@@ -169,7 +169,7 @@ export const PDFExport = ({ type }: PDFExportProps) => {
         // Fallback: download the file
         const link = document.createElement('a');
         link.href = url;
-        link.download = `SudziusAI_Progress_Report_${new Date().toISOString().split('T')[0]}.html`;
+        link.download = `KnowItAI_Progress_Report_${new Date().toISOString().split('T')[0]}.html`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -189,9 +189,9 @@ const Index = () => {
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
-                  <span className="text-background font-bold text-sm">S</span>
+                  <span className="text-background font-bold text-sm">K</span>
                 </div>
-                <span className="font-semibold text-foreground">SūdžiusAI</span>
+                <span className="font-semibold text-foreground">KnowIt AI</span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">
                 Empowering learners worldwide with AI-powered education that adapts to you.
@@ -226,7 +226,7 @@ const Index = () => {
           </div>
 
           <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">© 2024 SūdžiusAI. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2024 KnowIt AI. All rights reserved.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Globe className="h-5 w-5" />

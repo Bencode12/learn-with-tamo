@@ -20,7 +20,7 @@ const HelpCenter = () => {
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
+                <h1 className="text-xl font-bold text-foreground">KnowIt AI</h1>
               </Link>
             </div>
           </div>
@@ -52,9 +52,9 @@ const HelpCenter = () => {
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1">
-                    <AccordionTrigger>What is SūdžiusAI?</AccordionTrigger>
+                    <AccordionTrigger>What is KnowIt AI?</AccordionTrigger>
                     <AccordionContent>
-                      SūdžiusAI is an AI-powered educational platform that helps students learn more effectively 
+                      KnowIt AI is an AI-powered educational platform that helps students learn more effectively 
                       through personalized lessons, interactive exercises, and intelligent recommendations. 
                       We integrate with platforms like Tamo and ManoDienynas to sync your grades and provide 
                       targeted learning suggestions.
@@ -98,7 +98,7 @@ const HelpCenter = () => {
                   <AccordionItem value="item-6">
                     <AccordionTrigger>How do multiplayer modes work?</AccordionTrigger>
                     <AccordionContent>
-                      SūdžiusAI offers several multiplayer learning modes: Duos (2 players), Team (3+ players), 
+                      KnowIt AI offers several multiplayer learning modes: Duos (2 players), Team (3+ players), 
                       and Ranked mode. Create or join rooms using room codes, then compete with other students 
                       in real-time quizzes and challenges. The platform includes anti-cheat measures to ensure 
                       fair play.
@@ -126,7 +126,7 @@ const HelpCenter = () => {
                   <AccordionItem value="item-9">
                     <AccordionTrigger>What languages are supported?</AccordionTrigger>
                     <AccordionContent>
-                      SūdžiusAI currently supports English and Lithuanian, with more languages coming soon. 
+                      KnowIt AI currently supports English and Lithuanian, with more languages coming soon. 
                       You can change your language preference from any page using the language selector in 
                       the top navigation bar.
                     </AccordionContent>
