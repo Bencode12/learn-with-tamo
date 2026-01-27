@@ -59,7 +59,7 @@ const Header = ({
               </Link>}
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <BookOpen className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">SūdžiusAI</span>
+              <span className="text-xl font-bold text-foreground">KnowIt AI</span>
             </Link>
           </div>
           <div className="flex items-center space-x-4">

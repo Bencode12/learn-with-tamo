@@ -81,7 +81,7 @@ const PresentationPrep = () => {
               <Link to="/game-modes"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></Link>
               <Link to="/" className="flex items-center space-x-3">
                 <BookOpen className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold">SūdžiusAI</h1>
+                <h1 className="text-xl font-bold">KnowIt AI</h1>
               </Link>
             </div>
 

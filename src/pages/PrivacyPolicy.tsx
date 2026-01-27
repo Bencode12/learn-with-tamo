@@ -18,7 +18,7 @@ const PrivacyPolicy = () => {
               </Link>
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <BookOpen className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold text-foreground">SūdžiusAI</h1>
+                <h1 className="text-xl font-bold text-foreground">KnowIt AI</h1>
               </Link>
             </div>
           </div>
@@ -67,7 +67,7 @@ const PrivacyPolicy = () => {
             <section>
               <h2 className="text-2xl font-semibold mb-3">4. Third-Party Services</h2>
               <p>
-                SūdžiusAI integrates with third-party services including Stripe for payments, 
+                KnowIt AI integrates with third-party services including Stripe for payments, 
                 Google and Microsoft for authentication, and educational platforms like Tamo. 
                 These services have their own privacy policies governing their use of your information.
               </p>

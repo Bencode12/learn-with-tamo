@@ -42,9 +42,9 @@ const Login = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center justify-center gap-2 mb-12">
             <div className="w-10 h-10 bg-foreground rounded-xl flex items-center justify-center">
-              <span className="text-background font-bold text-lg">S</span>
+              <span className="text-background font-bold text-lg">K</span>
             </div>
-            <span className="font-semibold text-xl text-foreground tracking-tight">SūdžiusAI</span>
+            <span className="font-semibold text-xl text-foreground tracking-tight">KnowIt AI</span>
           </Link>
 
           <h1 className="text-3xl font-bold text-foreground tracking-tight text-center mb-2">
