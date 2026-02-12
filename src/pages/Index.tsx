@@ -214,11 +214,11 @@ const Index = () => {
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
             {subjects.map((subject) => (
-              <div 
+              <button
                 key={subject.id}
-                className="relative group cursor-pointer"
-                onMouseEnter={() => setActiveSubject(subject.id)}
-                onMouseLeave={() => setActiveSubject(null)}
+                type="button"
+                className="relative group cursor-pointer text-left"
+                onClick={() => setActiveSubject(activeSubject === subject.id ? null : subject.id)}
               >
                 <div className={`
                   w-24 h-24 mx-auto rounded-full flex items-center justify-center
@@ -229,7 +229,7 @@ const Index = () => {
                   {subject.icon}
                 </div>
                 <p className="text-center mt-3 font-medium text-foreground text-sm">{subject.name}</p>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -257,6 +257,9 @@ const Index = () => {
                         Start Learning {subject.name}
                         <ArrowRight className="ml-2 h-5 w-5" />
                       </Button>
+                    </Link>
+                    <Link to="/subjects" className="block mt-3">
+                      <Button variant="outline">Open subjects overview</Button>
                     </Link>
                   </div>
                 )

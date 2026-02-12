@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Shield, Users, MessageSquare, AlertTriangle, BookOpen, UserPlus, Search, Crown, 
-  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye
+  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban, Hash, Trash2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,13 @@ interface ChatMessage {
   message: string;
   created_at: string;
   sender_name?: string;
+}
+
+interface StaffChannel {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
 }
 
 const StaffHub = () => {
@@ -44,6 +51,9 @@ const StaffHub = () => {
   
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [channels, setChannels] = useState<StaffChannel[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [newChannelName, setNewChannelName] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   
@@ -108,10 +118,9 @@ const StaffHub = () => {
       setIsStaff(true);
       setUserRole(roles.includes('admin') ? 'admin' : 'staff');
       loadStaffData();
-      loadChatMessages();
+      loadChannels();
       loadTickets();
       loadPilots();
-      setupChatSubscription();
     } catch (err) {
       navigate('/dashboard');
     } finally {
@@ -177,9 +186,28 @@ const StaffHub = () => {
     }
   };
 
-  const loadChatMessages = async () => {
+  const loadChannels = async () => {
     const { data } = await supabase
-      .from('staff_chat_messages').select('*').order('created_at', { ascending: true }).limit(100);
+      .from('staff_chat_channels')
+      .select('id,name,description,created_by')
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      setChannels(data);
+      if (!selectedChannelId && data.length > 0) {
+        setSelectedChannelId(data[0].id);
+      }
+    }
+  };
+
+  const loadChatMessages = async () => {
+    if (!selectedChannelId) return;
+    const { data } = await supabase
+      .from('staff_chat_messages_enhanced')
+      .select('*')
+      .eq('channel_id', selectedChannelId)
+      .order('created_at', { ascending: true })
+      .limit(100);
     if (data) {
       const enrichedMessages = await Promise.all(
         data.map(async (msg) => {
@@ -193,9 +221,10 @@ const StaffHub = () => {
   };
 
   const setupChatSubscription = () => {
+    if (!selectedChannelId) return;
     const channel = supabase
       .channel('staff-chat')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'staff_chat_messages' },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'staff_chat_messages_enhanced', filter: `channel_id=eq.${selectedChannelId}` },
         async (payload) => {
           const newMsg = payload.new as ChatMessage;
           const { data: profile } = await supabase
@@ -209,13 +238,84 @@ const StaffHub = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || sendingMessage) return;
+    if (!newMessage.trim() || sendingMessage || !selectedChannelId) return;
     setSendingMessage(true);
     const { error } = await supabase
-      .from('staff_chat_messages').insert({ sender_id: user?.id, message: newMessage.trim() });
+      .from('staff_chat_messages_enhanced').insert({ sender_id: user?.id, message: newMessage.trim(), channel_id: selectedChannelId });
     if (error) toast.error("Failed to send message");
     else setNewMessage("");
     setSendingMessage(false);
+  };
+
+  useEffect(() => {
+    if (!selectedChannelId) return;
+    loadChatMessages();
+    const unsubscribe = setupChatSubscription();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedChannelId]);
+
+  const createChannel = async () => {
+    if (!newChannelName.trim()) return;
+    const { data, error } = await supabase
+      .from('staff_chat_channels')
+      .insert({ name: newChannelName.trim(), created_by: user?.id })
+      .select('id,name,description,created_by')
+      .single();
+
+    if (error || !data) {
+      toast.error('Failed to create channel');
+      return;
+    }
+
+    await supabase.from('staff_channel_members').insert({
+      channel_id: data.id,
+      user_id: user?.id,
+      role: 'admin'
+    });
+
+    setChannels((prev) => [...prev, data]);
+    setSelectedChannelId(data.id);
+    setNewChannelName('');
+    toast.success('Channel created');
+  };
+
+  const deleteChannel = async (channelId: string) => {
+    const { error } = await supabase.from('staff_chat_channels').delete().eq('id', channelId);
+    if (error) {
+      toast.error('Failed to delete channel');
+      return;
+    }
+
+    const remaining = channels.filter((c) => c.id !== channelId);
+    setChannels(remaining);
+    setSelectedChannelId(remaining[0]?.id ?? null);
+    toast.success('Channel deleted');
+  };
+
+  const banUser = async (targetUserId: string) => {
+    if (userRole !== 'admin' && userRole !== 'staff') return;
+    if (targetUserId === user?.id) {
+      toast.error('You cannot ban yourself');
+      return;
+    }
+
+    const reason = prompt('Provide ban reason (optional):') || null;
+    const { error } = await supabase.from('banned_users').insert({
+      user_id: targetUserId,
+      banned_by: user?.id,
+      reason,
+      is_permanent: false,
+      ban_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    });
+
+    if (error) {
+      toast.error(`Failed to ban user: ${error.message}`);
+      return;
+    }
+
+    toast.success('User banned for 7 days');
   };
 
   const handleChangeRole = async (userId: string, newRole: string) => {
@@ -817,7 +917,7 @@ const StaffHub = () => {
                     <TableHead>Premium</TableHead>
                     <TableHead>Learning Time</TableHead>
                     <TableHead>Joined</TableHead>
-                    {userRole === 'admin' && <TableHead>Actions</TableHead>}
+                    {(userRole === 'admin' || userRole === 'staff') && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -835,16 +935,23 @@ const StaffHub = () => {
                       </TableCell>
                       <TableCell>{u.total_learning_time || 0} min</TableCell>
                       <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
-                      {userRole === 'admin' && (
+                      {(userRole === 'admin' || userRole === 'staff') && (
                         <TableCell>
-                          <Select onValueChange={(value) => handleChangeRole(u.id, value)}>
-                            <SelectTrigger className="w-32"><SelectValue placeholder="Change role" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Make Admin</SelectItem>
-                              <SelectItem value="staff">Make Staff</SelectItem>
-                              <SelectItem value="remove">Remove Role</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            {userRole === 'admin' && (
+                              <Select onValueChange={(value) => handleChangeRole(u.id, value)}>
+                                <SelectTrigger className="w-32"><SelectValue placeholder="Change role" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="admin">Make Admin</SelectItem>
+                                  <SelectItem value="staff">Make Staff</SelectItem>
+                                  <SelectItem value="remove">Remove Role</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button variant="destructive" size="sm" onClick={() => banUser(u.id)}>
+                              <Ban className="h-4 w-4 mr-1" /> Ban
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -861,6 +968,31 @@ const StaffHub = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Staff Chat</CardTitle>
               <CardDescription>Communicate with other staff members in real-time</CardDescription>
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <Select value={selectedChannelId || undefined} onValueChange={setSelectedChannelId}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Select channel" /></SelectTrigger>
+                  <SelectContent>
+                    {channels.map((channel) => (
+                      <SelectItem key={channel.id} value={channel.id}>#{channel.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  placeholder="New channel"
+                  value={newChannelName}
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                  className="w-48"
+                />
+                <Button variant="outline" size="sm" onClick={createChannel}>
+                  <Hash className="h-4 w-4 mr-1" /> Create
+                </Button>
+                {selectedChannelId && (
+                  <Button variant="outline" size="sm" onClick={() => deleteChannel(selectedChannelId)}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1 pr-4 mb-4">

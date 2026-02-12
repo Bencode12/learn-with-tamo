@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { FriendsPanel } from "./FriendsPanel";
+import { TemporaryNotifications } from "./TemporaryNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -71,6 +72,7 @@ const Header = ({
               </>}
 
             {showFriends && <FriendsPanel />}
+            {showAuth && <TemporaryNotifications />}
             {isStaff && showAuth && (
               <Link to="/staff-hub">
                 <Button variant="ghost" size="sm" className="bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-600">

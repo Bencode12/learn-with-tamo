@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, UserPlus, Check, X, Search } from "lucide-react";
+import { Users, UserPlus, Check, X, Search, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 interface Friend {
   id: string;
+  friendshipId?: string;
   username: string;
   display_name: string;
   level: number;
@@ -32,9 +33,7 @@ export function FriendsPanel() {
   }, [user]);
   const fetchFriends = async () => {
     if (!user) return;
-    const {
-      data
-    } = await supabase.from('friendships').select(`
+    const { data: outgoing } = await supabase.from('friendships').select(`
         id,
         friend_id,
         profiles!friendships_friend_id_fkey (
@@ -44,16 +43,39 @@ export function FriendsPanel() {
           level
         )
       `).eq('user_id', user.id).eq('status', 'accepted');
-    if (data) {
-      const friendsList = data.map((f: any) => ({
+
+    const { data: incoming } = await supabase.from('friendships').select(`
+        id,
+        user_id,
+        profiles!friendships_user_id_fkey (
+          id,
+          username,
+          display_name,
+          level
+        )
+      `).eq('friend_id', user.id).eq('status', 'accepted');
+
+    const merged = [
+      ...(outgoing || []).map((f: any) => ({
         id: f.friend_id,
+        friendshipId: f.id,
         username: f.profiles.username,
         display_name: f.profiles.display_name,
         level: f.profiles.level,
         status: 'accepted'
-      }));
-      setFriends(friendsList);
-    }
+      })),
+      ...(incoming || []).map((f: any) => ({
+        id: f.user_id,
+        friendshipId: f.id,
+        username: f.profiles.username,
+        display_name: f.profiles.display_name,
+        level: f.profiles.level,
+        status: 'accepted'
+      }))
+    ];
+
+    const deduped = Array.from(new Map(merged.map((f) => [f.id, f])).values());
+    setFriends(deduped as Friend[]);
   };
   const fetchPendingRequests = async () => {
     if (!user) return;
@@ -128,9 +150,22 @@ export function FriendsPanel() {
       toast.error('Failed to respond to request');
     }
   };
+  const removeFriend = async (friendshipId: string) => {
+    const { error } = await supabase.from('friendships').delete().eq('id', friendshipId);
+    if (error) {
+      toast.error('Failed to remove friend');
+      return;
+    }
+    toast.success('Friend removed');
+    fetchFriends();
+  };
+
   return <Dialog>
       <DialogTrigger asChild>
-        
+        <Button variant="ghost" size="sm" className="gap-2">
+          <Users className="h-4 w-4" />
+          Friends
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -229,7 +264,17 @@ export function FriendsPanel() {
                         </p>
                       </div>
                     </div>
-                    <Badge>Level {friend.level}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge>Level {friend.level}</Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeFriend((friend as any).friendshipId)}
+                        className="text-destructive"
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>)}

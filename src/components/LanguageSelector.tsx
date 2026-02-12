@@ -8,24 +8,9 @@ const LanguageSelector = () => {
   const languages = [
     { code: "en", name: "English", flag: "🇺🇸" },
     { code: "lt", name: "Lietuvių", flag: "🇱🇹" },
-    { code: "es", name: "Español", flag: "🇪🇸" },
-    { code: "fr", name: "Français", flag: "🇫🇷" },
     { code: "de", name: "Deutsch", flag: "🇩🇪" },
-    { code: "ru", name: "Русский", flag: "🇷🇺" },
     { code: "zh", name: "中文", flag: "🇨🇳" },
-    { code: "ja", name: "日本語", flag: "🇯🇵" },
-    { code: "ko", name: "한국어", flag: "🇰🇷" },
-    { code: "ar", name: "العربية", flag: "🇸🇦" },
-    { code: "pt", name: "Português", flag: "🇧🇷" },
-    { code: "it", name: "Italiano", flag: "🇮🇹" },
-    { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
-    { code: "pl", name: "Polski", flag: "🇵🇱" },
-    { code: "uk", name: "Українська", flag: "🇺🇦" },
-    { code: "nl", name: "Nederlands", flag: "🇳🇱" },
-    { code: "tr", name: "Türkçe", flag: "🇹🇷" },
-    { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
-    { code: "th", name: "ไทย", flag: "🇹🇭" },
-    { code: "id", name: "Bahasa Indonesia", flag: "🇮🇩" }
+    { code: "uk", name: "Українська", flag: "🇺🇦" }
   ];
 
   // Ensure flags render properly in both light and dark mode

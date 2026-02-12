@@ -31,6 +31,7 @@ import SelfLearning from "./pages/SelfLearning";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import PublicProfile from "./pages/PublicProfile";
 import CurriculumLearning from "./pages/CurriculumLearning";
+import SubjectsOverview from "./pages/SubjectsOverview";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/program-learning" element={<ProtectedRoute><ProgramLearning /></ProtectedRoute>} />
             <Route path="/self-learning" element={<ProtectedRoute><SelfLearning /></ProtectedRoute>} />
             <Route path="/curriculum" element={<ProtectedRoute><CurriculumLearning /></ProtectedRoute>} />
+            <Route path="/subjects" element={<ProtectedRoute><SubjectsOverview /></ProtectedRoute>} />
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
