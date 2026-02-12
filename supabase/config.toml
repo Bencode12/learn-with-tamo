@@ -1,0 +1,31 @@
+project_id = "tjtktsifufbyobsuughe"
+
+[functions.ai-recommendations]
+verify_jwt = true
+
+[functions.scrape-tamo]
+verify_jwt = false
+
+[functions.scrape-manodienynas]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.check-subscription]
+verify_jwt = true
+
+[functions.therapist-chat]
+verify_jwt = true
+
+[functions.ai-tutor]
+verify_jwt = true
+
+[functions.generate-lesson]
+verify_jwt = false
+
+[functions.sync-grades]
+verify_jwt = true
+
+[functions.sync-grades-cron]
+verify_jwt = false
