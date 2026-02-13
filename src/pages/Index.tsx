@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Brain, Target, TrendingUp, Trophy, Users, Zap, 
   ArrowRight, CheckCircle2, Globe, Shield,
-  Calculator, Flask, BookOpen, Palette, Music, Globe2
+  Calculator, Beaker, BookOpen, Palette, Music, Globe2
 } from "lucide-react";
 import { AnimatedHero } from "@/components/AnimatedHero";
 import { useState } from "react";
@@ -69,7 +69,7 @@ const Index = () => {
     {
       id: 'sciences',
       name: 'Sciences',
-      icon: <Flask className="h-8 w-8" />, 
+      icon: <Beaker className="h-8 w-8" />, 
       description: 'Explore biology, chemistry, physics, and earth sciences through hands-on experiments, virtual labs, and engaging multimedia content that brings scientific concepts to life.',
       color: 'from-green-500 to-emerald-500',
       path: '/curriculum?subject=sciences'
