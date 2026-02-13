@@ -56,7 +56,7 @@ const HelpCenter = () => {
                     <AccordionContent>
                       KnowIt AI is an AI-powered educational platform that helps students learn more effectively 
                       through personalized lessons, interactive exercises, and intelligent recommendations. 
-                      We integrate with platforms like Tamo and ManoDienynas to sync your grades and provide 
+                      We integrate with platforms like Tamo, ManoDienynas, and Švietimo Centras to sync your grades and provide 
                       targeted learning suggestions.
                     </AccordionContent>
                   </AccordionItem>
@@ -70,9 +70,9 @@ const HelpCenter = () => {
                   </AccordionItem>
 
                   <AccordionItem value="item-3">
-                    <AccordionTrigger>How do I connect my Tamo or ManoDienynas account?</AccordionTrigger>
+                    <AccordionTrigger>How do I connect my school portal account?</AccordionTrigger>
                     <AccordionContent>
-                      Go to Settings → Account tab, then enter your Tamo or ManoDienynas credentials. 
+                      Go to Settings → Account tab, then enter your Tamo, ManoDienynas, or Švietimo Centras credentials. 
                       Your login information is encrypted and securely stored. We only use it to fetch your 
                       grades and provide personalized recommendations.
                     </AccordionContent>

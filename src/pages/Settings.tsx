@@ -27,8 +27,10 @@ const Settings = () => {
 
   const [tamoCredentials, setTamoCredentials] = useState({ username: "", password: "" });
   const [manoDienynasCredentials, setManoDienynasCredentials] = useState({ username: "", password: "" });
+  const [svietimoCentrasCredentials, setSvietimoCentrasCredentials] = useState({ username: "", password: "" });
   const [tamoConnected, setTamoConnected] = useState(false);
   const [manoDienynasConnected, setManoDienynasConnected] = useState(false);
+  const [svietimoCentrasConnected, setSvietimoCentrasConnected] = useState(false);
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [notifications, setNotifications] = useState({
     examResults: true,
@@ -71,6 +73,7 @@ const Settings = () => {
     if (credentials) {
       setTamoConnected(credentials.some(c => c.service_name === 'tamo'));
       setManoDienynasConnected(credentials.some(c => c.service_name === 'manodienynas'));
+      setSvietimoCentrasConnected(credentials.some(c => c.service_name === 'svietimocentras'));
     }
 
     const { data: settings } = await supabase
@@ -116,10 +119,13 @@ const Settings = () => {
     }
   };
 
-  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas') => {
+  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas' | 'svietimocentras') => {
     if (!user) return;
 
-    const credentials = source === 'tamo' ? tamoCredentials : manoDienynasCredentials;
+    const credentials = 
+      source === 'tamo' ? tamoCredentials : 
+      source === 'manodienynas' ? manoDienynasCredentials : 
+      svietimoCentrasCredentials;
     
     // Validate inputs
     if (!credentials.username.trim() || !credentials.password) {
@@ -151,9 +157,12 @@ const Settings = () => {
         if (source === 'tamo') {
           setTamoConnected(true);
           setTamoCredentials({ username: '', password: '' });
-        } else {
+        } else if (source === 'manodienynas') {
           setManoDienynasConnected(true);
           setManoDienynasCredentials({ username: '', password: '' });
+        } else {
+          setSvietimoCentrasConnected(true);
+          setSvietimoCentrasCredentials({ username: '', password: '' });
         }
       } else {
         throw new Error(data.error);
@@ -418,6 +427,62 @@ const Settings = () => {
                   disabled={savingCredentials}
                 >
                   {savingCredentials ? 'Saving...' : (manoDienynasConnected ? 'Update Credentials' : 'Save Credentials')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/40">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5" />
+                    Švietimo Centras
+                  </CardTitle>
+                  <CardDescription>Connect your Švietimo Centras account</CardDescription>
+                </div>
+                {svietimoCentrasConnected && (
+                  <Badge variant="outline" className="gap-1 border-green-500/50 text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 max-w-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="scUsername">Username</Label>
+                    <Input
+                      id="scUsername"
+                      placeholder="Username"
+                      value={svietimoCentrasCredentials.username}
+                      onChange={(e) => setSvietimoCentrasCredentials({...svietimoCentrasCredentials, username: e.target.value})}
+                      className="bg-muted/50 border-border/50"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="scPassword">Password</Label>
+                    <Input
+                      id="scPassword"
+                      type="password"
+                      placeholder="Password"
+                      value={svietimoCentrasCredentials.password}
+                      onChange={(e) => setSvietimoCentrasCredentials({...svietimoCentrasCredentials, password: e.target.value})}
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => handleCredentialsSave('svietimocentras')} 
+                  variant="outline" 
+                  className="w-fit border-border/40"
+                  disabled={savingCredentials}
+                >
+                  {savingCredentials ? 'Saving...' : (svietimoCentrasConnected ? 'Update Credentials' : 'Save Credentials')}
                 </Button>
               </div>
             </CardContent>

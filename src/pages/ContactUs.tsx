@@ -133,7 +133,7 @@ const ContactUs = () => {
                 <div>
                   <h4 className="font-semibold">How do I sync my grades?</h4>
                   <p className="text-sm text-gray-600">
-                    Go to Settings → Account and enter your Tamo or ManoDienynas credentials.
+                    Go to Settings → Account and enter your Tamo, ManoDienynas, or Švietimo Centras credentials.
                   </p>
                 </div>
                 <div>
