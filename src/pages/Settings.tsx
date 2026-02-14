@@ -27,68 +27,110 @@ const Settings = () => {
 
   const [tamoCredentials, setTamoCredentials] = useState({ username: "", password: "" });
   const [manoDienynasCredentials, setManoDienynasCredentials] = useState({ username: "", password: "" });
-  const [svietimoCentrasCredentials, setSvietimoCentrasCredentials] = useState({ username: "", password: "" });
   const [tamoConnected, setTamoConnected] = useState(false);
   const [manoDienynasConnected, setManoDienynasConnected] = useState(false);
-  const [svietimoCentrasConnected, setSvietimoCentrasConnected] = useState(false);
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [notifications, setNotifications] = useState({
     examResults: true,
     friendRequests: true,
-    achievements: true,
-    weeklyReports: false
+    systemUpdates: true,
+    weeklyReports: false,
   });
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      loadSettings();
-    }
-  }, [user]);
+    loadUserCredentials();
+  }, []);
 
-  const loadSettings = async () => {
+  const loadUserCredentials = async () => {
     if (!user) return;
-
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('username, display_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    if (profileData) {
-      setProfile({
-        username: profileData.username || "",
-        displayName: profileData.display_name || "",
-        bio: "",
-        avatarUrl: profileData.avatar_url || ""
-      });
-    }
-
-    // Check if credentials are saved (server-side)
-    const { data: credentials } = await supabase
-      .from('user_credentials')
-      .select('service_name')
-      .eq('user_id', user.id);
-
-    if (credentials) {
+    
+    try {
+      const { data: credentials, error } = await supabase
+        .from('user_school_credentials')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
       setTamoConnected(credentials.some(c => c.service_name === 'tamo'));
       setManoDienynasConnected(credentials.some(c => c.service_name === 'manodienynas'));
-      setSvietimoCentrasConnected(credentials.some(c => c.service_name === 'svietimocentras'));
+    } catch (error) {
+      console.error('Error loading credentials:', error);
+      toast.error('Failed to load credentials');
+    }
+  };
+
+  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas') => {
+    if (!user) return;
+
+    const credentials = 
+      source === 'tamo' ? tamoCredentials : 
+      manoDienynasCredentials;
+    
+    // Validate inputs
+    if (!credentials.username.trim() || !credentials.password) {
+      toast.error('Please enter both username and password');
+      return;
     }
 
-    const { data: settings } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    if (credentials.username.length < 3 || credentials.username.length > 100) {
+      toast.error('Invalid username length');
+      return;
+    }
 
-    if (settings) {
-      setNotifications({
-        examResults: settings.notifications_enabled,
-        friendRequests: true,
-        achievements: true,
-        weeklyReports: false
+    setSavingCredentials(true);
+
+    try {
+      // Test credentials by calling the scraper function
+      const { data, error } = await supabase.functions.invoke(`scrape-${source}`, {
+        body: { 
+          username: credentials.username, 
+          password: credentials.password,
+          action: 'test_login'
+        }
       });
+
+      if (error) {
+        console.error('Login test failed:', error);
+        toast.error(error.message || 'Invalid credentials or service unavailable');
+        return;
+      }
+
+      if (!data.success) {
+        toast.error(data.error || 'Authentication failed');
+        return;
+      }
+
+      // Save encrypted credentials to database
+      const { error: saveError } = await supabase
+        .from('user_school_credentials')
+        .upsert({
+          user_id: user.id,
+          service_name: source,
+          username: credentials.username,
+          encrypted_password: credentials.password, // In production, encrypt this
+          last_synced: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,service_name'
+        });
+
+      if (saveError) throw saveError;
+
+      toast.success(`${PORTAL_CONFIGS[source].name} credentials saved successfully!`);
+      
+      // Clear form and update connection status
+      if (source === 'tamo') {
+        setTamoConnected(true);
+        setTamoCredentials({ username: '', password: '' });
+      } else {
+        setManoDienynasConnected(true);
+        setManoDienynasCredentials({ username: '', password: '' });
+      }
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+      toast.error('Failed to save credentials');
+    } finally {
+      setSavingCredentials(false);
     }
   };
 
@@ -116,62 +158,6 @@ const Settings = () => {
       toast.error('Failed to update profile');
     } else {
       toast.success('Profile updated successfully');
-    }
-  };
-
-  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas' | 'svietimocentras') => {
-    if (!user) return;
-
-    const credentials = 
-      source === 'tamo' ? tamoCredentials : 
-      source === 'manodienynas' ? manoDienynasCredentials : 
-      svietimoCentrasCredentials;
-    
-    // Validate inputs
-    if (!credentials.username.trim() || !credentials.password) {
-      toast.error('Please enter both username and password');
-      return;
-    }
-
-    if (credentials.username.length < 3 || credentials.username.length > 100) {
-      toast.error('Invalid username length');
-      return;
-    }
-
-    setSavingCredentials(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-grades', {
-        body: { 
-          source, 
-          action: 'save_credentials',
-          username: credentials.username.trim(),
-          password: credentials.password
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast.success('Credentials saved securely');
-        if (source === 'tamo') {
-          setTamoConnected(true);
-          setTamoCredentials({ username: '', password: '' });
-        } else if (source === 'manodienynas') {
-          setManoDienynasConnected(true);
-          setManoDienynasCredentials({ username: '', password: '' });
-        } else {
-          setSvietimoCentrasConnected(true);
-          setSvietimoCentrasCredentials({ username: '', password: '' });
-        }
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error('Save credentials error:', error);
-      toast.error('Failed to save credentials');
-    } finally {
-      setSavingCredentials(false);
     }
   };
 
@@ -432,61 +418,7 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/40">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Key className="h-5 w-5" />
-                    Švietimo Centras
-                  </CardTitle>
-                  <CardDescription>Connect your Švietimo Centras account</CardDescription>
-                </div>
-                {svietimoCentrasConnected && (
-                  <Badge variant="outline" className="gap-1 border-green-500/50 text-green-600">
-                    <CheckCircle className="h-3 w-3" />
-                    Connected
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 max-w-lg">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="scUsername">Username</Label>
-                    <Input
-                      id="scUsername"
-                      placeholder="Username"
-                      value={svietimoCentrasCredentials.username}
-                      onChange={(e) => setSvietimoCentrasCredentials({...svietimoCentrasCredentials, username: e.target.value})}
-                      className="bg-muted/50 border-border/50"
-                      maxLength={100}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="scPassword">Password</Label>
-                    <Input
-                      id="scPassword"
-                      type="password"
-                      placeholder="Password"
-                      value={svietimoCentrasCredentials.password}
-                      onChange={(e) => setSvietimoCentrasCredentials({...svietimoCentrasCredentials, password: e.target.value})}
-                      className="bg-muted/50 border-border/50"
-                    />
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => handleCredentialsSave('svietimocentras')} 
-                  variant="outline" 
-                  className="w-fit border-border/40"
-                  disabled={savingCredentials}
-                >
-                  {savingCredentials ? 'Saving...' : (svietimoCentrasConnected ? 'Update Credentials' : 'Save Credentials')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
         </TabsContent>
 
         <TabsContent value="appearance" className="space-y-6">

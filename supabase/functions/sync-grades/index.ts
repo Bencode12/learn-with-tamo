@@ -24,12 +24,11 @@ const validateCredentials = (username: string, password: string): boolean => {
 };
 
 // Supported school portal sources
-type PortalSource = 'tamo' | 'manodienynas' | 'svietimocentras';
+type PortalSource = 'tamo' | 'manodienynas';
 
 const PORTAL_CONFIGS: Record<PortalSource, { name: string; functionName: string }> = {
-  tamo: { name: 'Tamo', functionName: 'scrape-tamo' },
-  manodienynas: { name: 'ManoDienynas', functionName: 'scrape-manodienynas' },
-  svietimocentras: { name: 'Švietimo Centras', functionName: 'scrape-svietimocentras' },
+  tamo: { name: 'Tamo.lt', functionName: 'scrape-tamo' },
+  manodienynas: { name: 'ManoDienynas.lt', functionName: 'scrape-manodienynas' },
 };
 
 serve(async (req) => {
@@ -59,8 +58,8 @@ serve(async (req) => {
     const { source, action, username, password } = body;
 
     // Validate source
-    if (!source || !['tamo', 'manodienynas', 'svietimocentras'].includes(source)) {
-      throw new Error('Invalid source. Must be "tamo", "manodienynas", or "svietimocentras"');
+    if (!source || !['tamo', 'manodienynas'].includes(source)) {
+      throw new Error('Invalid source. Must be "tamo" or "manodienynas"');
     }
 
     const portalConfig = PORTAL_CONFIGS[source as PortalSource];

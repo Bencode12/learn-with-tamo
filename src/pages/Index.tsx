@@ -57,58 +57,7 @@ const Index = () => {
     },
   ];
 
-  const subjects = [
-    {
-      id: 'mathematics',
-      name: 'Mathematics',
-      icon: <Calculator className="h-8 w-8" />, 
-      description: 'Master algebra, geometry, calculus, and advanced mathematical concepts with interactive lessons and problem-solving exercises designed for all grade levels from elementary to university mathematics.',
-      color: 'from-blue-500 to-cyan-500',
-      path: '/curriculum?subject=mathematics'
-    },
-    {
-      id: 'sciences',
-      name: 'Sciences',
-      icon: <Beaker className="h-8 w-8" />, 
-      description: 'Explore biology, chemistry, physics, and earth sciences through hands-on experiments, virtual labs, and engaging multimedia content that brings scientific concepts to life.',
-      color: 'from-green-500 to-emerald-500',
-      path: '/curriculum?subject=sciences'
-    },
-    {
-      id: 'language-arts',
-      name: 'Language Arts',
-      icon: <BookOpen className="h-8 w-8" />, 
-      description: 'Develop reading comprehension, writing skills, literature analysis, and communication abilities through diverse texts, creative writing exercises, and interactive grammar lessons.',
-      color: 'from-purple-500 to-indigo-500',
-      path: '/curriculum?subject=language-arts'
-    },
-    {
-      id: 'social-studies',
-      name: 'Social Studies',
-      icon: <Globe2 className="h-8 w-8" />, 
-      description: 'Discover history, geography, civics, and economics through immersive storytelling, timeline explorations, and cultural studies that connect past events to present understanding.',
-      color: 'from-orange-500 to-red-500',
-      path: '/curriculum?subject=social-studies'
-    },
-    {
-      id: 'arts',
-      name: 'Arts',
-      icon: <Palette className="h-8 w-8" />, 
-      description: 'Unleash creativity through visual arts, music theory, drama, and digital media creation with step-by-step tutorials, artistic techniques, and portfolio development guidance.',
-      color: 'from-pink-500 to-rose-500',
-      path: '/curriculum?subject=arts'
-    },
-    {
-      id: 'foreign-languages',
-      name: 'Foreign Languages',
-      icon: <Globe className="h-8 w-8" />, 
-      description: 'Learn languages through immersive conversation practice, cultural context, pronunciation guides, and interactive vocabulary building with native speaker audio and authentic materials.',
-      color: 'from-teal-500 to-blue-500',
-      path: '/curriculum?subject=foreign-languages'
-    }
-  ];
 
-  const [activeSubject, setActiveSubject] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,74 +149,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Subject Bubbles Section */}
-      <section className="py-24 px-6 bg-gradient-to-br from-muted/30 to-background">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-6">
-              Explore Our Subjects
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Click on any subject to discover what we offer and start your learning journey today.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">
-            {subjects.map((subject) => (
-              <button
-                key={subject.id}
-                type="button"
-                className="relative group cursor-pointer text-left"
-                onClick={() => setActiveSubject(activeSubject === subject.id ? null : subject.id)}
-              >
-                <div className={`
-                  w-24 h-24 mx-auto rounded-full flex items-center justify-center
-                  bg-gradient-to-br ${subject.color} text-white
-                  shadow-lg group-hover:scale-110 transition-all duration-300
-                  ${activeSubject === subject.id ? 'scale-110 ring-4 ring-offset-4 ring-foreground/20' : ''}
-                `}>
-                  {subject.icon}
-                </div>
-                <p className="text-center mt-3 font-medium text-foreground text-sm">{subject.name}</p>
-              </button>
-            ))}
-          </div>
 
-          {/* Subject Description Box */}
-          {activeSubject && (
-            <div className="max-w-4xl mx-auto bg-background border border-border/40 rounded-2xl p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-              {subjects.map((subject) => (
-                activeSubject === subject.id && (
-                  <div key={subject.id} className="text-center">
-                    <div className={`
-                      w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6
-                      bg-gradient-to-br ${subject.color} text-white
-                    `}>
-                      {subject.icon}
-                    </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4">{subject.name}</h3>
-                    <p className="text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
-                      {subject.description}
-                    </p>
-                    <Link to={subject.path}>
-                      <Button size="lg" className={`
-                        bg-gradient-to-r ${subject.color} text-white
-                        hover:opacity-90 transition-opacity px-8 py-3 rounded-full
-                      `}>
-                        Start Learning {subject.name}
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </Button>
-                    </Link>
-                    <Link to="/subjects" className="block mt-3">
-                      <Button variant="outline">Open subjects overview</Button>
-                    </Link>
-                  </div>
-                )
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-32 px-6">
