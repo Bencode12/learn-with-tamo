@@ -274,15 +274,32 @@ serve(async (req) => {
         const results: Record<string, any> = {};
         let syncPerformed = false;
         
-        for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
-          const { data: credentials } = await supabase
-            .from('user_credentials')
-            .select('encrypted_data')
-            .eq('user_id', user.id)
-            .eq('service_name', portalSource)
-            .single();
+        // First, check what credentials exist
+        const { data: allCredentials, error: credError } = await supabase
+          .from('user_credentials')
+          .select('service_name, encrypted_data')
+          .eq('user_id', user.id);
 
-          if (credentials) {
+        if (credError) {
+          console.error('Credential lookup error:', credError);
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Failed to check credentials. Please try again.',
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Create a map of available credentials
+        const credentialMap: Record<string, any> = {};
+        (allCredentials || []).forEach((cred: any) => {
+          credentialMap[cred.service_name] = cred.encrypted_data;
+        });
+
+        // Sync from each available portal
+        for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
+          if (credentialMap[portalSource]) {
             syncPerformed = true;
             try {
               const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
@@ -296,6 +313,7 @@ serve(async (req) => {
               });
               results[portalSource] = await response.json();
             } catch (error) {
+              console.error(`Sync error for ${portalSource}:`, error);
               results[portalSource] = {
                 success: false,
                 error: error instanceof Error ? error.message : 'Sync failed',
@@ -317,6 +335,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: true,
           results,
+          message: `Successfully synced from ${Object.keys(results).length} portal(s)`,
           lastSync: new Date().toISOString(),
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

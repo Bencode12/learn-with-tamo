@@ -38,7 +38,7 @@ const PrivacyPolicy = () => {
               <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>Create an account and use our services</li>
                 <li>Complete lessons, exams, and interactive exercises</li>
-                <li>Connect third-party services like Tamo or ManoDienynas</li>
+                <li>Connect third-party services like Tamo.lt or ManoDienynas.lt</li>
                 <li>Upload content such as images for OCR processing</li>
               </ul>
             </section>
@@ -59,7 +59,7 @@ const PrivacyPolicy = () => {
               <h2 className="text-2xl font-semibold mb-3">3. Data Security</h2>
               <p>
                 We implement industry-standard security measures to protect your personal information. 
-                Your Tamo and ManoDienynas credentials are encrypted and stored securely. We use 
+                Your Tamo.lt and ManoDienynas.lt credentials are encrypted and stored securely. We use 
                 secure connections (HTTPS) for all data transmission.
               </p>
             </section>
@@ -68,7 +68,7 @@ const PrivacyPolicy = () => {
               <h2 className="text-2xl font-semibold mb-3">4. Third-Party Services</h2>
               <p>
                 KnowIt AI integrates with third-party services including Stripe for payments, 
-                Google and Microsoft for authentication, and educational platforms like Tamo and ManoDienynas. 
+                Google and Microsoft for authentication, and educational platforms like Tamo.lt and ManoDienynas.lt. 
                 These services have their own privacy policies governing their use of your information.
               </p>
             </section>
