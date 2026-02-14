@@ -59,6 +59,16 @@ serve(async (req) => {
 
     // Validate source
     if (!source || !['tamo', 'manodienynas'].includes(source)) {
+      // Handle deprecated sources gracefully
+      if (source === 'svietimocentras') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Švietimo Centras integration has been removed. Please use Tamo.lt or ManoDienynas.lt instead.',
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
       throw new Error('Invalid source. Must be "tamo" or "manodienynas"');
     }
 
