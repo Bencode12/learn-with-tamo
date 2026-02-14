@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { 
   Shield, Users, MessageSquare, AlertTriangle, BookOpen, UserPlus, Search, Crown, 
   Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban, Hash, Trash2
@@ -631,19 +632,19 @@ const StaffHub = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Start Date *</Label>
-                        <Input 
-                          type="date" 
+                        <DatePicker 
                           value={newPilot.start_date} 
-                          onChange={(e) => setNewPilot({ ...newPilot, start_date: e.target.value })} 
+                          onChange={(date) => setNewPilot({ ...newPilot, start_date: date })} 
+                          placeholder="Select start date"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>End Date *</Label>
-                        <Input 
-                          type="date" 
+                        <DatePicker 
                           value={newPilot.end_date} 
-                          onChange={(e) => setNewPilot({ ...newPilot, end_date: e.target.value })} 
-                          min={newPilot.start_date}
+                          onChange={(date) => setNewPilot({ ...newPilot, end_date: date })} 
+                          minDate={newPilot.start_date}
+                          placeholder="Select end date"
                         />
                       </div>
                     </div>
@@ -709,19 +710,19 @@ const StaffHub = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Start Date *</Label>
-                        <Input 
-                          type="date" 
+                        <DatePicker 
                           value={newPilot.start_date} 
-                          onChange={(e) => setNewPilot({ ...newPilot, start_date: e.target.value })} 
+                          onChange={(date) => setNewPilot({ ...newPilot, start_date: date })} 
+                          placeholder="Select start date"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>End Date *</Label>
-                        <Input 
-                          type="date" 
+                        <DatePicker 
                           value={newPilot.end_date} 
-                          onChange={(e) => setNewPilot({ ...newPilot, end_date: e.target.value })} 
-                          min={newPilot.start_date}
+                          onChange={(date) => setNewPilot({ ...newPilot, end_date: date })} 
+                          minDate={newPilot.start_date}
+                          placeholder="Select end date"
                         />
                       </div>
                     </div>
