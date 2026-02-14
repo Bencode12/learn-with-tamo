@@ -83,7 +83,7 @@ export const GradesDashboard = () => {
   const syncGrades = async (source: 'tamo' | 'manodienynas' | 'all') => {
     setSyncing(true);
     try {
-      const action = source === 'all' ? 'sync_all' : 'sync';
+      const action = source === 'all' ? 'sync_available' : 'sync';
       const body = source === 'all' ? { action } : { source, action: 'sync' };
       
       const { data, error } = await supabase.functions.invoke('sync-grades', { body });

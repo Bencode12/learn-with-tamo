@@ -183,7 +183,7 @@ const Progress = () => {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-grades', {
-        body: { source, action: 'sync' }
+        body: { action: 'sync_available' }
       });
 
       if (error) throw error;

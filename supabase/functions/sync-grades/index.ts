@@ -269,6 +269,60 @@ serve(async (req) => {
         });
       }
 
+      case 'sync_available': {
+        // Automatically sync from portals where user has credentials
+        const results: Record<string, any> = {};
+        let syncPerformed = false;
+        
+        for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
+          const { data: credentials } = await supabase
+            .from('user_credentials')
+            .select('encrypted_data')
+            .eq('user_id', user.id)
+            .eq('service_name', portalSource)
+            .single();
+
+          if (credentials) {
+            syncPerformed = true;
+            try {
+              const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
+              const response = await fetch(scraperUrl, {
+                method: 'POST',
+                headers: {
+                  'Authorization': authHeader,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ action: 'sync' }),
+              });
+              results[portalSource] = await response.json();
+            } catch (error) {
+              results[portalSource] = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Sync failed',
+              };
+            }
+          }
+        }
+
+        if (!syncPerformed) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'No school portal credentials found. Please connect your Tamo.lt or ManoDienynas.lt account in Settings.',
+            requiresSetup: true,
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          results,
+          lastSync: new Date().toISOString(),
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       case 'sync_all': {
         // Sync from all configured sources
         const results: Record<string, any> = {};
@@ -318,7 +372,7 @@ serve(async (req) => {
       }
 
       default:
-        throw new Error(`Invalid action: ${action}. Valid actions: save_credentials, delete_credentials, check_credentials, test_login, sync, get_grades, get_all_grades, sync_all`);
+        throw new Error(`Invalid action: ${action}. Valid actions: save_credentials, delete_credentials, check_credentials, test_login, sync, get_grades, get_all_grades, sync_all, sync_available`);
     }
 
   } catch (error) {
