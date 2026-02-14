@@ -58,9 +58,11 @@ serve(async (req) => {
     const { source, action, username, password } = body;
 
     // Validate source
+    console.log('[DEBUG] Received source:', source);
     if (!source || !['tamo', 'manodienynas'].includes(source)) {
       // Handle deprecated sources gracefully
       if (source === 'svietimocentras') {
+        console.log('[DEBUG] Handling deprecated svietimocentras source');
         return new Response(JSON.stringify({
           success: false,
           error: 'Švietimo Centras integration has been removed. Please use Tamo.lt or ManoDienynas.lt instead.',
@@ -69,7 +71,8 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      throw new Error('Invalid source. Must be "tamo" or "manodienynas"');
+      console.error('[ERROR] Invalid source received:', source);
+      throw new Error(`Invalid source: ${source}. Must be "tamo" or "manodienynas"`);
     }
 
     const portalConfig = PORTAL_CONFIGS[source as PortalSource];
