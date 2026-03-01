@@ -119,12 +119,13 @@ const Settings = () => {
     }
   };
 
-  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas') => {
+  const handleCredentialsSave = async (source: 'tamo' | 'manodienynas' | 'svietimocentras') => {
     if (!user) return;
 
     const credentials = 
       source === 'tamo' ? tamoCredentials : 
-      manoDienynasCredentials;
+      source === 'manodienynas' ? manoDienynasCredentials :
+      svietimoCentrasCredentials;
     
     // Validate inputs
     if (!credentials.username.trim() || !credentials.password) {
