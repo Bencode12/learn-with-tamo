@@ -1345,6 +1345,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_class_member: {
+        Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_class_teacher: {
+        Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_teacher_of_student: {
+        Args: { _student_id: string; _teacher_id: string }
+        Returns: boolean
+      }
       refill_user_lives: { Args: never; Returns: undefined }
     }
     Enums: {
