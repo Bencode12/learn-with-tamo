@@ -97,66 +97,138 @@ export const LaTeXEditor = ({ subject, field, initialContent, onSave, onAutoSave
       const docMatch = latex.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
       const content = docMatch ? docMatch[1] : latex;
       
-      // Extract title
+      // Extract preamble info
       const titleMatch = latex.match(/\\title\{([^}]*)\}/);
       const title = titleMatch ? titleMatch[1] : "";
-      
-      // Process the content
+      const authorMatch = latex.match(/\\author\{([^}]*)\}/);
+      const author = authorMatch ? authorMatch[1] : "";
+      const dateMatch = latex.match(/\\date\{([^}]*)\}/);
+      const date = dateMatch ? dateMatch[1].replace(/\\today/g, new Date().toLocaleDateString()) : "";
+
+      // Helper: render math safely
+      const renderMath = (eq: string, displayMode: boolean) => {
+        try {
+          return katex.renderToString(eq.trim(), { displayMode, throwOnError: false, trust: true, macros: {
+            "\\R": "\\mathbb{R}",
+            "\\N": "\\mathbb{N}",
+            "\\Z": "\\mathbb{Z}",
+            "\\Q": "\\mathbb{Q}",
+            "\\C": "\\mathbb{C}",
+            "\\implies": "\\Rightarrow",
+            "\\iff": "\\Leftrightarrow",
+            "\\eps": "\\varepsilon",
+          }});
+        } catch {
+          return `<span class="text-destructive text-xs">[math error]</span>`;
+        }
+      };
+
       let processed = content
-        // Remove maketitle
-        .replace(/\\maketitle/g, title ? `<h1 class="text-2xl font-bold mb-4">${title}</h1>` : "")
-        // Convert sections
-        .replace(/\\section\{([^}]*)\}/g, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>')
-        .replace(/\\subsection\{([^}]*)\}/g, '<h3 class="text-lg font-medium mt-4 mb-2">$1</h3>')
-        // Convert itemize/enumerate
+        // Remove \maketitle and replace with formatted title block
+        .replace(/\\maketitle/g, () => {
+          let block = '';
+          if (title) block += `<h1 class="text-2xl font-bold mb-1 text-center">${title}</h1>`;
+          if (author) block += `<p class="text-center text-muted-foreground mb-0">${author}</p>`;
+          if (date) block += `<p class="text-center text-muted-foreground text-sm mb-4">${date}</p>`;
+          return block || '';
+        })
+        // Remove common preamble commands that leak into content
+        .replace(/\\(usepackage|documentclass|setlength|pagestyle|geometry|graphicspath|bibliographystyle|bibliography|tableofcontents|newcommand|renewcommand|DeclareMathOperator|theoremstyle|newtheorem)(\[.*?\])?\{[^}]*\}/g, '')
+        .replace(/\\(label|ref|eqref|cite|nocite)\{[^}]*\}/g, (m) => {
+          if (m.startsWith('\\ref') || m.startsWith('\\eqref')) return '[ref]';
+          if (m.startsWith('\\cite')) return '[cite]';
+          return '';
+        })
+        // Sections
+        .replace(/\\chapter\*?\{([^}]*)\}/g, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')
+        .replace(/\\section\*?\{([^}]*)\}/g, '<h2 class="text-xl font-semibold mt-6 mb-3 border-b pb-1">$1</h2>')
+        .replace(/\\subsection\*?\{([^}]*)\}/g, '<h3 class="text-lg font-medium mt-4 mb-2">$1</h3>')
+        .replace(/\\subsubsection\*?\{([^}]*)\}/g, '<h4 class="text-base font-medium mt-3 mb-1">$1</h4>')
+        .replace(/\\paragraph\{([^}]*)\}/g, '<p class="font-semibold mt-2 inline">$1 </p>')
+        // Environments: theorem, lemma, proof, definition, etc.
+        .replace(/\\begin\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note)\}(\[([^\]]*)\])?/gi, 
+          (_, env, __, optTitle) => {
+            const label = env.charAt(0).toUpperCase() + env.slice(1);
+            const titleStr = optTitle ? ` (${optTitle})` : '';
+            return `<div class="border-l-4 border-primary/50 pl-4 my-4"><p class="font-semibold">${label}${titleStr}.</p>`;
+          })
+        .replace(/\\end\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note)\}/gi, '</div>')
+        .replace(/\\begin\{proof\}/g, '<div class="border-l-2 border-muted-foreground/30 pl-4 my-3 italic"><p class="font-medium not-italic">Proof.</p>')
+        .replace(/\\end\{proof\}/g, '<p class="text-right">∎</p></div>')
+        // Lists
         .replace(/\\begin\{itemize\}/g, '<ul class="list-disc ml-6 my-2">')
         .replace(/\\end\{itemize\}/g, '</ul>')
         .replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal ml-6 my-2">')
         .replace(/\\end\{enumerate\}/g, '</ol>')
+        .replace(/\\begin\{description\}/g, '<dl class="ml-4 my-2">')
+        .replace(/\\end\{description\}/g, '</dl>')
+        .replace(/\\item\[([^\]]*)\]\s*/g, '<dt class="font-semibold mt-1">$1</dt><dd>')
         .replace(/\\item\s*/g, '<li class="my-1">')
-        // Handle display equations
-        .replace(/\\begin\{equation\}([\s\S]*?)\\end\{equation\}/g, (_, eq) => {
-          try {
-            return `<div class="my-4 text-center">${katex.renderToString(eq.trim(), { displayMode: true, throwOnError: false })}</div>`;
-          } catch {
-            return `<div class="text-destructive">Error rendering: ${eq}</div>`;
-          }
+        // Figures & tables (simplified)
+        .replace(/\\begin\{(figure|table)\}(\[.*?\])?/g, '<div class="my-4 text-center">')
+        .replace(/\\end\{(figure|table)\}/g, '</div>')
+        .replace(/\\caption\{([^}]*)\}/g, '<p class="text-sm text-muted-foreground mt-2 italic">$1</p>')
+        .replace(/\\includegraphics(\[.*?\])?\{([^}]*)\}/g, '<p class="text-muted-foreground text-sm">[Image: $2]</p>')
+        // Tabular
+        .replace(/\\begin\{tabular\}\{[^}]*\}/g, '<table class="border-collapse mx-auto my-2"><tbody>')
+        .replace(/\\end\{tabular\}/g, '</tbody></table>')
+        .replace(/\\hline/g, '')
+        // Display math environments
+        .replace(/\\begin\{(equation|displaymath)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, _env, eq) => 
+          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
+        .replace(/\\begin\{(align|gather|multline|flalign|eqnarray)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, _env, eq) => {
+          // Split aligned equations by \\ and render each line
+          const lines = eq.split('\\\\').filter((l: string) => l.trim());
+          const rendered = lines.map((line: string) => renderMath(line.replace(/&/g, '\\quad '), true)).join('');
+          return `<div class="my-4 text-center overflow-x-auto">${rendered}</div>`;
         })
-        .replace(/\\begin\{align\}([\s\S]*?)\\end\{align\}/g, (_, eq) => {
-          try {
-            return `<div class="my-4 text-center">${katex.renderToString(eq.trim(), { displayMode: true, throwOnError: false })}</div>`;
-          } catch {
-            return `<div class="text-destructive">Error rendering: ${eq}</div>`;
-          }
-        })
-        // Handle display math $$...$$
-        .replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => {
-          try {
-            return `<div class="my-4 text-center">${katex.renderToString(eq.trim(), { displayMode: true, throwOnError: false })}</div>`;
-          } catch {
-            return `<div class="text-destructive">Error</div>`;
-          }
-        })
-        // Handle inline math $...$
-        .replace(/\$([^$\n]+)\$/g, (_, eq) => {
-          try {
-            return katex.renderToString(eq.trim(), { throwOnError: false });
-          } catch {
-            return `<span class="text-destructive">${eq}</span>`;
-          }
-        })
-        // Handle textbf and textit
+        .replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (_, eq) => 
+          renderMath(`\\begin{cases}${eq}\\end{cases}`, true))
+        .replace(/\\begin\{(pmatrix|bmatrix|vmatrix|matrix)\}([\s\S]*?)\\end\{\1\}/g, (_, env, eq) => 
+          renderMath(`\\begin{${env}}${eq}\\end{${env}}`, true))
+        // Display math $$...$$ and \[...\]
+        .replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => 
+          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
+        .replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => 
+          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
+        // Inline math $...$  and \(...\)
+        .replace(/\$([^$\n]+)\$/g, (_, eq) => renderMath(eq, false))
+        .replace(/\\\(([^)]+)\\\)/g, (_, eq) => renderMath(eq, false))
+        // Text formatting
         .replace(/\\textbf\{([^}]*)\}/g, '<strong>$1</strong>')
         .replace(/\\textit\{([^}]*)\}/g, '<em>$1</em>')
-        // Handle newlines
+        .replace(/\\texttt\{([^}]*)\}/g, '<code class="bg-muted px-1 rounded text-sm">$1</code>')
+        .replace(/\\underline\{([^}]*)\}/g, '<u>$1</u>')
+        .replace(/\\emph\{([^}]*)\}/g, '<em>$1</em>')
+        .replace(/\\text\{([^}]*)\}/g, '$1')
+        // Misc
+        .replace(/\\footnote\{([^}]*)\}/g, '<sup class="text-primary cursor-help" title="$1">[*]</sup>')
+        .replace(/\\href\{([^}]*)\}\{([^}]*)\}/g, '<a href="$1" class="text-primary underline" target="_blank">$2</a>')
+        .replace(/\\url\{([^}]*)\}/g, '<a href="$1" class="text-primary underline text-sm" target="_blank">$1</a>')
+        .replace(/\\centering/g, '')
+        .replace(/\\noindent/g, '')
+        .replace(/\\bigskip/g, '<div class="my-4"></div>')
+        .replace(/\\medskip/g, '<div class="my-2"></div>')
+        .replace(/\\smallskip/g, '<div class="my-1"></div>')
+        .replace(/\\vspace\{[^}]*\}/g, '<div class="my-2"></div>')
+        .replace(/\\hspace\{[^}]*\}/g, '&nbsp;')
+        .replace(/---/g, '—')
+        .replace(/--/g, '–')
+        .replace(/``/g, '"')
+        .replace(/''/g, '"')
+        .replace(/~/g, '&nbsp;')
+        // Newlines
         .replace(/\\\\/g, '<br/>')
-        // Clean up extra newlines
+        // Clean up paragraphs
         .replace(/\n\n+/g, '</p><p class="my-2">')
-        .replace(/\n/g, ' ');
+        .replace(/\n/g, ' ')
+        // Remove remaining unknown commands
+        .replace(/\\[a-zA-Z]+\{[^}]*\}/g, '')
+        .replace(/\\[a-zA-Z]+/g, '');
 
       return `<div class="prose prose-sm dark:prose-invert max-w-none"><p class="my-2">${processed}</p></div>`;
     } catch (error) {
-      return `<div class="text-destructive">Error rendering LaTeX</div>`;
+      return `<div class="text-destructive">Error rendering LaTeX preview</div>`;
     }
   };
 

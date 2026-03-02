@@ -25,7 +25,7 @@ interface LearningEnvironmentProps {
 export const LearningEnvironment = ({ field, subject, onExit }: LearningEnvironmentProps) => {
   const { user } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showBrowser, setShowBrowser] = useState(false);
+  
   const [showChat, setShowChat] = useState(false);
   const [latexContent, setLatexContent] = useState('');
   const [browserUrl, setBrowserUrl] = useState("https://en.wikipedia.org");
@@ -197,16 +197,7 @@ export const LearningEnvironment = ({ field, subject, onExit }: LearningEnvironm
             <MessageSquare className="h-4 w-4" />
           </Button>
 
-          {/* Browser toggle */}
-          <Button
-            variant={showBrowser ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowBrowser(!showBrowser)}
-            className="gap-1"
-          >
-            <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Browser</span>
-          </Button>
+          
           <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-8 w-8">
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
@@ -216,14 +207,15 @@ export const LearningEnvironment = ({ field, subject, onExit }: LearningEnvironm
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
         {/* Editor */}
-        <div className={`${showBrowser || showChat ? 'w-1/2' : 'w-full'} min-h-0 flex flex-col`}>
+      <div className={`${showChat ? 'w-1/2' : 'w-full'} min-h-0 flex flex-col`}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="px-4 pt-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="latex" className="gap-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">LaTeX</span></TabsTrigger>
                 <TabsTrigger value="document" className="gap-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Document</span></TabsTrigger>
                 <TabsTrigger value="presentation" className="gap-2"><Presentation className="h-4 w-4" /><span className="hidden sm:inline">Slides</span></TabsTrigger>
                 <TabsTrigger value="spreadsheet" className="gap-2"><Table className="h-4 w-4" /><span className="hidden sm:inline">Sheet</span></TabsTrigger>
+                <TabsTrigger value="browser" className="gap-2"><Globe className="h-4 w-4" /><span className="hidden sm:inline">Browser</span></TabsTrigger>
               </TabsList>
             </div>
             <div className="flex-1 min-h-0 p-4 pt-0">
@@ -245,19 +237,15 @@ export const LearningEnvironment = ({ field, subject, onExit }: LearningEnvironm
               <TabsContent value="spreadsheet" className="h-full mt-0">
                 <SpreadsheetEditor subject={subject.name} />
               </TabsContent>
+              <TabsContent value="browser" className="h-full mt-0">
+                <WebBrowser subject={subject.name} />
+              </TabsContent>
             </div>
           </Tabs>
         </div>
 
-        {/* Browser Panel */}
-        {showBrowser && !showChat && (
-          <div className="w-1/2 border-l min-h-0">
-            <WebBrowser subject={subject.name} />
-          </div>
-        )}
-
         {/* Chat Panel */}
-        {showChat && !showBrowser && (
+        {showChat && (
           <div className="w-1/2 border-l flex flex-col min-h-0">
             <div className="p-3 border-b bg-muted/20">
               <h3 className="font-medium text-sm flex items-center gap-2">
@@ -293,32 +281,6 @@ export const LearningEnvironment = ({ field, subject, onExit }: LearningEnvironm
               <Button size="sm" onClick={sendChatMessage} disabled={!chatInput.trim()}>
                 Send
               </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Show both browser and chat in split */}
-        {showBrowser && showChat && (
-          <div className="w-1/2 border-l flex flex-col min-h-0">
-            <div className="flex-1 min-h-0">
-              <WebBrowser subject={subject.name} />
-            </div>
-            <div className="h-48 border-t flex flex-col">
-              <div className="p-2 border-b bg-muted/20">
-                <span className="text-xs font-medium flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Chat</span>
-              </div>
-              <ScrollArea className="flex-1 px-3 py-2">
-                {chatMessages.map(msg => (
-                  <div key={msg.id} className="mb-2">
-                    <span className="text-xs font-medium">{msg.sender}: </span>
-                    <span className="text-xs">{msg.message}</span>
-                  </div>
-                ))}
-              </ScrollArea>
-              <div className="p-2 border-t flex gap-1">
-                <Input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder="Message..." className="text-xs h-7" />
-                <Button size="sm" className="h-7 text-xs" onClick={sendChatMessage}>Send</Button>
-              </div>
             </div>
           </div>
         )}
