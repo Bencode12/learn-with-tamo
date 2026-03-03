@@ -3,10 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Input validation and sanitization
 const sanitizeInput = (input: string): string => {
   if (!input) return '';
   return input
@@ -23,7 +22,6 @@ const validateCredentials = (username: string, password: string): boolean => {
   return true;
 };
 
-// Supported school portal sources
 type PortalSource = 'tamo' | 'manodienynas';
 
 const PORTAL_CONFIGS: Record<PortalSource, { name: string; functionName: string }> = {
@@ -57,41 +55,40 @@ serve(async (req) => {
     const body = await req.json();
     const { source, action, username, password } = body;
 
-    // Validate source
-    console.log('[DEBUG] Received source:', source);
-    if (!source || !['tamo', 'manodienynas'].includes(source)) {
-      // Handle deprecated sources gracefully
-      if (source === 'svietimocentras') {
-        console.log('[DEBUG] Handling deprecated svietimocentras source');
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Švietimo Centras integration has been removed. Please use Tamo.lt or ManoDienynas.lt instead.',
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+    // Actions that DON'T require a source
+    const sourceOptionalActions = ['sync_all', 'sync_available', 'get_all_grades'];
+
+    // Validate source only for actions that require it
+    if (!sourceOptionalActions.includes(action)) {
+      if (!source || !['tamo', 'manodienynas'].includes(source)) {
+        if (source === 'svietimocentras') {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Švietimo Centras integration has been removed. Please use Tamo.lt or ManoDienynas.lt instead.',
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        throw new Error(`Invalid source: ${source}. Must be "tamo" or "manodienynas"`);
       }
-      console.error('[ERROR] Invalid source received:', source);
-      throw new Error(`Invalid source: ${source}. Must be "tamo" or "manodienynas"`);
     }
 
-    const portalConfig = PORTAL_CONFIGS[source as PortalSource];
+    const portalConfig = source ? PORTAL_CONFIGS[source as PortalSource] : null;
 
-    // Handle different actions
     switch (action) {
       case 'save_credentials': {
-        // Validate and sanitize inputs
+        if (!portalConfig) throw new Error('Source required for save_credentials');
         const cleanUsername = sanitizeInput(username);
-        const cleanPassword = password; // Don't sanitize password
+        const cleanPassword = password;
 
         if (!validateCredentials(cleanUsername, cleanPassword)) {
           throw new Error('Invalid credentials format');
         }
 
-        // Encrypt credentials (in production, use proper encryption with a secret key)
         const encryptedData = JSON.stringify({
           username: cleanUsername,
-          passwordHash: btoa(cleanPassword), // Base64 encode (use proper encryption in production)
+          passwordHash: btoa(cleanPassword),
           savedAt: new Date().toISOString(),
         });
 
@@ -102,43 +99,34 @@ serve(async (req) => {
             service_name: source,
             encrypted_data: encryptedData,
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,service_name'
-          });
+          }, { onConflict: 'user_id,service_name' });
 
-        if (saveError) {
-          console.error('Save credentials error:', saveError);
-          throw new Error('Failed to save credentials');
-        }
+        if (saveError) throw new Error('Failed to save credentials');
 
         return new Response(JSON.stringify({
           success: true,
           message: `${portalConfig.name} credentials saved securely`,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'delete_credentials': {
+        if (!portalConfig) throw new Error('Source required');
         const { error: deleteError } = await supabase
           .from('user_credentials')
           .delete()
           .eq('user_id', user.id)
           .eq('service_name', source);
 
-        if (deleteError) {
-          throw new Error('Failed to delete credentials');
-        }
+        if (deleteError) throw new Error('Failed to delete credentials');
 
         return new Response(JSON.stringify({
           success: true,
           message: `${portalConfig.name} credentials deleted`,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'check_credentials': {
+        if (!portalConfig) throw new Error('Source required');
         const { data: credentials } = await supabase
           .from('user_credentials')
           .select('updated_at')
@@ -150,28 +138,17 @@ serve(async (req) => {
           success: true,
           hasCredentials: !!credentials,
           lastUpdated: credentials?.updated_at || null,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'test_login': {
-        // Call the specific scraper function to test login
+        if (!portalConfig) throw new Error('Source required');
         const scraperUrl = `${supabaseUrl}/functions/v1/${portalConfig.functionName}`;
-        
         const response = await fetch(scraperUrl, {
           method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'test_login',
-            username,
-            password,
-          }),
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'test_login', username, password }),
         });
-
         const result = await response.json();
         return new Response(JSON.stringify(result), {
           status: response.status,
@@ -180,7 +157,7 @@ serve(async (req) => {
       }
 
       case 'sync': {
-        // Check for stored credentials first
+        if (!portalConfig) throw new Error('Source required');
         const { data: credentials, error: credError } = await supabase
           .from('user_credentials')
           .select('encrypted_data')
@@ -193,26 +170,17 @@ serve(async (req) => {
             success: false,
             error: `No ${portalConfig.name} credentials found. Please save your login details first.`,
             requiresSetup: true,
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
-        // Call the specific scraper function
         const scraperUrl = `${supabaseUrl}/functions/v1/${portalConfig.functionName}`;
-        
         const response = await fetch(scraperUrl, {
           method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'sync' }),
         });
-
         const result = await response.json();
-        
-        // Update last sync timestamp in user profile or a sync log
+
         if (result.success) {
           await supabase
             .from('synced_grades')
@@ -228,7 +196,7 @@ serve(async (req) => {
       }
 
       case 'get_grades': {
-        // Fetch stored grades from database
+        if (!portalConfig) throw new Error('Source required');
         const { data: grades, error: gradesError } = await supabase
           .from('synced_grades')
           .select('*')
@@ -236,81 +204,59 @@ serve(async (req) => {
           .eq('source', source)
           .order('date', { ascending: false });
 
-        if (gradesError) {
-          throw new Error('Failed to fetch grades');
-        }
+        if (gradesError) throw new Error('Failed to fetch grades');
 
         return new Response(JSON.stringify({
           success: true,
           grades: grades || [],
           source: portalConfig.name,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'get_all_grades': {
-        // Fetch all grades from all sources
         const { data: grades, error: gradesError } = await supabase
           .from('synced_grades')
           .select('*')
           .eq('user_id', user.id)
           .order('date', { ascending: false });
 
-        if (gradesError) {
-          throw new Error('Failed to fetch grades');
-        }
+        if (gradesError) throw new Error('Failed to fetch grades');
 
-        // Group by source
-        const groupedGrades: Record<string, any[]> = {
-          tamo: [],
-          manodienynas: [],
-        };
-
+        const groupedGrades: Record<string, any[]> = { tamo: [], manodienynas: [] };
         (grades || []).forEach(grade => {
-          if (groupedGrades[grade.source]) {
-            groupedGrades[grade.source].push(grade);
-          }
+          if (groupedGrades[grade.source]) groupedGrades[grade.source].push(grade);
         });
 
         return new Response(JSON.stringify({
           success: true,
           grades: groupedGrades,
           totalCount: grades?.length || 0,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'sync_available': {
-        // Automatically sync from portals where user has credentials
         const results: Record<string, any> = {};
         let syncPerformed = false;
-        
-        // First, check what credentials exist
+
         const { data: allCredentials, error: credError } = await supabase
           .from('user_credentials')
           .select('service_name, encrypted_data')
           .eq('user_id', user.id);
 
         if (credError) {
-          console.error('Credential lookup error:', credError);
           return new Response(JSON.stringify({
             success: false,
-            error: 'Failed to check credentials. Please try again.',
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+            error: 'Failed to check credentials.',
+          }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
-        // Create a map of available credentials
         const credentialMap: Record<string, any> = {};
         (allCredentials || []).forEach((cred: any) => {
-          credentialMap[cred.service_name] = cred.encrypted_data;
+          if (['tamo', 'manodienynas'].includes(cred.service_name)) {
+            credentialMap[cred.service_name] = cred.encrypted_data;
+          }
         });
 
-        // Sync from each available portal
         for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
           if (credentialMap[portalSource]) {
             syncPerformed = true;
@@ -318,15 +264,11 @@ serve(async (req) => {
               const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
               const response = await fetch(scraperUrl, {
                 method: 'POST',
-                headers: {
-                  'Authorization': authHeader,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'sync' }),
               });
               results[portalSource] = await response.json();
             } catch (error) {
-              console.error(`Sync error for ${portalSource}:`, error);
               results[portalSource] = {
                 success: false,
                 error: error instanceof Error ? error.message : 'Sync failed',
@@ -340,9 +282,7 @@ serve(async (req) => {
             success: false,
             error: 'No school portal credentials found. Please connect your Tamo.lt or ManoDienynas.lt account in Settings.',
             requiresSetup: true,
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
         return new Response(JSON.stringify({
@@ -350,15 +290,12 @@ serve(async (req) => {
           results,
           message: `Successfully synced from ${Object.keys(results).length} portal(s)`,
           lastSync: new Date().toISOString(),
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       case 'sync_all': {
-        // Sync from all configured sources
         const results: Record<string, any> = {};
-        
+
         for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
           const { data: credentials } = await supabase
             .from('user_credentials')
@@ -372,10 +309,7 @@ serve(async (req) => {
               const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
               const response = await fetch(scraperUrl, {
                 method: 'POST',
-                headers: {
-                  'Authorization': authHeader,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'sync' }),
               });
               results[portalSource] = await response.json();
@@ -386,11 +320,7 @@ serve(async (req) => {
               };
             }
           } else {
-            results[portalSource] = {
-              success: false,
-              error: 'No credentials configured',
-              requiresSetup: true,
-            };
+            results[portalSource] = { success: false, error: 'No credentials configured', requiresSetup: true };
           }
         }
 
@@ -398,9 +328,7 @@ serve(async (req) => {
           success: true,
           results,
           lastSync: new Date().toISOString(),
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       default:
@@ -410,10 +338,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Grade sync error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: errorMessage,
-    }), {
+    return new Response(JSON.stringify({ success: false, error: errorMessage }), {
       status: error instanceof Error && error.message === 'Unauthorized' ? 401 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
