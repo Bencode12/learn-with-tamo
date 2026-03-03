@@ -17,7 +17,7 @@ interface QuickLink {
 }
 
 const quickLinks: QuickLink[] = [
-  { name: "Wikipedia", url: "https://wikipedia.org", icon: <BookOpen className="h-4 w-4" />, category: "Learning" },
+  { name: "Wikipedia", url: "https://en.wikipedia.org", icon: <BookOpen className="h-4 w-4" />, category: "Learning" },
   { name: "Khan Academy", url: "https://khanacademy.org", icon: <GraduationCap className="h-4 w-4" />, category: "Learning" },
   { name: "Wolfram Alpha", url: "https://wolframalpha.com", icon: <Search className="h-4 w-4" />, category: "Learning" },
   { name: "arXiv", url: "https://arxiv.org", icon: <Newspaper className="h-4 w-4" />, category: "Learning" },
@@ -28,9 +28,6 @@ const quickLinks: QuickLink[] = [
   { name: "MDN Web Docs", url: "https://developer.mozilla.org", icon: <Code className="h-4 w-4" />, category: "Reference" },
   { name: "Google Scholar", url: "https://scholar.google.com", icon: <GraduationCap className="h-4 w-4" />, category: "Reference" },
 ];
-
-// Sites known to work in iframes
-const IFRAME_FRIENDLY = ["wikipedia.org", "arxiv.org", "developer.mozilla.org"];
 
 interface WebBrowserProps {
   subject: string;
@@ -46,15 +43,6 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isIframeFriendly = (testUrl: string): boolean => {
-    try {
-      const hostname = new URL(testUrl).hostname;
-      return IFRAME_FRIENDLY.some(domain => hostname.includes(domain));
-    } catch {
-      return false;
-    }
-  };
-
   const normalizeUrl = (input: string): string => {
     let normalized = input.trim();
     if (!normalized.includes(".") || normalized.includes(" ")) {
@@ -69,23 +57,18 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
   const navigate = useCallback((targetUrl: string) => {
     const normalizedUrl = normalizeUrl(targetUrl);
     
-    // If site is not iframe-friendly, open directly in new tab
-    if (!isIframeFriendly(normalizedUrl)) {
-      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
+    // Always try to load in iframe - show fallback if it fails
     setIframeBlocked(false);
     setCurrentUrl(normalizedUrl);
     setUrl(normalizedUrl);
     setIsLoading(true);
 
-    // Timeout: if iframe hasn't loaded in 8s, assume blocked
+    // Timeout: if iframe hasn't loaded in 10s, assume blocked
     if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     loadTimeoutRef.current = setTimeout(() => {
       setIsLoading(false);
       setIframeBlocked(true);
-    }, 8000);
+    }, 10000);
 
     const newHistory = [...history.slice(0, historyIndex + 1), normalizedUrl];
     setHistory(newHistory);
@@ -133,6 +116,11 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
     if (iframeRef.current && currentUrl) {
       setIframeBlocked(false);
       setIsLoading(true);
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        setIframeBlocked(true);
+      }, 10000);
       iframeRef.current.src = currentUrl;
     }
   };
@@ -194,9 +182,9 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
             {iframeBlocked ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
                 <AlertTriangle className="h-12 w-12 text-muted-foreground" />
-                <h3 className="text-lg font-semibold">Can't display this page</h3>
+                <h3 className="text-lg font-semibold">Can't display this page inline</h3>
                 <p className="text-sm text-muted-foreground max-w-md">
-                  This website doesn't allow embedding. You can open it in a new browser tab instead.
+                  This website blocks embedding. You can open it in a new browser tab instead.
                 </p>
                 <Button onClick={() => openExternal()} className="gap-2">
                   <ExternalLink className="h-4 w-4" />
@@ -207,24 +195,15 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
                 </Button>
               </div>
             ) : (
-              <>
-                <iframe
-                  ref={iframeRef}
-                  src={currentUrl}
-                  className="w-full h-full border-0"
-                  onLoad={handleIframeLoad}
-                  onError={handleIframeError}
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
-                  title="Web Browser"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-muted/80 backdrop-blur-sm border-t p-2 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate">{currentUrl}</span>
-                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1 shrink-0" onClick={() => openExternal()}>
-                    <ExternalLink className="h-3 w-3" />
-                    Open in new tab
-                  </Button>
-                </div>
-              </>
+              <iframe
+                ref={iframeRef}
+                src={currentUrl}
+                className="w-full h-full border-0"
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+                title="Web Browser"
+              />
             )}
           </div>
         ) : (
@@ -234,7 +213,7 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
                 <Globe className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                 <h2 className="text-xl font-semibold mb-1">Web Browser</h2>
                 <p className="text-muted-foreground text-sm">
-                  Search the web or use quick links below. Most sites open in a new tab.
+                  Browse the web inline. Some sites may block embedding — use "Open in new tab" as fallback.
                 </p>
               </div>
 
@@ -251,9 +230,6 @@ export const WebBrowser = ({ subject }: WebBrowserProps) => {
                         <CardContent className="p-3 flex items-center gap-2">
                           {link.icon}
                           <span className="text-sm truncate">{link.name}</span>
-                          {!isIframeFriendly(link.url) && (
-                            <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
-                          )}
                         </CardContent>
                       </Card>
                     ))}

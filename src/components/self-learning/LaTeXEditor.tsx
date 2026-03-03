@@ -67,7 +67,6 @@ export const LaTeXEditor = ({ subject, field, initialContent, onSave, onAutoSave
   const editorRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load initial content when it arrives
   useEffect(() => {
     if (initialContent !== undefined && initialContent !== null) {
       setLatex(initialContent || defaultLatex);
@@ -78,7 +77,6 @@ export const LaTeXEditor = ({ subject, field, initialContent, onSave, onAutoSave
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-save every 30 seconds
   useEffect(() => {
     if (!onAutoSave) return;
     const interval = setInterval(() => {
@@ -105,136 +103,269 @@ export const LaTeXEditor = ({ subject, field, initialContent, onSave, onAutoSave
       const dateMatch = latex.match(/\\date\{([^}]*)\}/);
       const date = dateMatch ? dateMatch[1].replace(/\\today/g, new Date().toLocaleDateString()) : "";
 
-      // Helper: render math safely
+      // Extract custom macros from preamble
+      const customMacros: Record<string, string> = {
+        "\\R": "\\mathbb{R}",
+        "\\N": "\\mathbb{N}",
+        "\\Z": "\\mathbb{Z}",
+        "\\Q": "\\mathbb{Q}",
+        "\\C": "\\mathbb{C}",
+        "\\implies": "\\Rightarrow",
+        "\\iff": "\\Leftrightarrow",
+        "\\eps": "\\varepsilon",
+        "\\norm": "\\|#1\\|",
+        "\\abs": "|#1|",
+        "\\floor": "\\lfloor #1 \\rfloor",
+        "\\ceil": "\\lceil #1 \\rceil",
+      };
+
+      // Parse \newcommand from preamble
+      const newcmdRegex = /\\(?:re)?newcommand\{\\([^}]+)\}(?:\[(\d+)\])?\{([^}]+)\}/g;
+      let cmdMatch;
+      while ((cmdMatch = newcmdRegex.exec(latex)) !== null) {
+        customMacros[`\\${cmdMatch[1]}`] = cmdMatch[3];
+      }
+
       const renderMath = (eq: string, displayMode: boolean) => {
         try {
-          return katex.renderToString(eq.trim(), { displayMode, throwOnError: false, trust: true, macros: {
-            "\\R": "\\mathbb{R}",
-            "\\N": "\\mathbb{N}",
-            "\\Z": "\\mathbb{Z}",
-            "\\Q": "\\mathbb{Q}",
-            "\\C": "\\mathbb{C}",
-            "\\implies": "\\Rightarrow",
-            "\\iff": "\\Leftrightarrow",
-            "\\eps": "\\varepsilon",
-          }});
+          return katex.renderToString(eq.trim(), { 
+            displayMode, 
+            throwOnError: false, 
+            trust: true, 
+            strict: false,
+            macros: customMacros,
+            maxSize: 500,
+            maxExpand: 1000,
+          });
         } catch {
-          return `<span class="text-destructive text-xs">[math error]</span>`;
+          return `<span class="text-destructive text-xs">[math error: ${eq.substring(0, 30)}...]</span>`;
         }
       };
 
-      let processed = content
-        // Remove \maketitle and replace with formatted title block
-        .replace(/\\maketitle/g, () => {
-          let block = '';
-          if (title) block += `<h1 class="text-2xl font-bold mb-1 text-center">${title}</h1>`;
-          if (author) block += `<p class="text-center text-muted-foreground mb-0">${author}</p>`;
-          if (date) block += `<p class="text-center text-muted-foreground text-sm mb-4">${date}</p>`;
-          return block || '';
-        })
-        // Remove common preamble commands that leak into content
-        .replace(/\\(usepackage|documentclass|setlength|pagestyle|geometry|graphicspath|bibliographystyle|bibliography|tableofcontents|newcommand|renewcommand|DeclareMathOperator|theoremstyle|newtheorem)(\[.*?\])?\{[^}]*\}/g, '')
-        .replace(/\\(label|ref|eqref|cite|nocite)\{[^}]*\}/g, (m) => {
-          if (m.startsWith('\\ref') || m.startsWith('\\eqref')) return '[ref]';
-          if (m.startsWith('\\cite')) return '[cite]';
-          return '';
-        })
-        // Sections
-        .replace(/\\chapter\*?\{([^}]*)\}/g, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')
+      // Process content step by step - order matters!
+      let processed = content;
+
+      // Remove \maketitle and replace with formatted title block
+      processed = processed.replace(/\\maketitle/g, () => {
+        let block = '';
+        if (title) block += `<h1 class="text-2xl font-bold mb-1 text-center">${title}</h1>`;
+        if (author) block += `<p class="text-center text-muted-foreground mb-0">${author}</p>`;
+        if (date) block += `<p class="text-center text-muted-foreground text-sm mb-4">${date}</p>`;
+        return block || '';
+      });
+
+      // Remove preamble commands that leak into content
+      processed = processed
+        .replace(/\\(usepackage|documentclass|setlength|pagestyle|geometry|graphicspath|bibliographystyle|bibliography|newcommand|renewcommand|DeclareMathOperator|theoremstyle|newtheorem|setcounter|numberwithin|allowdisplaybreaks)(\[.*?\])?\{[^}]*\}(\{[^}]*\})*/g, '')
+        .replace(/\\tableofcontents/g, '<p class="text-muted-foreground italic text-center my-4">[Table of Contents]</p>');
+
+      // Handle \label, \ref, \eqref, \cite
+      processed = processed
+        .replace(/\\label\{[^}]*\}/g, '')
+        .replace(/\\eqref\{([^}]*)\}/g, '(ref)')
+        .replace(/\\ref\{([^}]*)\}/g, '[ref]')
+        .replace(/\\cite(\[.*?\])?\{([^}]*)\}/g, '[$2]')
+        .replace(/\\nocite\{[^}]*\}/g, '');
+
+      // Sections
+      processed = processed
+        .replace(/\\chapter\*?\{([^}]*)\}/g, '<h1 class="text-2xl font-bold mt-8 mb-4 pb-2 border-b">$1</h1>')
         .replace(/\\section\*?\{([^}]*)\}/g, '<h2 class="text-xl font-semibold mt-6 mb-3 border-b pb-1">$1</h2>')
         .replace(/\\subsection\*?\{([^}]*)\}/g, '<h3 class="text-lg font-medium mt-4 mb-2">$1</h3>')
         .replace(/\\subsubsection\*?\{([^}]*)\}/g, '<h4 class="text-base font-medium mt-3 mb-1">$1</h4>')
-        .replace(/\\paragraph\{([^}]*)\}/g, '<p class="font-semibold mt-2 inline">$1 </p>')
-        // Environments: theorem, lemma, proof, definition, etc.
-        .replace(/\\begin\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note)\}(\[([^\]]*)\])?/gi, 
+        .replace(/\\paragraph\{([^}]*)\}/g, '<p class="font-semibold mt-2 inline">$1 </p>');
+
+      // Environments: theorem, lemma, proof, definition, etc.
+      processed = processed
+        .replace(/\\begin\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note|axiom|property|observation)\}(\[([^\]]*)\])?/gi, 
           (_, env, __, optTitle) => {
             const label = env.charAt(0).toUpperCase() + env.slice(1);
             const titleStr = optTitle ? ` (${optTitle})` : '';
-            return `<div class="border-l-4 border-primary/50 pl-4 my-4"><p class="font-semibold">${label}${titleStr}.</p>`;
+            const colors: Record<string, string> = {
+              theorem: 'border-primary/60', lemma: 'border-primary/40', definition: 'border-blue-500/50',
+              example: 'border-green-500/50', remark: 'border-yellow-500/50', proof: 'border-muted-foreground/30',
+            };
+            const borderColor = colors[env.toLowerCase()] || 'border-primary/50';
+            return `<div class="border-l-4 ${borderColor} pl-4 my-4 py-1"><p class="font-bold text-sm uppercase tracking-wide mb-1">${label}${titleStr}</p>`;
           })
-        .replace(/\\end\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note)\}/gi, '</div>')
-        .replace(/\\begin\{proof\}/g, '<div class="border-l-2 border-muted-foreground/30 pl-4 my-3 italic"><p class="font-medium not-italic">Proof.</p>')
-        .replace(/\\end\{proof\}/g, '<p class="text-right">∎</p></div>')
-        // Lists
-        .replace(/\\begin\{itemize\}/g, '<ul class="list-disc ml-6 my-2">')
+        .replace(/\\end\{(theorem|lemma|proposition|corollary|conjecture|definition|example|remark|note|axiom|property|observation)\}/gi, '</div>')
+        .replace(/\\begin\{proof\}(\[([^\]]*)\])?/g, (_, __, title) => {
+          const proofTitle = title || 'Proof';
+          return `<div class="border-l-2 border-muted-foreground/30 pl-4 my-3"><p class="font-medium italic text-sm">${proofTitle}.</p>`;
+        })
+        .replace(/\\end\{proof\}/g, '<p class="text-right text-sm">∎</p></div>');
+
+      // Abstract
+      processed = processed
+        .replace(/\\begin\{abstract\}/g, '<div class="mx-8 my-4 text-sm"><p class="font-bold text-center mb-2">Abstract</p>')
+        .replace(/\\end\{abstract\}/g, '</div>');
+
+      // Quotation / quote
+      processed = processed
+        .replace(/\\begin\{(quotation|quote)\}/g, '<blockquote class="border-l-2 border-muted-foreground/30 pl-4 my-3 italic text-muted-foreground">')
+        .replace(/\\end\{(quotation|quote)\}/g, '</blockquote>');
+
+      // Verbatim
+      processed = processed
+        .replace(/\\begin\{(verbatim|lstlisting)\}([\s\S]*?)\\end\{\1\}/g, 
+          (_, _env, code) => `<pre class="bg-muted p-3 rounded text-sm font-mono overflow-x-auto my-3">${code.trim()}</pre>`);
+
+      // Lists
+      processed = processed
+        .replace(/\\begin\{itemize\}/g, '<ul class="list-disc ml-6 my-2 space-y-1">')
         .replace(/\\end\{itemize\}/g, '</ul>')
-        .replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal ml-6 my-2">')
+        .replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal ml-6 my-2 space-y-1">')
         .replace(/\\end\{enumerate\}/g, '</ol>')
         .replace(/\\begin\{description\}/g, '<dl class="ml-4 my-2">')
         .replace(/\\end\{description\}/g, '</dl>')
         .replace(/\\item\[([^\]]*)\]\s*/g, '<dt class="font-semibold mt-1">$1</dt><dd>')
-        .replace(/\\item\s*/g, '<li class="my-1">')
-        // Figures & tables (simplified)
+        .replace(/\\item\s*/g, '<li class="my-1">');
+
+      // Figures & tables (simplified containers)
+      processed = processed
         .replace(/\\begin\{(figure|table)\}(\[.*?\])?/g, '<div class="my-4 text-center">')
         .replace(/\\end\{(figure|table)\}/g, '</div>')
         .replace(/\\caption\{([^}]*)\}/g, '<p class="text-sm text-muted-foreground mt-2 italic">$1</p>')
-        .replace(/\\includegraphics(\[.*?\])?\{([^}]*)\}/g, '<p class="text-muted-foreground text-sm">[Image: $2]</p>')
-        // Tabular
-        .replace(/\\begin\{tabular\}\{[^}]*\}/g, '<table class="border-collapse mx-auto my-2"><tbody>')
-        .replace(/\\end\{tabular\}/g, '</tbody></table>')
-        .replace(/\\hline/g, '')
-        // Display math environments
-        .replace(/\\begin\{(equation|displaymath)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, _env, eq) => 
-          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
-        .replace(/\\begin\{(align|gather|multline|flalign|eqnarray)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, _env, eq) => {
-          // Split aligned equations by \\ and render each line
-          const lines = eq.split('\\\\').filter((l: string) => l.trim());
-          const rendered = lines.map((line: string) => renderMath(line.replace(/&/g, '\\quad '), true)).join('');
-          return `<div class="my-4 text-center overflow-x-auto">${rendered}</div>`;
-        })
-        .replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (_, eq) => 
-          renderMath(`\\begin{cases}${eq}\\end{cases}`, true))
-        .replace(/\\begin\{(pmatrix|bmatrix|vmatrix|matrix)\}([\s\S]*?)\\end\{\1\}/g, (_, env, eq) => 
-          renderMath(`\\begin{${env}}${eq}\\end{${env}}`, true))
-        // Display math $$...$$ and \[...\]
-        .replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => 
-          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
-        .replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => 
-          `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`)
-        // Inline math $...$  and \(...\)
-        .replace(/\$([^$\n]+)\$/g, (_, eq) => renderMath(eq, false))
-        .replace(/\\\(([^)]+)\\\)/g, (_, eq) => renderMath(eq, false))
-        // Text formatting
+        .replace(/\\includegraphics(\[.*?\])?\{([^}]*)\}/g, '<p class="text-muted-foreground text-sm bg-muted/50 p-4 rounded inline-block">[Image: $2]</p>');
+
+      // Tabular - process rows
+      processed = processed.replace(
+        /\\begin\{tabular\}\{([^}]*)\}([\s\S]*?)\\end\{tabular\}/g,
+        (_, colSpec, tableContent) => {
+          const rows = tableContent
+            .split('\\\\')
+            .map((row: string) => row.trim())
+            .filter((row: string) => row && row !== '\\hline' && row !== '\\toprule' && row !== '\\midrule' && row !== '\\bottomrule');
+          
+          let html = '<table class="border-collapse mx-auto my-3 text-sm"><tbody>';
+          rows.forEach((row: string, idx: number) => {
+            const cleanRow = row.replace(/\\(hline|toprule|midrule|bottomrule)/g, '').trim();
+            if (!cleanRow) return;
+            const cells = cleanRow.split('&').map((c: string) => c.trim());
+            const tag = idx === 0 ? 'th' : 'td';
+            const cellClass = idx === 0 ? 'font-semibold border-b-2 border-foreground/20 px-3 py-1' : 'border-b border-muted px-3 py-1';
+            html += '<tr>' + cells.map((c: string) => `<${tag} class="${cellClass}">${c}</${tag}>`).join('') + '</tr>';
+          });
+          html += '</tbody></table>';
+          return html;
+        }
+      );
+
+      // Display math environments - handle before inline math
+      // equation, displaymath
+      processed = processed.replace(/\\begin\{(equation|displaymath)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, _env, eq) => 
+        `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`);
+
+      // align, gather, multline, flalign, eqnarray  
+      processed = processed.replace(/\\begin\{(align|gather|multline|flalign|eqnarray|aligned|gathered)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, (_, env, eq) => {
+        if (env === 'aligned' || env === 'gathered') {
+          // These are inner environments, render as-is
+          return renderMath(`\\begin{${env}}${eq}\\end{${env}}`, true);
+        }
+        // Split by \\ and render each line
+        const lines = eq.split('\\\\').filter((l: string) => l.trim());
+        if (lines.length === 1) {
+          return `<div class="my-4 text-center overflow-x-auto">${renderMath(eq.replace(/&/g, '\\quad '), true)}</div>`;
+        }
+        const rendered = lines.map((line: string) => {
+          const cleanLine = line.replace(/&/g, '\\quad ').replace(/\\nonumber|\\notag/g, '').trim();
+          return `<div>${renderMath(cleanLine, true)}</div>`;
+        }).join('');
+        return `<div class="my-4 text-center overflow-x-auto space-y-1">${rendered}</div>`;
+      });
+
+      // cases, matrix environments inside math
+      processed = processed.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (_, eq) => 
+        renderMath(`\\begin{cases}${eq}\\end{cases}`, true));
+      processed = processed.replace(/\\begin\{(pmatrix|bmatrix|vmatrix|Vmatrix|matrix|Bmatrix|smallmatrix)\}([\s\S]*?)\\end\{\1\}/g, (_, env, eq) => 
+        renderMath(`\\begin{${env}}${eq}\\end{${env}}`, true));
+
+      // Display math $$...$$ and \[...\]
+      processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => 
+        `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`);
+      processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => 
+        `<div class="my-4 text-center overflow-x-auto">${renderMath(eq, true)}</div>`);
+
+      // Inline math $...$ and \(...\) — be careful not to match $$ 
+      processed = processed.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (_, eq) => renderMath(eq, false));
+      processed = processed.replace(/\\\((.+?)\\\)/g, (_, eq) => renderMath(eq, false));
+
+      // Text formatting
+      processed = processed
         .replace(/\\textbf\{([^}]*)\}/g, '<strong>$1</strong>')
         .replace(/\\textit\{([^}]*)\}/g, '<em>$1</em>')
-        .replace(/\\texttt\{([^}]*)\}/g, '<code class="bg-muted px-1 rounded text-sm">$1</code>')
+        .replace(/\\texttt\{([^}]*)\}/g, '<code class="bg-muted px-1 rounded text-sm font-mono">$1</code>')
         .replace(/\\underline\{([^}]*)\}/g, '<u>$1</u>')
         .replace(/\\emph\{([^}]*)\}/g, '<em>$1</em>')
         .replace(/\\text\{([^}]*)\}/g, '$1')
-        // Misc
+        .replace(/\\textsc\{([^}]*)\}/g, '<span class="uppercase text-sm tracking-wider">$1</span>')
+        .replace(/\\textsf\{([^}]*)\}/g, '<span class="font-sans">$1</span>')
+        .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, '$1')
+        .replace(/\\colorbox\{[^}]*\}\{([^}]*)\}/g, '<span class="bg-muted px-1 rounded">$1</span>');
+
+      // Font sizes
+      processed = processed
+        .replace(/\\(tiny|scriptsize|footnotesize|small)\b/g, '')
+        .replace(/\\(large|Large|LARGE|huge|Huge)\b/g, '')
+        .replace(/\\normalsize/g, '');
+
+      // Misc
+      processed = processed
         .replace(/\\footnote\{([^}]*)\}/g, '<sup class="text-primary cursor-help" title="$1">[*]</sup>')
-        .replace(/\\href\{([^}]*)\}\{([^}]*)\}/g, '<a href="$1" class="text-primary underline" target="_blank">$2</a>')
-        .replace(/\\url\{([^}]*)\}/g, '<a href="$1" class="text-primary underline text-sm" target="_blank">$1</a>')
+        .replace(/\\href\{([^}]*)\}\{([^}]*)\}/g, '<a href="$1" class="text-primary underline" target="_blank" rel="noopener">$2</a>')
+        .replace(/\\url\{([^}]*)\}/g, '<a href="$1" class="text-primary underline text-sm break-all" target="_blank" rel="noopener">$1</a>')
         .replace(/\\centering/g, '')
         .replace(/\\noindent/g, '')
         .replace(/\\bigskip/g, '<div class="my-4"></div>')
         .replace(/\\medskip/g, '<div class="my-2"></div>')
         .replace(/\\smallskip/g, '<div class="my-1"></div>')
-        .replace(/\\vspace\{[^}]*\}/g, '<div class="my-2"></div>')
-        .replace(/\\hspace\{[^}]*\}/g, '&nbsp;')
+        .replace(/\\vspace\*?\{[^}]*\}/g, '<div class="my-2"></div>')
+        .replace(/\\hspace\*?\{[^}]*\}/g, '&nbsp;')
+        .replace(/\\quad/g, '&emsp;')
+        .replace(/\\qquad/g, '&emsp;&emsp;')
+        .replace(/\\,/g, '&thinsp;')
+        .replace(/\\;/g, '&ensp;')
+        .replace(/\\!/g, '')
         .replace(/---/g, '—')
         .replace(/--/g, '–')
-        .replace(/``/g, '"')
-        .replace(/''/g, '"')
+        .replace(/``/g, '\u201C')
+        .replace(/''/g, '\u201D')
+        .replace(/`/g, '\u2018')
+        .replace(/'/g, '\u2019')
         .replace(/~/g, '&nbsp;')
-        // Newlines
-        .replace(/\\\\/g, '<br/>')
-        // Clean up paragraphs
+        .replace(/\\ldots/g, '…')
+        .replace(/\\dots/g, '…')
+        .replace(/\\cdots/g, '⋯')
+        .replace(/\\textbackslash/g, '\\')
+        .replace(/\\%/g, '%')
+        .replace(/\\#/g, '#')
+        .replace(/\\&/g, '&amp;')
+        .replace(/\\_/g, '_')
+        .replace(/\\\$/g, '$');
+
+      // Line breaks \\ → <br>
+      processed = processed.replace(/\\\\/g, '<br/>');
+
+      // Horizontal rule
+      processed = processed.replace(/\\(hrule|rule\{\\textwidth\}\{[^}]*\})/g, '<hr class="my-4"/>');
+
+      // Clean up paragraphs
+      processed = processed
         .replace(/\n\n+/g, '</p><p class="my-2">')
-        .replace(/\n/g, ' ')
-        // Remove remaining unknown commands
-        .replace(/\\[a-zA-Z]+\{[^}]*\}/g, '')
-        .replace(/\\[a-zA-Z]+/g, '');
+        .replace(/\n/g, ' ');
+
+      // Remove remaining unknown commands (be conservative)
+      processed = processed.replace(/\\[a-zA-Z]+\*?(\[[^\]]*\])?\{[^}]*\}/g, '');
+      processed = processed.replace(/\\[a-zA-Z]+\*?/g, '');
 
       return `<div class="prose prose-sm dark:prose-invert max-w-none"><p class="my-2">${processed}</p></div>`;
     } catch (error) {
-      return `<div class="text-destructive">Error rendering LaTeX preview</div>`;
+      return `<div class="text-destructive p-4">Error rendering LaTeX preview: ${error}</div>`;
     }
   };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
-
     const userMessage = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
@@ -262,10 +393,8 @@ If the user asks for LaTeX code, provide it in a code block.`;
       });
 
       if (response.error) throw response.error;
-
       const data = response.data;
       const assistantMessage = data.choices?.[0]?.message?.content || data.response || "Sorry, I couldn't process that.";
-
       setMessages((prev) => [...prev, { role: "assistant", content: assistantMessage }]);
     } catch (error) {
       console.error("AI error:", error);
@@ -280,7 +409,6 @@ If the user asks for LaTeX code, provide it in a code block.`;
   };
 
   const insertLatexFromAI = (content: string) => {
-    // Extract LaTeX code blocks from AI response
     const codeBlockMatch = content.match(/```(?:latex)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       const codeToInsert = codeBlockMatch[1].trim();
@@ -322,40 +450,37 @@ If the user asks for LaTeX code, provide it in a code block.`;
   return (
     <div className="h-full flex gap-4">
       {/* Left: Editor + Preview */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={copyToClipboard}>
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            <span className="ml-2 hidden sm:inline">Copy</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={downloadLatex}>
-            <Download className="h-4 w-4" />
-            <span className="ml-2 hidden sm:inline">Download .tex</span>
-          </Button>
-          {onSave && (
-            <Button variant="default" size="sm" onClick={() => onSave(latex)}>
-              <span>💾</span>
-              <span className="ml-2 hidden sm:inline">Save</span>
-            </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={resetEditor}>
-            <RotateCcw className="h-4 w-4" />
-            <span className="ml-2 hidden sm:inline">Reset</span>
-          </Button>
-        </div>
-
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Editor and Preview Split */}
         <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
           {/* Monaco Editor */}
-          <Card className="overflow-hidden">
-            <CardHeader className="py-2 px-4 border-b">
+          <Card className="overflow-hidden flex flex-col">
+            <CardHeader className="py-2 px-4 border-b flex-row items-center justify-between shrink-0">
               <CardTitle className="text-sm flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 LaTeX Editor
               </CardTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={copyToClipboard} className="h-7 px-2 text-xs">
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  <span className="ml-1 hidden lg:inline">Copy</span>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={downloadLatex} className="h-7 px-2 text-xs">
+                  <Download className="h-3 w-3" />
+                  <span className="ml-1 hidden lg:inline">.tex</span>
+                </Button>
+                {onSave && (
+                  <Button variant="ghost" size="sm" onClick={() => onSave(latex)} className="h-7 px-2 text-xs">
+                    💾
+                    <span className="ml-1 hidden lg:inline">Save</span>
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={resetEditor} className="h-7 px-2 text-xs">
+                  <RotateCcw className="h-3 w-3" />
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="p-0 h-[calc(100%-48px)]">
+            <CardContent className="p-0 flex-1 min-h-0">
               <Editor
                 height="100%"
                 defaultLanguage="latex"
@@ -376,14 +501,14 @@ If the user asks for LaTeX code, provide it in a code block.`;
           </Card>
 
           {/* Preview */}
-          <Card className="overflow-hidden">
-            <CardHeader className="py-2 px-4 border-b">
+          <Card className="overflow-hidden flex flex-col">
+            <CardHeader className="py-2 px-4 border-b shrink-0">
               <CardTitle className="text-sm flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Preview
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 h-[calc(100%-48px)] overflow-auto">
+            <CardContent className="p-4 flex-1 min-h-0 overflow-auto">
               <div
                 dangerouslySetInnerHTML={{ __html: renderLatexPreview() }}
                 className="min-h-full"

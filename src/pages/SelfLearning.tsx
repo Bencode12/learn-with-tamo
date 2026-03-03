@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, Trash2 } from "lucide-react";
+import { BookOpen, Clock, Trash2, Plus, FolderOpen } from "lucide-react";
 import { FieldSubjectSelector } from "@/components/self-learning/FieldSubjectSelector";
 import { LearningEnvironment } from "@/components/self-learning/LearningEnvironment";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SelectedState {
   field: { id: string; name: string; icon: string; description: string; subjects: any[] };
@@ -26,6 +27,8 @@ const SelfLearning = () => {
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedState | null>(null);
   const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
+  const [pendingSelection, setPendingSelection] = useState<SelectedState | null>(null);
+  const [showChoiceDialog, setShowChoiceDialog] = useState(false);
 
   useEffect(() => {
     loadWorkspaces();
@@ -39,6 +42,40 @@ const SelfLearning = () => {
       .eq('user_id', user.id)
       .order('last_accessed', { ascending: false });
     if (data) setSavedWorkspaces(data);
+  };
+
+  const handleSubjectSelect = (field: any, subject: any) => {
+    const selection: SelectedState = { field, subject };
+    // Check if there's already a workspace for this subject
+    const existing = savedWorkspaces.find(ws => ws.subject_id === subject.id);
+    if (existing) {
+      setPendingSelection(selection);
+      setShowChoiceDialog(true);
+    } else {
+      // No existing workspace, start new directly
+      setSelected(selection);
+    }
+  };
+
+  const openExisting = () => {
+    if (pendingSelection) {
+      setSelected(pendingSelection);
+      setPendingSelection(null);
+      setShowChoiceDialog(false);
+    }
+  };
+
+  const startNew = async () => {
+    if (!pendingSelection || !user) return;
+    // Delete existing workspace for this subject to start fresh
+    await supabase
+      .from('self_learning_workspaces')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('subject_id', pendingSelection.subject.id);
+    setSelected(pendingSelection);
+    setPendingSelection(null);
+    setShowChoiceDialog(false);
   };
 
   const openSavedWorkspace = (ws: SavedWorkspace) => {
@@ -110,8 +147,34 @@ const SelfLearning = () => {
 
       {/* Subject Selector */}
       <FieldSubjectSelector
-        onSelect={(field, subject) => setSelected({ field, subject })}
+        onSelect={(field, subject) => handleSubjectSelect(field, subject)}
       />
+
+      {/* Choice Dialog: New or Existing */}
+      <Dialog open={showChoiceDialog} onOpenChange={setShowChoiceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {pendingSelection?.subject.name} Workspace
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            You already have a workspace for this subject. What would you like to do?
+          </p>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <Button variant="outline" onClick={openExisting} className="h-auto flex flex-col gap-2 py-4">
+              <FolderOpen className="h-6 w-6" />
+              <span className="font-medium">Open Existing</span>
+              <span className="text-xs text-muted-foreground">Continue where you left off</span>
+            </Button>
+            <Button variant="outline" onClick={startNew} className="h-auto flex flex-col gap-2 py-4">
+              <Plus className="h-6 w-6" />
+              <span className="font-medium">Start New</span>
+              <span className="text-xs text-muted-foreground">Reset and begin fresh</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
