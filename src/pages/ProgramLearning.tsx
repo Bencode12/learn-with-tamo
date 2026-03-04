@@ -199,6 +199,7 @@ const ProgramLearning = () => {
   const navigate = useNavigate();
   
   const [step, setStep] = useState(1); // 1: Subject, 2: Fields, 3: Time, 4: Assessment, 5: Plan
+  const [showCreateNew, setShowCreateNew] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("");
@@ -359,6 +360,67 @@ const ProgramLearning = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  // If user has existing plans and hasn't started creating new one, show plan selector
+  if (existingPlans.length > 0 && step === 1 && !showCreateNew) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="bg-background/80 backdrop-blur-sm shadow-sm border-b sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center gap-4">
+                <Link to="/gamemodes">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                </Link>
+                <Link to="/" className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center">
+                    <span className="text-background font-bold text-base">K</span>
+                  </div>
+                  <h1 className="text-lg font-bold hidden sm:block">KnowIt AI</h1>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <div className="mb-8 text-center">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Brain className="h-4 w-4" />
+              Program Learning
+            </div>
+            <h2 className="text-3xl font-bold mb-2">Your Learning Plans</h2>
+            <p className="text-muted-foreground">Continue an existing plan or create a new one</p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            {existingPlans.map(plan => (
+              <Card key={plan.id} className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate(`/program-study?planId=${plan.id}`)}>
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {plan.subject} · Week {plan.current_week} of {(plan.weekly_plan as any[])?.length || 0} · Score: {plan.assessment_score}%
+                    </p>
+                  </div>
+                  <Button size="sm">
+                    <Play className="h-4 w-4 mr-1" /> Continue
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Button variant="outline" className="w-full" onClick={() => setShowCreateNew(true)}>
+            <Sparkles className="h-4 w-4 mr-2" /> Create New Plan
+          </Button>
+        </main>
       </div>
     );
   }
@@ -692,7 +754,7 @@ const ProgramLearning = () => {
               <Button variant="outline" className="flex-1" onClick={() => navigate("/gamemodes")}>
                 Back to Game Modes
               </Button>
-              <Button className="flex-1" onClick={() => navigate("/gamemodes")}>
+              <Button className="flex-1" onClick={() => navigate(`/program-study?planId=${generatedPlan.id}`)}>
                 <Play className="h-4 w-4 mr-2" />
                 Start Learning
               </Button>

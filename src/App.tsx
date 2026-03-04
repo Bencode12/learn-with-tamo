@@ -27,6 +27,7 @@ import JobInterviewPrep from "./pages/JobInterviewPrep";
 import PresentationPrep from "./pages/PresentationPrep";
 import HobbyLearning from "./pages/HobbyLearning";
 import ProgramLearning from "./pages/ProgramLearning";
+import ProgramStudy from "./pages/ProgramStudy";
 import SelfLearning from "./pages/SelfLearning";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import PublicProfile from "./pages/PublicProfile";
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/presentation-prep" element={<ProtectedRoute><PresentationPrep /></ProtectedRoute>} />
             <Route path="/hobby-learning" element={<ProtectedRoute><HobbyLearning /></ProtectedRoute>} />
             <Route path="/program-learning" element={<ProtectedRoute><ProgramLearning /></ProtectedRoute>} />
+            <Route path="/program-study" element={<ProtectedRoute><ProgramStudy /></ProtectedRoute>} />
             <Route path="/self-learning" element={<ProtectedRoute><SelfLearning /></ProtectedRoute>} />
             <Route path="/curriculum" element={<ProtectedRoute><CurriculumLearning /></ProtectedRoute>} />
             <Route path="/subjects" element={<ProtectedRoute><SubjectsOverview /></ProtectedRoute>} />

@@ -27,6 +27,7 @@ interface LeaderboardUser {
   isAdmin: boolean;
   totalLessons: number;
   joinDate: string;
+  skillRating: number;
 }
 
 const Leaderboard = () => {
@@ -47,7 +48,7 @@ const Leaderboard = () => {
 
     const { data: profiles, count } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, experience, level, is_premium, created_at', { count: 'exact' })
+      .select('id, username, display_name, avatar_url, experience, level, is_premium, created_at, skill_rating', { count: 'exact' })
       .order('experience', { ascending: false })
       .limit(50);
 
@@ -77,7 +78,8 @@ const Leaderboard = () => {
           isStaff: userRoles.includes('staff'),
           isAdmin: userRoles.includes('admin'),
           totalLessons: userLessons,
-          joinDate: new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          joinDate: new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          skillRating: (p as any).skill_rating ?? 1000
         };
       });
 
@@ -137,7 +139,7 @@ const Leaderboard = () => {
             <Progress value={(userData.score / ((userData.level + 1) * 1000)) * 100} className="h-1.5" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-muted/50 rounded-lg p-3 text-center">
               <div className="font-bold">{userData.totalLessons}</div>
               <div className="text-xs text-muted-foreground">Lessons</div>
@@ -145,6 +147,10 @@ const Leaderboard = () => {
             <div className="bg-muted/50 rounded-lg p-3 text-center">
               <div className="font-bold">{userData.score}</div>
               <div className="text-xs text-muted-foreground">XP</div>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <div className="font-bold">{userData.skillRating}</div>
+              <div className="text-xs text-muted-foreground">SR</div>
             </div>
           </div>
 
@@ -221,6 +227,7 @@ const Leaderboard = () => {
                   <TableHead>Learner</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead className="text-center">Lessons</TableHead>
+                  <TableHead className="text-center">SR</TableHead>
                   <TableHead className="text-right">XP</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,6 +263,7 @@ const Leaderboard = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">{userData.totalLessons}</TableCell>
+                    <TableCell className="text-center font-medium">{userData.skillRating}</TableCell>
                     <TableCell className="text-right font-medium">{userData.score.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}

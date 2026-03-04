@@ -526,43 +526,55 @@ export type Database = {
       }
       lesson_progress: {
         Row: {
+          accuracy: number | null
           chapter_id: string
           completed: boolean
           created_at: string
           id: string
           last_accessed: string
           lesson_id: string
+          lesson_number: number | null
+          plan_id: string | null
           score: number | null
           subject_id: string
           time_spent: number
           updated_at: string
           user_id: string
+          week_number: number | null
         }
         Insert: {
+          accuracy?: number | null
           chapter_id: string
           completed?: boolean
           created_at?: string
           id?: string
           last_accessed?: string
           lesson_id: string
+          lesson_number?: number | null
+          plan_id?: string | null
           score?: number | null
           subject_id: string
           time_spent?: number
           updated_at?: string
           user_id: string
+          week_number?: number | null
         }
         Update: {
+          accuracy?: number | null
           chapter_id?: string
           completed?: boolean
           created_at?: string
           id?: string
           last_accessed?: string
           lesson_id?: string
+          lesson_number?: number | null
+          plan_id?: string | null
           score?: number | null
           subject_id?: string
           time_spent?: number
           updated_at?: string
           user_id?: string
+          week_number?: number | null
         }
         Relationships: []
       }
@@ -788,6 +800,7 @@ export type Database = {
           lives_refill_at: string | null
           name_color: string | null
           premium_expires_at: string | null
+          skill_rating: number
           staff_badge: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -811,6 +824,7 @@ export type Database = {
           lives_refill_at?: string | null
           name_color?: string | null
           premium_expires_at?: string | null
+          skill_rating?: number
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -834,6 +848,7 @@ export type Database = {
           lives_refill_at?: string | null
           name_color?: string | null
           premium_expires_at?: string | null
+          skill_rating?: number
           staff_badge?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
