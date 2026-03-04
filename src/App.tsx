@@ -27,6 +27,7 @@ import JobInterviewPrep from "./pages/JobInterviewPrep";
 import PresentationPrep from "./pages/PresentationPrep";
 import HobbyLearning from "./pages/HobbyLearning";
 import ProgramLearning from "./pages/ProgramLearning";
+import ProgramStudy from "./pages/ProgramStudy";
 import SelfLearning from "./pages/SelfLearning";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import PublicProfile from "./pages/PublicProfile";
