@@ -365,7 +365,7 @@ const ProgramLearning = () => {
   }
 
   // If user has existing plans and hasn't started creating new one, show plan selector
-  if (existingPlans.length > 0 && step === 1 && !selectedSubject) {
+  if (existingPlans.length > 0 && step === 1 && !showCreateNew) {
     return (
       <div className="min-h-screen bg-background">
         <header className="bg-background/80 backdrop-blur-sm shadow-sm border-b sticky top-0 z-50">
