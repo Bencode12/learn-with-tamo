@@ -27,6 +27,7 @@ interface LeaderboardUser {
   isAdmin: boolean;
   totalLessons: number;
   joinDate: string;
+  skillRating: number;
 }
 
 const Leaderboard = () => {
