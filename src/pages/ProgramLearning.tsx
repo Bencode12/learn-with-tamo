@@ -753,7 +753,7 @@ const ProgramLearning = () => {
               <Button variant="outline" className="flex-1" onClick={() => navigate("/gamemodes")}>
                 Back to Game Modes
               </Button>
-              <Button className="flex-1" onClick={() => navigate("/gamemodes")}>
+              <Button className="flex-1" onClick={() => navigate(`/program-study?planId=${generatedPlan.id}`)}>
                 <Play className="h-4 w-4 mr-2" />
                 Start Learning
               </Button>
