@@ -263,6 +263,7 @@ const Leaderboard = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">{userData.totalLessons}</TableCell>
+                    <TableCell className="text-center font-medium">{userData.skillRating}</TableCell>
                     <TableCell className="text-right font-medium">{userData.score.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
