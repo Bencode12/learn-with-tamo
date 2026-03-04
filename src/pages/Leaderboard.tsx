@@ -227,6 +227,7 @@ const Leaderboard = () => {
                   <TableHead>Learner</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead className="text-center">Lessons</TableHead>
+                  <TableHead className="text-center">SR</TableHead>
                   <TableHead className="text-right">XP</TableHead>
                 </TableRow>
               </TableHeader>
