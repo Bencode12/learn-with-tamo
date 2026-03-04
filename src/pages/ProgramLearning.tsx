@@ -417,7 +417,7 @@ const ProgramLearning = () => {
             ))}
           </div>
 
-          <Button variant="outline" className="w-full" onClick={() => setSelectedSubject("")}>
+          <Button variant="outline" className="w-full" onClick={() => setShowCreateNew(true)}>
             <Sparkles className="h-4 w-4 mr-2" /> Create New Plan
           </Button>
         </main>
