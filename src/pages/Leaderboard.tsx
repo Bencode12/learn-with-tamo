@@ -78,7 +78,8 @@ const Leaderboard = () => {
           isStaff: userRoles.includes('staff'),
           isAdmin: userRoles.includes('admin'),
           totalLessons: userLessons,
-          joinDate: new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          joinDate: new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          skillRating: (p as any).skill_rating ?? 1000
         };
       });
 
