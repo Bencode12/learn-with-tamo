@@ -32,18 +32,26 @@ interface TamoResponse {
 
 // Helper to extract CSRF token from HTML
 function extractCSRFToken(html: string): string | null {
-  const match = html.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/);
-  return match ? match[1] : null;
+  const match = html.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/i);
+  if (match) return match[1];
+
+  const altMatch = html.match(/name="antiforgery_token"[^>]*value="([^"]+)"/i);
+  if (altMatch) return altMatch[1];
+
+  return null;
 }
 
-// Helper to extract anti-forgery token
-function extractAntiForgeryToken(html: string): string | null {
-  const match = html.match(/name="antiforgery_token"[^>]*value="([^"]+)"/);
-  if (match) return match[1];
-  
-  // Try alternative pattern
-  const altMatch = html.match(/__RequestVerificationToken.*?value="([^"]+)"/);
-  return altMatch ? altMatch[1] : null;
+function getSetCookies(response: Response): string[] {
+  const direct = (response.headers as any).getSetCookie?.();
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+
+  const cookies: string[] = [];
+  for (const [key, value] of response.headers.entries()) {
+    if (key.toLowerCase() === 'set-cookie') {
+      cookies.push(value);
+    }
+  }
+  return cookies;
 }
 
 // Parse grades from the gradebook HTML page
