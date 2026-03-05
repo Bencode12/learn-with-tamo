@@ -43,7 +43,7 @@ function extractHiddenFields(html: string): Record<string, string> {
   const fields: Record<string, string> = {};
   const regex = /<input[^>]*type="hidden"[^>]*>/gi;
   const matches = html.match(regex) || [];
-  
+
   matches.forEach(input => {
     const nameMatch = input.match(/name="([^"]+)"/);
     const valueMatch = input.match(/value="([^"]*)"/);
@@ -51,8 +51,26 @@ function extractHiddenFields(html: string): Record<string, string> {
       fields[nameMatch[1]] = valueMatch[1];
     }
   });
-  
+
   return fields;
+}
+
+function extractFormAction(html: string): string | null {
+  const match = html.match(/<form[^>]*action="([^"]*ajax\/user\/login[^"]*)"/i);
+  return match ? match[1] : null;
+}
+
+function getSetCookies(response: Response): string[] {
+  const direct = (response.headers as any).getSetCookie?.();
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+
+  const cookies: string[] = [];
+  for (const [key, value] of response.headers.entries()) {
+    if (key.toLowerCase() === 'set-cookie') {
+      cookies.push(value);
+    }
+  }
+  return cookies;
 }
 
 // Determine semester based on date
@@ -184,12 +202,12 @@ class ManoDienynasScraper {
   }
 
   private updateCookies(response: Response) {
-    const setCookies = response.headers.getSetCookie?.() || [];
-    setCookies.forEach(cookie => {
+    const setCookies = getSetCookies(response);
+    setCookies.forEach((cookie) => {
       const [cookiePart] = cookie.split(';');
-      const existingIndex = this.cookies.findIndex(c => 
-        c.split('=')[0] === cookiePart.split('=')[0]
-      );
+      const cookieName = cookiePart.split('=')[0];
+      const existingIndex = this.cookies.findIndex((c) => c.split('=')[0] === cookieName);
+
       if (existingIndex >= 0) {
         this.cookies[existingIndex] = cookiePart;
       } else {
@@ -204,82 +222,76 @@ class ManoDienynasScraper {
 
   async login(username: string, password: string): Promise<boolean> {
     try {
-      // Step 1: Get the login page to extract tokens and establish session
-      const loginPageResponse = await fetch(`${this.baseUrl}/`, {
+      const loginUrl = `${this.baseUrl}/1/lt/public/public/login`;
+
+      // Step 1: open login page and collect session cookies + hidden fields
+      const loginPageResponse = await fetch(loginUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'lt,en;q=0.9',
         },
-        redirect: 'manual',
       });
 
       this.updateCookies(loginPageResponse);
       const loginPageHtml = await loginPageResponse.text();
-      
-      // Extract all hidden form fields
       const hiddenFields = extractHiddenFields(loginPageHtml);
-      console.log('Found hidden fields:', Object.keys(hiddenFields));
 
-      // Step 2: Submit login form
+      // Find real ajax login endpoint from form action
+      const parsedAction = extractFormAction(loginPageHtml);
+      const loginAction = parsedAction
+        ? (parsedAction.startsWith('http') ? parsedAction : `${this.baseUrl}${parsedAction}`)
+        : `${this.baseUrl}/1/lt/ajax/user/login`;
+
       const formData = new URLSearchParams();
-      
-      // Add hidden fields
       Object.entries(hiddenFields).forEach(([key, value]) => {
         formData.append(key, value);
       });
-      
-      // Add credentials - ManoDienynas uses various field names
-      formData.append('username', username);
+      formData.append('username', username.trim());
       formData.append('password', password);
-      formData.append('vartotojas', username);
-      formData.append('slaptazodis', password);
-      formData.append('email', username);
+      formData.append('dienynas_remember_me', '1');
 
-      const loginResponse = await fetch(`${this.baseUrl}/prisijungimas`, {
+      // Step 2: submit credentials
+      const loginResponse = await fetch(loginAction, {
         method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
           'Accept-Language': 'lt,en;q=0.9',
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
           'Cookie': this.getCookieHeader(),
-          'Referer': `${this.baseUrl}/`,
           'Origin': this.baseUrl,
+          'Referer': loginUrl,
         },
         body: formData.toString(),
         redirect: 'manual',
       });
 
       this.updateCookies(loginResponse);
-
-      // Check if login was successful
-      const location = loginResponse.headers.get('location');
       const responseText = await loginResponse.text();
-      
-      // Success indicators
-      const isRedirectSuccess = loginResponse.status === 302 && 
-                                location && 
-                                (location.includes('dienynas') || 
-                                 location.includes('pagrindinis') ||
-                                 location.includes('dashboard'));
-      
-      const hasSessionCookie = this.cookies.some(c => 
-        c.toLowerCase().includes('session') || 
-        c.toLowerCase().includes('auth') ||
-        c.toLowerCase().includes('phpsessid')
-      );
-
-      const noErrorInResponse = !responseText.toLowerCase().includes('klaida') &&
-                                !responseText.toLowerCase().includes('neteisingas') &&
-                                !responseText.toLowerCase().includes('error');
 
       console.log('Login response status:', loginResponse.status);
-      console.log('Redirect location:', location);
-      console.log('Has session cookie:', hasSessionCookie);
+      console.log('Using login action:', loginAction);
 
-      return (isRedirectSuccess || hasSessionCookie) && noErrorInResponse;
+      if (loginResponse.status === 403 || loginResponse.status === 401) {
+        return false;
+      }
+
+      const lowerResponse = responseText.toLowerCase();
+      const hasErrorText =
+        lowerResponse.includes('neteising') ||
+        lowerResponse.includes('klaida') ||
+        lowerResponse.includes('error') ||
+        lowerResponse.includes('invalid');
+
+      const hasSessionCookie = this.cookies.some((cookie) => {
+        const name = cookie.split('=')[0].toLowerCase();
+        return name.includes('session') || name.includes('phpsessid') || name.includes('auth');
+      });
+
+      return !hasErrorText && hasSessionCookie;
     } catch (error) {
       console.error('ManoDienynas login error:', error);
       return false;
@@ -288,11 +300,12 @@ class ManoDienynasScraper {
 
   async getGrades(): Promise<ManoDienynasGrade[]> {
     try {
-      // Try multiple possible grade page URLs
       const gradeUrls = [
+        `${this.baseUrl}/1/lt/diary/grades`,
+        `${this.baseUrl}/1/lt/diary/marks`,
+        `${this.baseUrl}/1/lt/page/marks`,
         `${this.baseUrl}/dienynas/pazymiai`,
         `${this.baseUrl}/pazymiai`,
-        `${this.baseUrl}/dienynas/grades`,
         `${this.baseUrl}/mokinys/pazymiai`,
       ];
 
@@ -303,17 +316,21 @@ class ManoDienynasScraper {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Cookie': this.getCookieHeader(),
+            'Referer': `${this.baseUrl}/1/lt/public/public/login`,
           },
           redirect: 'manual',
         });
 
-        if (response.status === 200) {
-          const html = await response.text();
-          const grades = parseGrades(html, this.parser);
-          if (grades.length > 0) {
-            return grades;
-          }
+        const location = response.headers.get('location')?.toLowerCase() ?? '';
+        if (response.status === 302 && location.includes('/public/public/login')) {
+          throw new Error('Session expired');
         }
+
+        if (response.status !== 200) continue;
+
+        const html = await response.text();
+        const grades = parseGrades(html, this.parser);
+        if (grades.length > 0) return grades;
       }
 
       return [];

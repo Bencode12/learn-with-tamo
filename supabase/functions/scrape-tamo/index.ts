@@ -32,18 +32,26 @@ interface TamoResponse {
 
 // Helper to extract CSRF token from HTML
 function extractCSRFToken(html: string): string | null {
-  const match = html.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/);
-  return match ? match[1] : null;
+  const match = html.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/i);
+  if (match) return match[1];
+
+  const altMatch = html.match(/name="antiforgery_token"[^>]*value="([^"]+)"/i);
+  if (altMatch) return altMatch[1];
+
+  return null;
 }
 
-// Helper to extract anti-forgery token
-function extractAntiForgeryToken(html: string): string | null {
-  const match = html.match(/name="antiforgery_token"[^>]*value="([^"]+)"/);
-  if (match) return match[1];
-  
-  // Try alternative pattern
-  const altMatch = html.match(/__RequestVerificationToken.*?value="([^"]+)"/);
-  return altMatch ? altMatch[1] : null;
+function getSetCookies(response: Response): string[] {
+  const direct = (response.headers as any).getSetCookie?.();
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+
+  const cookies: string[] = [];
+  for (const [key, value] of response.headers.entries()) {
+    if (key.toLowerCase() === 'set-cookie') {
+      cookies.push(value);
+    }
+  }
+  return cookies;
 }
 
 // Parse grades from the gradebook HTML page
@@ -137,12 +145,12 @@ class TamoScraper {
   }
 
   private updateCookies(response: Response) {
-    const setCookies = response.headers.getSetCookie?.() || [];
-    setCookies.forEach(cookie => {
+    const setCookies = getSetCookies(response);
+    setCookies.forEach((cookie) => {
       const [cookiePart] = cookie.split(';');
-      const existingIndex = this.cookies.findIndex(c => 
-        c.split('=')[0] === cookiePart.split('=')[0]
-      );
+      const cookieName = cookiePart.split('=')[0];
+      const existingIndex = this.cookies.findIndex((c) => c.split('=')[0] === cookieName);
+
       if (existingIndex >= 0) {
         this.cookies[existingIndex] = cookiePart;
       } else {
@@ -157,56 +165,65 @@ class TamoScraper {
 
   async login(username: string, password: string): Promise<boolean> {
     try {
-      // Step 1: Get the login page to extract CSRF token
-      const loginPageResponse = await fetch(`${this.baseUrl}/Prisijungimas`, {
+      const loginUrl = `${this.baseUrl}/prisijungimas/login`;
+
+      // Step 1: load login page and session cookies
+      const loginPageResponse = await fetch(loginUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'lt,en;q=0.9',
         },
-        redirect: 'manual',
       });
 
       this.updateCookies(loginPageResponse);
       const loginPageHtml = await loginPageResponse.text();
-      const csrfToken = extractCSRFToken(loginPageHtml) || extractAntiForgeryToken(loginPageHtml);
+      const csrfToken = extractCSRFToken(loginPageHtml);
 
-      console.log('CSRF token found:', !!csrfToken);
-
-      // Step 2: Submit login form
+      // Step 2: submit login form exactly like the page
       const formData = new URLSearchParams();
-      formData.append('UserName', username);
+      formData.append('UserName', username.trim());
       formData.append('Password', password);
       if (csrfToken) {
         formData.append('__RequestVerificationToken', csrfToken);
       }
 
-      const loginResponse = await fetch(`${this.baseUrl}/Prisijungimas`, {
+      const loginResponse = await fetch(`${this.baseUrl}/`, {
         method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'lt,en;q=0.9',
           'Content-Type': 'application/x-www-form-urlencoded',
           'Cookie': this.getCookieHeader(),
-          'Referer': `${this.baseUrl}/Prisijungimas`,
+          'Origin': this.baseUrl,
+          'Referer': loginUrl,
         },
         body: formData.toString(),
         redirect: 'manual',
       });
 
       this.updateCookies(loginResponse);
-
-      // Check if login was successful (usually redirects to dashboard)
-      const location = loginResponse.headers.get('location');
-      const isSuccess = loginResponse.status === 302 && 
-                       location && 
-                       !location.includes('Prisijungimas') &&
-                       !location.includes('error');
-
       console.log('Login response status:', loginResponse.status);
-      console.log('Redirect location:', location);
 
-      return isSuccess;
+      // Step 3: verify authenticated access by opening grades page
+      const probeResponse = await fetch(`${this.baseUrl}/dienynas/pazymiai`, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Cookie': this.getCookieHeader(),
+          'Referer': this.baseUrl,
+        },
+        redirect: 'manual',
+      });
+
+      const location = probeResponse.headers.get('location')?.toLowerCase() ?? '';
+      const isRedirectedToLogin = probeResponse.status === 302 && location.includes('prisijungimas');
+      const isForbidden = probeResponse.status === 403;
+
+      return !isRedirectedToLogin && !isForbidden;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -215,23 +232,36 @@ class TamoScraper {
 
   async getGrades(): Promise<TamoGrade[]> {
     try {
-      // Fetch the gradebook page
-      const response = await fetch(`${this.baseUrl}/Dienynas/Pazymiai`, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Cookie': this.getCookieHeader(),
-        },
-      });
+      const gradeUrls = [
+        `${this.baseUrl}/dienynas/pazymiai`,
+        `${this.baseUrl}/Dienynas/Pazymiai`,
+      ];
 
-      if (response.status === 302) {
-        // Session expired, need to re-login
-        throw new Error('Session expired');
+      for (const url of gradeUrls) {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Cookie': this.getCookieHeader(),
+            'Referer': this.baseUrl,
+          },
+          redirect: 'manual',
+        });
+
+        const location = response.headers.get('location')?.toLowerCase() ?? '';
+        if (response.status === 302 && location.includes('prisijungimas')) {
+          throw new Error('Session expired');
+        }
+
+        if (response.status !== 200) continue;
+
+        const html = await response.text();
+        const grades = parseGrades(html, this.parser);
+        if (grades.length > 0) return grades;
       }
 
-      const html = await response.text();
-      return parseGrades(html, this.parser);
+      return [];
     } catch (error) {
       console.error('Error fetching grades:', error);
       throw error;
