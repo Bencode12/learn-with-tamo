@@ -145,12 +145,12 @@ class TamoScraper {
   }
 
   private updateCookies(response: Response) {
-    const setCookies = response.headers.getSetCookie?.() || [];
-    setCookies.forEach(cookie => {
+    const setCookies = getSetCookies(response);
+    setCookies.forEach((cookie) => {
       const [cookiePart] = cookie.split(';');
-      const existingIndex = this.cookies.findIndex(c => 
-        c.split('=')[0] === cookiePart.split('=')[0]
-      );
+      const cookieName = cookiePart.split('=')[0];
+      const existingIndex = this.cookies.findIndex((c) => c.split('=')[0] === cookieName);
+
       if (existingIndex >= 0) {
         this.cookies[existingIndex] = cookiePart;
       } else {
