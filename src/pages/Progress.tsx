@@ -216,8 +216,33 @@ const Progress = () => {
     }
   };
 
+  // Build a map from subject_id to readable name
+  const subjectNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    lessonData.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, []);
+
+  const getReadableSubject = (subjectId: string) => {
+    return subjectNameMap[subjectId] || subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
+  };
+
+  const getReadableLessonName = (lesson: LessonProgress) => {
+    // Try to find lesson title from lessonData
+    for (const subject of lessonData) {
+      const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
+      for (const chapter of chapters) {
+        for (const l of chapter.lessons) {
+          if (l.id === lesson.lesson_id) return l.title;
+        }
+      }
+    }
+    // Fallback: format the ID
+    return lesson.lesson_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const getSubjectIcon = (subjectId: string) => {
-    const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚" };
+    const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚", cs: "💻" };
     return icons[subjectId] || "📖";
   };
 
