@@ -22,6 +22,7 @@ import {
 } from "@/components/charts";
 import { useToast } from "@/hooks/use-toast";
 import { GradesDashboard } from "@/components/grades";
+import { lessonData } from "@/data/lessonContent";
 
 
 
@@ -215,8 +216,33 @@ const Progress = () => {
     }
   };
 
+  // Build a map from subject_id to readable name
+  const subjectNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    lessonData.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, []);
+
+  const getReadableSubject = (subjectId: string) => {
+    return subjectNameMap[subjectId] || subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
+  };
+
+  const getReadableLessonName = (lesson: LessonProgress) => {
+    // Try to find lesson title from lessonData
+    for (const subject of lessonData) {
+      const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
+      for (const chapter of chapters) {
+        for (const l of chapter.lessons) {
+          if (l.id === lesson.lesson_id) return l.title;
+        }
+      }
+    }
+    // Fallback: format the ID
+    return lesson.lesson_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const getSubjectIcon = (subjectId: string) => {
-    const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚" };
+    const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚", cs: "💻" };
     return icons[subjectId] || "📖";
   };
 
@@ -271,18 +297,19 @@ const Progress = () => {
   const subjectPerformance = useMemo(() => {
     const subjects: Record<string, { total: number; count: number }> = {};
     lessonsProgress.forEach(lesson => {
-      if (!subjects[lesson.subject_id]) {
-        subjects[lesson.subject_id] = { total: 0, count: 0 };
+      const readableName = getReadableSubject(lesson.subject_id);
+      if (!subjects[readableName]) {
+        subjects[readableName] = { total: 0, count: 0 };
       }
-      subjects[lesson.subject_id].total += lesson.score || 0;
-      subjects[lesson.subject_id].count += 1;
+      subjects[readableName].total += lesson.score || 0;
+      subjects[readableName].count += 1;
     });
     
     return Object.entries(subjects).map(([subject, data]) => ({
-      subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+      subject,
       score: data.count > 0 ? Math.round(data.total / data.count) : 0
     }));
-  }, [lessonsProgress]);
+  }, [lessonsProgress, getReadableSubject]);
 
   const weeklyTrendData = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -464,8 +491,8 @@ const Progress = () => {
                     <div className="flex items-center space-x-4">
                       <div className="text-2xl">{getSubjectIcon(lesson.subject_id)}</div>
                       <div>
-                        <h4 className="font-semibold capitalize">{lesson.lesson_id.replace(/-/g, ' ')}</h4>
-                        <p className="text-sm text-muted-foreground capitalize">{lesson.subject_id} • {lesson.chapter_id}</p>
+                        <h4 className="font-semibold">{getReadableLessonName(lesson)}</h4>
+                        <p className="text-sm text-muted-foreground">{getReadableSubject(lesson.subject_id)} • {lesson.chapter_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
