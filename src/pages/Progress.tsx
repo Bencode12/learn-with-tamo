@@ -297,18 +297,19 @@ const Progress = () => {
   const subjectPerformance = useMemo(() => {
     const subjects: Record<string, { total: number; count: number }> = {};
     lessonsProgress.forEach(lesson => {
-      if (!subjects[lesson.subject_id]) {
-        subjects[lesson.subject_id] = { total: 0, count: 0 };
+      const readableName = getReadableSubject(lesson.subject_id);
+      if (!subjects[readableName]) {
+        subjects[readableName] = { total: 0, count: 0 };
       }
-      subjects[lesson.subject_id].total += lesson.score || 0;
-      subjects[lesson.subject_id].count += 1;
+      subjects[readableName].total += lesson.score || 0;
+      subjects[readableName].count += 1;
     });
     
     return Object.entries(subjects).map(([subject, data]) => ({
-      subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+      subject,
       score: data.count > 0 ? Math.round(data.total / data.count) : 0
     }));
-  }, [lessonsProgress]);
+  }, [lessonsProgress, getReadableSubject]);
 
   const weeklyTrendData = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
