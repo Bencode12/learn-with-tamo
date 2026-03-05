@@ -22,6 +22,7 @@ import {
 } from "@/components/charts";
 import { useToast } from "@/hooks/use-toast";
 import { GradesDashboard } from "@/components/grades";
+import { lessonData } from "@/data/lessonContent";
 
 
 
