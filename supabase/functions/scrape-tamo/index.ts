@@ -165,56 +165,65 @@ class TamoScraper {
 
   async login(username: string, password: string): Promise<boolean> {
     try {
-      // Step 1: Get the login page to extract CSRF token
-      const loginPageResponse = await fetch(`${this.baseUrl}/Prisijungimas`, {
+      const loginUrl = `${this.baseUrl}/prisijungimas/login`;
+
+      // Step 1: load login page and session cookies
+      const loginPageResponse = await fetch(loginUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'lt,en;q=0.9',
         },
-        redirect: 'manual',
       });
 
       this.updateCookies(loginPageResponse);
       const loginPageHtml = await loginPageResponse.text();
-      const csrfToken = extractCSRFToken(loginPageHtml) || extractAntiForgeryToken(loginPageHtml);
+      const csrfToken = extractCSRFToken(loginPageHtml);
 
-      console.log('CSRF token found:', !!csrfToken);
-
-      // Step 2: Submit login form
+      // Step 2: submit login form exactly like the page
       const formData = new URLSearchParams();
-      formData.append('UserName', username);
+      formData.append('UserName', username.trim());
       formData.append('Password', password);
       if (csrfToken) {
         formData.append('__RequestVerificationToken', csrfToken);
       }
 
-      const loginResponse = await fetch(`${this.baseUrl}/Prisijungimas`, {
+      const loginResponse = await fetch(`${this.baseUrl}/`, {
         method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'lt,en;q=0.9',
           'Content-Type': 'application/x-www-form-urlencoded',
           'Cookie': this.getCookieHeader(),
-          'Referer': `${this.baseUrl}/Prisijungimas`,
+          'Origin': this.baseUrl,
+          'Referer': loginUrl,
         },
         body: formData.toString(),
         redirect: 'manual',
       });
 
       this.updateCookies(loginResponse);
-
-      // Check if login was successful (usually redirects to dashboard)
-      const location = loginResponse.headers.get('location');
-      const isSuccess = loginResponse.status === 302 && 
-                       location && 
-                       !location.includes('Prisijungimas') &&
-                       !location.includes('error');
-
       console.log('Login response status:', loginResponse.status);
-      console.log('Redirect location:', location);
 
-      return isSuccess;
+      // Step 3: verify authenticated access by opening grades page
+      const probeResponse = await fetch(`${this.baseUrl}/dienynas/pazymiai`, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Cookie': this.getCookieHeader(),
+          'Referer': this.baseUrl,
+        },
+        redirect: 'manual',
+      });
+
+      const location = probeResponse.headers.get('location')?.toLowerCase() ?? '';
+      const isRedirectedToLogin = probeResponse.status === 302 && location.includes('prisijungimas');
+      const isForbidden = probeResponse.status === 403;
+
+      return !isRedirectedToLogin && !isForbidden;
     } catch (error) {
       console.error('Login error:', error);
       return false;
