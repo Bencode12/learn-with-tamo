@@ -300,11 +300,12 @@ class ManoDienynasScraper {
 
   async getGrades(): Promise<ManoDienynasGrade[]> {
     try {
-      // Try multiple possible grade page URLs
       const gradeUrls = [
+        `${this.baseUrl}/1/lt/diary/grades`,
+        `${this.baseUrl}/1/lt/diary/marks`,
+        `${this.baseUrl}/1/lt/page/marks`,
         `${this.baseUrl}/dienynas/pazymiai`,
         `${this.baseUrl}/pazymiai`,
-        `${this.baseUrl}/dienynas/grades`,
         `${this.baseUrl}/mokinys/pazymiai`,
       ];
 
@@ -315,17 +316,21 @@ class ManoDienynasScraper {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Cookie': this.getCookieHeader(),
+            'Referer': `${this.baseUrl}/1/lt/public/public/login`,
           },
           redirect: 'manual',
         });
 
-        if (response.status === 200) {
-          const html = await response.text();
-          const grades = parseGrades(html, this.parser);
-          if (grades.length > 0) {
-            return grades;
-          }
+        const location = response.headers.get('location')?.toLowerCase() ?? '';
+        if (response.status === 302 && location.includes('/public/public/login')) {
+          throw new Error('Session expired');
         }
+
+        if (response.status !== 200) continue;
+
+        const html = await response.text();
+        const grades = parseGrades(html, this.parser);
+        if (grades.length > 0) return grades;
       }
 
       return [];
