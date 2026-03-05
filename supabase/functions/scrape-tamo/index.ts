@@ -232,23 +232,36 @@ class TamoScraper {
 
   async getGrades(): Promise<TamoGrade[]> {
     try {
-      // Fetch the gradebook page
-      const response = await fetch(`${this.baseUrl}/Dienynas/Pazymiai`, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Cookie': this.getCookieHeader(),
-        },
-      });
+      const gradeUrls = [
+        `${this.baseUrl}/dienynas/pazymiai`,
+        `${this.baseUrl}/Dienynas/Pazymiai`,
+      ];
 
-      if (response.status === 302) {
-        // Session expired, need to re-login
-        throw new Error('Session expired');
+      for (const url of gradeUrls) {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Cookie': this.getCookieHeader(),
+            'Referer': this.baseUrl,
+          },
+          redirect: 'manual',
+        });
+
+        const location = response.headers.get('location')?.toLowerCase() ?? '';
+        if (response.status === 302 && location.includes('prisijungimas')) {
+          throw new Error('Session expired');
+        }
+
+        if (response.status !== 200) continue;
+
+        const html = await response.text();
+        const grades = parseGrades(html, this.parser);
+        if (grades.length > 0) return grades;
       }
 
-      const html = await response.text();
-      return parseGrades(html, this.parser);
+      return [];
     } catch (error) {
       console.error('Error fetching grades:', error);
       throw error;
