@@ -43,7 +43,7 @@ function extractHiddenFields(html: string): Record<string, string> {
   const fields: Record<string, string> = {};
   const regex = /<input[^>]*type="hidden"[^>]*>/gi;
   const matches = html.match(regex) || [];
-  
+
   matches.forEach(input => {
     const nameMatch = input.match(/name="([^"]+)"/);
     const valueMatch = input.match(/value="([^"]*)"/);
@@ -51,8 +51,26 @@ function extractHiddenFields(html: string): Record<string, string> {
       fields[nameMatch[1]] = valueMatch[1];
     }
   });
-  
+
   return fields;
+}
+
+function extractFormAction(html: string): string | null {
+  const match = html.match(/<form[^>]*action="([^"]*ajax\/user\/login[^"]*)"/i);
+  return match ? match[1] : null;
+}
+
+function getSetCookies(response: Response): string[] {
+  const direct = (response.headers as any).getSetCookie?.();
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+
+  const cookies: string[] = [];
+  for (const [key, value] of response.headers.entries()) {
+    if (key.toLowerCase() === 'set-cookie') {
+      cookies.push(value);
+    }
+  }
+  return cookies;
 }
 
 // Determine semester based on date
