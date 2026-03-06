@@ -325,26 +325,14 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      for (const grade of result.grades) {
-        await supabase.from('synced_grades').upsert({
-          user_id: user.id,
-          source: 'manodienynas',
-          subject: grade.subject,
-          grade: grade.grade,
-          grade_type: grade.gradeType,
-          date: grade.date,
-          semester: grade.semester,
-          teacher_name: grade.teacher,
-          notes: grade.comment,
-          synced_at: new Date().toISOString()
-        }, { onConflict: 'user_id,source,subject,date' });
-      }
+      const persistedCount = await persistGrades(supabase, user.id, result.grades);
 
       return new Response(JSON.stringify({
         success: true,
         grades: result.grades,
+        gradesStored: persistedCount,
         lastSync: new Date().toISOString(),
-        message: `Successfully synced ${result.grades.length} grades from ManoDienynas`,
+        message: `Successfully synced and stored ${persistedCount} grades from ManoDienynas`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
