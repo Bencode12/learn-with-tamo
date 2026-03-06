@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// ManoDienynas.lt scraper - handles authentication and grade extraction
-// Based on reverse-engineering of the ManoDienynas login flow
 
 interface ManoDienynasGrade {
   subject: string;
@@ -20,368 +16,241 @@ interface ManoDienynasGrade {
   comment?: string;
 }
 
-interface ManoDienynasResponse {
-  success: boolean;
-  grades?: ManoDienynasGrade[];
-  schedule?: any[];
-  homework?: any[];
-  messages?: any[];
-  lastSync?: string;
-  error?: string;
-  sessionValid?: boolean;
-}
-
-// Helper to extract CSRF/verification tokens
-function extractToken(html: string, name: string): string | null {
-  const regex = new RegExp(`name="${name}"[^>]*value="([^"]+)"`, 'i');
-  const match = html.match(regex);
-  return match ? match[1] : null;
-}
-
-// Helper to extract hidden form fields
-function extractHiddenFields(html: string): Record<string, string> {
-  const fields: Record<string, string> = {};
-  const regex = /<input[^>]*type="hidden"[^>]*>/gi;
-  const matches = html.match(regex) || [];
-
-  matches.forEach(input => {
-    const nameMatch = input.match(/name="([^"]+)"/);
-    const valueMatch = input.match(/value="([^"]*)"/);
-    if (nameMatch && valueMatch) {
-      fields[nameMatch[1]] = valueMatch[1];
-    }
-  });
-
-  return fields;
-}
-
-function extractFormAction(html: string): string | null {
-  const match = html.match(/<form[^>]*action="([^"]*ajax\/user\/login[^"]*)"/i);
-  return match ? match[1] : null;
-}
-
-function getSetCookies(response: Response): string[] {
-  const direct = (response.headers as any).getSetCookie?.();
-  if (Array.isArray(direct) && direct.length > 0) return direct;
-
-  const cookies: string[] = [];
-  for (const [key, value] of response.headers.entries()) {
-    if (key.toLowerCase() === 'set-cookie') {
-      cookies.push(value);
-    }
-  }
-  return cookies;
-}
-
-// Determine semester based on date
 function getSemester(date: Date): string {
   const month = date.getMonth();
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-// Parse grades from ManoDienynas HTML
-function parseGrades(html: string, parser: DOMParser): ManoDienynasGrade[] {
-  const grades: ManoDienynasGrade[] = [];
-  
-  try {
-    const doc = parser.parseFromString(html, 'text/html');
-    if (!doc) return grades;
-
-    // ManoDienynas uses various class patterns for grades
-    const selectors = [
-      '.grade-cell',
-      '.mark',
-      '.pazymys',
-      'td.grade',
-      '.diary-mark',
-      '[data-mark]',
-    ];
-
-    for (const selector of selectors) {
-      const gradeElements = doc.querySelectorAll(selector);
-      if (gradeElements.length > 0) {
-        gradeElements.forEach((el: any) => {
-          const gradeText = el.textContent?.trim() || el.getAttribute('data-mark');
-          const gradeNum = parseInt(gradeText || '0', 10);
-          
-          if (!isNaN(gradeNum) && gradeNum >= 1 && gradeNum <= 10) {
-            // Try to find parent row for context
-            const row = el.closest('tr') || el.parentElement;
-            const cells = row?.querySelectorAll('td') || [];
-            
-            grades.push({
-              subject: cells[0]?.textContent?.trim() || 'Unknown',
-              grade: gradeNum,
-              gradeType: el.getAttribute('data-type') || 'Įvertinimas',
-              date: el.getAttribute('data-date') || new Date().toISOString().split('T')[0],
-              semester: getSemester(new Date()),
-              teacher: cells[cells.length - 1]?.textContent?.trim() || 'Nenurodyta',
-            });
-          }
-        });
-        break;
-      }
-    }
-
-    // Fallback: Parse table structure
-    if (grades.length === 0) {
-      const tables = doc.querySelectorAll('table.grades, table.pazymiai, .grades-table');
-      tables.forEach((table: any) => {
-        const rows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
-        rows.forEach((row: any) => {
-          const cells = row.querySelectorAll('td');
-          if (cells.length >= 2) {
-            // Look for grade cells (usually contain just a number)
-            cells.forEach((cell: any, index: number) => {
-              if (index === 0) return; // Skip subject name column
-              
-              const text = cell.textContent?.trim();
-              const num = parseInt(text || '0', 10);
-              
-              if (!isNaN(num) && num >= 1 && num <= 10) {
-                grades.push({
-                  subject: cells[0]?.textContent?.trim() || 'Unknown',
-                  grade: num,
-                  gradeType: 'Įvertinimas',
-                  date: new Date().toISOString().split('T')[0],
-                  semester: getSemester(new Date()),
-                  teacher: 'Nenurodyta',
-                });
-              }
-            });
-          }
-        });
-      });
-    }
-  } catch (error) {
-    console.error('Error parsing ManoDienynas grades:', error);
+function getSetCookies(response: Response): string[] {
+  const direct = (response.headers as any).getSetCookie?.();
+  if (Array.isArray(direct) && direct.length > 0) return direct;
+  const cookies: string[] = [];
+  for (const [key, value] of response.headers.entries()) {
+    if (key.toLowerCase() === 'set-cookie') cookies.push(value);
   }
-  
-  return grades;
+  return cookies;
 }
 
-// Parse schedule from HTML
-function parseSchedule(html: string, parser: DOMParser): any[] {
-  const schedule: any[] = [];
-  
-  try {
-    const doc = parser.parseFromString(html, 'text/html');
-    if (!doc) return schedule;
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept-Language': 'lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"',
+};
 
-    const lessonElements = doc.querySelectorAll('.lesson, .pamoka, .schedule-item');
-    lessonElements.forEach((el: any) => {
-      const timeEl = el.querySelector('.time, .laikas');
-      const subjectEl = el.querySelector('.subject, .dalykas');
-      const teacherEl = el.querySelector('.teacher, .mokytojas');
-      const roomEl = el.querySelector('.room, .kabinetas');
-
-      if (subjectEl) {
-        schedule.push({
-          time: timeEl?.textContent?.trim() || '',
-          subject: subjectEl.textContent?.trim() || '',
-          teacher: teacherEl?.textContent?.trim() || '',
-          room: roomEl?.textContent?.trim() || '',
-        });
-      }
-    });
-  } catch (error) {
-    console.error('Error parsing schedule:', error);
-  }
-  
-  return schedule;
-}
-
-// Main ManoDienynas scraper class
 class ManoDienynasScraper {
   private baseUrl = 'https://www.manodienynas.lt';
-  private cookies: string[] = [];
-  private parser: DOMParser;
-
-  constructor() {
-    this.parser = new DOMParser();
-  }
+  private cookies: Map<string, string> = new Map();
 
   private updateCookies(response: Response) {
     const setCookies = getSetCookies(response);
-    setCookies.forEach((cookie) => {
+    for (const cookie of setCookies) {
       const [cookiePart] = cookie.split(';');
-      const cookieName = cookiePart.split('=')[0];
-      const existingIndex = this.cookies.findIndex((c) => c.split('=')[0] === cookieName);
-
-      if (existingIndex >= 0) {
-        this.cookies[existingIndex] = cookiePart;
-      } else {
-        this.cookies.push(cookiePart);
+      const eqIdx = cookiePart.indexOf('=');
+      if (eqIdx > 0) {
+        this.cookies.set(cookiePart.substring(0, eqIdx), cookiePart.substring(eqIdx + 1));
       }
-    });
+    }
   }
 
   private getCookieHeader(): string {
-    return this.cookies.join('; ');
+    return Array.from(this.cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
   }
 
   async login(username: string, password: string): Promise<boolean> {
     try {
-      const loginUrl = `${this.baseUrl}/1/lt/public/public/login`;
-
-      // Step 1: open login page and collect session cookies + hidden fields
-      const loginPageResponse = await fetch(loginUrl, {
+      // Step 1: Load login page for session cookies
+      console.log('[ManoDienynas] Step 1: Loading login page...');
+      const loginPageRes = await fetch(`${this.baseUrl}/1/lt/public/public/login`, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'lt,en;q=0.9',
+          ...BROWSER_HEADERS,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'sec-fetch-dest': 'document',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-site': 'none',
+          'sec-fetch-user': '?1',
+          'Upgrade-Insecure-Requests': '1',
         },
+        redirect: 'manual',
       });
+      this.updateCookies(loginPageRes);
+      await loginPageRes.text();
+      console.log('[ManoDienynas] Login page status:', loginPageRes.status, 'Cookies:', this.cookies.size);
 
-      this.updateCookies(loginPageResponse);
-      const loginPageHtml = await loginPageResponse.text();
-      const hiddenFields = extractHiddenFields(loginPageHtml);
+      // Follow redirect if any
+      if (loginPageRes.status === 301 || loginPageRes.status === 302) {
+        const loc = loginPageRes.headers.get('location') || '';
+        const redirectUrl = loc.startsWith('http') ? loc : `${this.baseUrl}${loc}`;
+        console.log('[ManoDienynas] Following redirect to:', redirectUrl);
+        const r = await fetch(redirectUrl, {
+          method: 'GET',
+          headers: { ...BROWSER_HEADERS, 'Cookie': this.getCookieHeader() },
+          redirect: 'manual',
+        });
+        this.updateCookies(r);
+        await r.text();
+      }
 
-      // Find real ajax login endpoint from form action
-      const parsedAction = extractFormAction(loginPageHtml);
-      const loginAction = parsedAction
-        ? (parsedAction.startsWith('http') ? parsedAction : `${this.baseUrl}${parsedAction}`)
-        : `${this.baseUrl}/1/lt/ajax/user/login`;
-
+      // Step 2: AJAX login - form posts to /1/lt/ajax/user/login
+      console.log('[ManoDienynas] Step 2: Submitting AJAX login...');
       const formData = new URLSearchParams();
-      Object.entries(hiddenFields).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
       formData.append('username', username.trim());
       formData.append('password', password);
       formData.append('dienynas_remember_me', '1');
 
-      // Step 2: submit credentials
-      const loginResponse = await fetch(loginAction, {
+      const loginRes = await fetch(`${this.baseUrl}/1/lt/ajax/user/login`, {
         method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          ...BROWSER_HEADERS,
           'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'Accept-Language': 'lt,en;q=0.9',
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
           'X-Requested-With': 'XMLHttpRequest',
           'Cookie': this.getCookieHeader(),
           'Origin': this.baseUrl,
-          'Referer': loginUrl,
+          'Referer': `${this.baseUrl}/1/lt/public/public/login`,
+          'sec-fetch-dest': 'empty',
+          'sec-fetch-mode': 'cors',
+          'sec-fetch-site': 'same-origin',
         },
         body: formData.toString(),
         redirect: 'manual',
       });
+      this.updateCookies(loginRes);
+      const loginStatus = loginRes.status;
+      const responseText = await loginRes.text();
+      console.log('[ManoDienynas] Login status:', loginStatus, 'Response length:', responseText.length);
+      console.log('[ManoDienynas] Response preview:', responseText.substring(0, 300));
 
-      this.updateCookies(loginResponse);
-      const responseText = await loginResponse.text();
-
-      console.log('Login response status:', loginResponse.status);
-      console.log('Using login action:', loginAction);
-
-      if (loginResponse.status === 403 || loginResponse.status === 401) {
+      if (loginStatus === 403) {
+        console.log('[ManoDienynas] Got 403 - portal is blocking automated requests');
         return false;
       }
 
-      const lowerResponse = responseText.toLowerCase();
-      const hasErrorText =
-        lowerResponse.includes('neteising') ||
-        lowerResponse.includes('klaida') ||
-        lowerResponse.includes('error') ||
-        lowerResponse.includes('invalid');
+      // Check for JSON response indicating success/failure
+      try {
+        const jsonRes = JSON.parse(responseText);
+        console.log('[ManoDienynas] JSON response:', JSON.stringify(jsonRes).substring(0, 200));
+        if (jsonRes.success === false || jsonRes.error) return false;
+        if (jsonRes.redirect || jsonRes.success) return true;
+      } catch {
+        // Not JSON - check if it's HTML with error messages
+        const lower = responseText.toLowerCase();
+        if (lower.includes('neteising') || lower.includes('neteisingas')) return false;
+      }
 
-      const hasSessionCookie = this.cookies.some((cookie) => {
-        const name = cookie.split('=')[0].toLowerCase();
-        return name.includes('session') || name.includes('phpsessid') || name.includes('auth');
+      // Step 3: Verify by accessing a protected page
+      console.log('[ManoDienynas] Step 3: Verifying session...');
+      const verifyRes = await fetch(`${this.baseUrl}/1/lt/diary/grades`, {
+        method: 'GET',
+        headers: {
+          ...BROWSER_HEADERS,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Cookie': this.getCookieHeader(),
+          'Referer': `${this.baseUrl}/1/lt/public/public/login`,
+          'sec-fetch-dest': 'document',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-site': 'same-origin',
+        },
+        redirect: 'manual',
       });
+      this.updateCookies(verifyRes);
+      const verifyLocation = (verifyRes.headers.get('location') || '').toLowerCase();
+      console.log('[ManoDienynas] Verify status:', verifyRes.status, 'Location:', verifyLocation);
 
-      return !hasErrorText && hasSessionCookie;
+      const isLoggedIn = verifyRes.status === 200 ||
+        (verifyRes.status === 302 && !verifyLocation.includes('/public/public/login'));
+
+      console.log('[ManoDienynas] Login result:', isLoggedIn);
+      return isLoggedIn;
     } catch (error) {
-      console.error('ManoDienynas login error:', error);
+      console.error('[ManoDienynas] Login error:', error);
       return false;
     }
   }
 
   async getGrades(): Promise<ManoDienynasGrade[]> {
+    const grades: ManoDienynasGrade[] = [];
+
     try {
-      const gradeUrls = [
+      // Try multiple possible grade page URLs
+      const urls = [
         `${this.baseUrl}/1/lt/diary/grades`,
-        `${this.baseUrl}/1/lt/diary/marks`,
         `${this.baseUrl}/1/lt/page/marks`,
-        `${this.baseUrl}/dienynas/pazymiai`,
-        `${this.baseUrl}/pazymiai`,
-        `${this.baseUrl}/mokinys/pazymiai`,
+        `${this.baseUrl}/1/lt/diary/marks`,
       ];
 
-      for (const url of gradeUrls) {
+      for (const url of urls) {
+        console.log('[ManoDienynas] Trying grades URL:', url);
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ...BROWSER_HEADERS,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Cookie': this.getCookieHeader(),
-            'Referer': `${this.baseUrl}/1/lt/public/public/login`,
+            'Referer': this.baseUrl,
           },
           redirect: 'manual',
         });
 
-        const location = response.headers.get('location')?.toLowerCase() ?? '';
-        if (response.status === 302 && location.includes('/public/public/login')) {
-          throw new Error('Session expired');
+        if (response.status === 302) {
+          const loc = (response.headers.get('location') || '').toLowerCase();
+          if (loc.includes('/public/public/login')) throw new Error('Session expired');
+          continue;
         }
 
         if (response.status !== 200) continue;
 
         const html = await response.text();
-        const grades = parseGrades(html, this.parser);
-        if (grades.length > 0) return grades;
-      }
+        console.log('[ManoDienynas] Grades page length:', html.length);
 
-      return [];
-    } catch (error) {
-      console.error('Error fetching ManoDienynas grades:', error);
-      throw error;
-    }
-  }
-
-  async getSchedule(): Promise<any[]> {
-    try {
-      const scheduleUrls = [
-        `${this.baseUrl}/dienynas/tvarkarastis`,
-        `${this.baseUrl}/tvarkarastis`,
-        `${this.baseUrl}/mokinys/tvarkarastis`,
-      ];
-
-      for (const url of scheduleUrls) {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Cookie': this.getCookieHeader(),
-          },
-        });
-
-        if (response.status === 200) {
-          const html = await response.text();
-          const schedule = parseSchedule(html, this.parser);
-          if (schedule.length > 0) {
-            return schedule;
+        // Parse grade values from HTML using regex
+        const gradeRegex = /class="[^"]*(?:grade|mark|pazymys|pazymiai)[^"]*"[^>]*>(\d{1,2})<\//gi;
+        let match;
+        while ((match = gradeRegex.exec(html)) !== null) {
+          const num = parseInt(match[1], 10);
+          if (num >= 1 && num <= 10) {
+            grades.push({
+              subject: 'Unknown',
+              grade: num,
+              gradeType: 'Įvertinimas',
+              date: new Date().toISOString().split('T')[0],
+              semester: getSemester(new Date()),
+              teacher: 'Nenurodyta',
+            });
           }
         }
+
+        if (grades.length > 0) break;
+
+        // Try data attributes
+        const dataMarkRegex = /data-mark="(\d{1,2})"/gi;
+        while ((match = dataMarkRegex.exec(html)) !== null) {
+          const num = parseInt(match[1], 10);
+          if (num >= 1 && num <= 10) {
+            grades.push({
+              subject: 'Unknown',
+              grade: num,
+              gradeType: 'Įvertinimas',
+              date: new Date().toISOString().split('T')[0],
+              semester: getSemester(new Date()),
+              teacher: 'Nenurodyta',
+            });
+          }
+        }
+
+        if (grades.length > 0) break;
       }
 
-      return [];
+      console.log('[ManoDienynas] Parsed grades count:', grades.length);
     } catch (error) {
-      console.error('Error fetching schedule:', error);
+      console.error('[ManoDienynas] Error fetching grades:', error);
       throw error;
     }
-  }
 
-  async getHomework(): Promise<any[]> {
-    // Placeholder for homework parsing
-    return [];
-  }
-
-  async getMessages(): Promise<any[]> {
-    // Placeholder for messages parsing
-    return [];
+    return grades;
   }
 }
 
@@ -392,9 +261,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
+    if (!authHeader) throw new Error('Missing authorization header');
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -403,32 +270,22 @@ serve(async (req) => {
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    if (authError || !user) throw new Error('Unauthorized');
 
     const body = await req.json();
     const { action, username, password } = body;
-
     const scraper = new ManoDienynasScraper();
 
     if (action === 'test_login') {
-      if (!username || !password) {
-        throw new Error('Username and password required for login test');
-      }
-
-      const loginSuccess = await scraper.login(username, password);
-      
+      if (!username || !password) throw new Error('Username and password required');
+      const success = await scraper.login(username, password);
       return new Response(JSON.stringify({
-        success: loginSuccess,
-        message: loginSuccess ? 'Login successful' : 'Login failed - check credentials',
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+        success,
+        message: success ? 'Login successful' : 'Login failed - check credentials or try again later',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'sync') {
-      // Fetch stored credentials
       const { data: credentials, error: credError } = await supabase
         .from('user_credentials')
         .select('encrypted_data')
@@ -441,12 +298,9 @@ serve(async (req) => {
           success: false,
           error: 'No ManoDienynas credentials found. Please save your login details first.',
           requiresSetup: true,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Decrypt credentials
       let decryptedCreds;
       try {
         decryptedCreds = JSON.parse(credentials.encrypted_data);
@@ -454,7 +308,6 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      // Attempt login
       const loginSuccess = await scraper.login(
         decryptedCreds.username,
         atob(decryptedCreds.passwordHash)
@@ -463,34 +316,26 @@ serve(async (req) => {
       if (!loginSuccess) {
         return new Response(JSON.stringify({
           success: false,
-          error: 'Failed to login to ManoDienynas. Please check your credentials.',
+          error: 'Failed to login to ManoDienynas. The portal may be blocking automated access.',
           sessionValid: false,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Fetch grades
       const grades = await scraper.getGrades();
 
-      // Store synced grades
       for (const grade of grades) {
-        await supabase
-          .from('synced_grades')
-          .upsert({
-            user_id: user.id,
-            source: 'manodienynas',
-            subject: grade.subject,
-            grade: grade.grade,
-            grade_type: grade.gradeType,
-            date: grade.date,
-            semester: grade.semester,
-            teacher_name: grade.teacher,
-            notes: grade.comment,
-            synced_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,source,subject,date'
-          });
+        await supabase.from('synced_grades').upsert({
+          user_id: user.id,
+          source: 'manodienynas',
+          subject: grade.subject,
+          grade: grade.grade,
+          grade_type: grade.gradeType,
+          date: grade.date,
+          semester: grade.semester,
+          teacher_name: grade.teacher,
+          notes: grade.comment,
+          synced_at: new Date().toISOString()
+        }, { onConflict: 'user_id,source,subject,date' });
       }
 
       return new Response(JSON.stringify({
@@ -498,20 +343,16 @@ serve(async (req) => {
         grades,
         lastSync: new Date().toISOString(),
         message: `Successfully synced ${grades.length} grades from ManoDienynas`,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     throw new Error('Invalid action. Use "test_login" or "sync"');
-
   } catch (error) {
-    console.error('ManoDienynas scraper error:', error);
+    console.error('[ManoDienynas] Scraper error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: false,
       error: errorMessage,
-      note: 'This scraper attempts to parse ManoDienynas.lt. The HTML structure may change, requiring updates.',
     }), {
       status: error instanceof Error && error.message === 'Unauthorized' ? 401 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
