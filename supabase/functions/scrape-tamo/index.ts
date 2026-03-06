@@ -183,7 +183,8 @@ function normalizeGradeRows(userId: string, grades: TamoGrade[]) {
       const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
       const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
 
-      const fingerprint = `${subject}|${date}`;
+      const notes = grade.comment?.trim()?.substring(0, 4000) || null;
+      const fingerprint = `${subject}|${parsedGrade}|${gradeType}|${date}|${teacherName}|${notes || ''}`;
       if (dedupe.has(fingerprint)) return null;
       dedupe.add(fingerprint);
 
@@ -196,7 +197,7 @@ function normalizeGradeRows(userId: string, grades: TamoGrade[]) {
         date,
         semester,
         teacher_name: teacherName,
-        notes: grade.comment?.trim()?.substring(0, 4000) || null,
+        notes,
         synced_at: nowIso,
       };
     })
