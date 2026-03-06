@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.synced_grades_unique_entry;
