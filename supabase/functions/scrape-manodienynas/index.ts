@@ -108,7 +108,10 @@ function extractGradeTokens(value: string): number[] {
   const grades: number[] = [];
   for (const token of tokens) {
     const normalized = token.replace(',', '.');
-    if (!/^(10|[1-9])(?:[+-])?$/.test(normalized)) continue;
+
+    const isWholeGrade = /^(10|[1-9])(?:[+-])?$/.test(normalized);
+    const isDecimalZeroGrade = /^(10|[1-9])\.0+$/.test(normalized);
+    if (!isWholeGrade && !isDecimalZeroGrade) continue;
 
     const parsed = Number.parseInt(normalized, 10);
     if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) {
