@@ -126,6 +126,69 @@ function parseGradesFromContent(html: string, markdown: string): ManoDienynasGra
   return grades;
 }
 
+function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
+  const today = new Date().toISOString().split('T')[0];
+  const nowIso = new Date().toISOString();
+  const dedupe = new Set<string>();
+
+  return grades
+    .map((grade) => {
+      const parsedGrade = Number.parseInt(String(grade.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
+
+      const subject = (grade.subject || 'Unknown').trim().substring(0, 120) || 'Unknown';
+      const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80) || 'Įvertinimas';
+      const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10) || getSemester(new Date());
+      const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
+
+      const fingerprint = `${subject}|${parsedGrade}|${date}|${gradeType}`;
+      if (dedupe.has(fingerprint)) return null;
+      dedupe.add(fingerprint);
+
+      return {
+        user_id: userId,
+        source: 'manodienynas' as const,
+        subject,
+        grade: parsedGrade,
+        grade_type: gradeType,
+        date,
+        semester,
+        teacher_name: teacherName,
+        notes: grade.comment?.trim()?.substring(0, 4000) || null,
+        synced_at: nowIso,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+}
+
+async function persistGrades(supabase: ReturnType<typeof createClient>, userId: string, grades: ManoDienynasGrade[]) {
+  const rows = normalizeGradeRows(userId, grades);
+  if (rows.length === 0) {
+    throw new Error('No valid grades were parsed to store.');
+  }
+
+  const { error: deleteError } = await supabase
+    .from('synced_grades')
+    .delete()
+    .eq('user_id', userId)
+    .eq('source', 'manodienynas');
+
+  if (deleteError) {
+    throw new Error(`Failed to clear previous ManoDienynas grades: ${deleteError.message}`);
+  }
+
+  const { error: insertError } = await supabase
+    .from('synced_grades')
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(`Failed to save ManoDienynas grades: ${insertError.message}`);
+  }
+
+  return rows.length;
+}
+
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: ManoDienynasGrade[]; error?: string }> {
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
 
