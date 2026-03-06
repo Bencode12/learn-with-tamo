@@ -33,7 +33,13 @@ async function firecrawlScrapeWithActions(
   try {
     const body: any = {
       url,
-      formats: ['html', 'markdown'],
+      formats: ['html', 'markdown', 'json'],
+      onlyMainContent: false,
+      jsonOptions: {
+        prompt: 'Extract ONLY real school grade rows for the logged-in student. Return JSON object with key "grades" as array of items: subject, grade (1-10), gradeType, date (YYYY-MM-DD if available), teacher, comment. Ignore menu items, navigation labels, page numbers, IDs, and unrelated numeric values.'
+      },
+      proxy: 'auto',
+      storeInCache: false,
     };
     if (actions && actions.length > 0) {
       body.actions = actions;
