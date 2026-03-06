@@ -287,7 +287,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return { success: false, grades: [], error: 'Session not maintained - try again' };
     }
 
-    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
     return { success: true, grades };
   } catch (error) {
     console.error('[Tamo] Login and scrape error:', error);
