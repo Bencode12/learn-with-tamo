@@ -21,8 +21,10 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-// Use Firecrawl with actions to login and scrape
-async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+async function firecrawlScrapeWithActions(
+  url: string,
+  actions?: any[]
+): Promise<{ success: boolean; html?: string; markdown?: string; extractedJson?: any; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     return { success: false, error: 'Firecrawl API key not configured' };
@@ -31,7 +33,14 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
   try {
     const body: any = {
       url,
-      formats: ['html', 'markdown'],
+      formats: [
+        'html',
+        'markdown',
+        {
+          type: 'json',
+          prompt: 'Extract all grade entries visible on this page. Return JSON with key "grades" as an array where each item has subject, grade (number 1-10), gradeType, date (YYYY-MM-DD when possible), teacher, comment.'
+        }
+      ],
     };
 
     if (actions && actions.length > 0) {
@@ -59,6 +68,7 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
+      extractedJson: data.data?.json || data.json || null,
     };
   } catch (error) {
     console.error('[Tamo] Firecrawl fetch error:', error);
