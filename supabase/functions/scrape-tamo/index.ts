@@ -21,272 +21,177 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-function getSetCookies(response: Response): string[] {
-  const direct = (response.headers as any).getSetCookie?.();
-  if (Array.isArray(direct) && direct.length > 0) return direct;
-  const cookies: string[] = [];
-  for (const [key, value] of response.headers.entries()) {
-    if (key.toLowerCase() === 'set-cookie') cookies.push(value);
+// Use Firecrawl with actions to login and scrape
+async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) {
+    return { success: false, error: 'Firecrawl API key not configured' };
   }
-  return cookies;
+
+  try {
+    const body: any = {
+      url,
+      formats: ['html', 'markdown'],
+    };
+
+    if (actions && actions.length > 0) {
+      body.actions = actions;
+    }
+
+    console.log('[Tamo] Firecrawl request to:', url, 'with', actions?.length || 0, 'actions');
+
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('[Tamo] Firecrawl error:', JSON.stringify(data).substring(0, 500));
+      return { success: false, error: data.error || `Firecrawl returned ${response.status}` };
+    }
+
+    return {
+      success: true,
+      html: data.data?.html || data.html || '',
+      markdown: data.data?.markdown || data.markdown || '',
+    };
+  } catch (error) {
+    console.error('[Tamo] Firecrawl fetch error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }
 
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-  'Accept-Language': 'lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Cache-Control': 'no-cache',
-  'Pragma': 'no-cache',
-  'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-  'sec-ch-ua-mobile': '?0',
-  'sec-ch-ua-platform': '"Windows"',
-  'Upgrade-Insecure-Requests': '1',
-};
+// Parse grades from Tamo page content
+function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
+  const grades: TamoGrade[] = [];
 
-class TamoScraper {
-  private baseUrl = 'https://dienynas.tamo.lt';
-  private cookies: Map<string, string> = new Map();
+  // Try HTML-based parsing with various patterns
+  const gradePatterns = [
+    /class="[^"]*(?:grade|mark|pazymys|eval|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
+    /data-(?:grade|mark|value)="(\d{1,2})"/gi,
+    /<td[^>]*class="[^"]*(?:mark|grade|pazymys)[^"]*"[^>]*>\s*(\d{1,2})\s*<\/td>/gi,
+    // Generic: any small cell with just a number (common grade table pattern)
+    /<td[^>]*>\s*<[^>]*>\s*(\d{1,2})\s*<\/[^>]*>\s*<\/td>/gi,
+  ];
 
-  private updateCookies(response: Response) {
-    const setCookies = getSetCookies(response);
-    for (const cookie of setCookies) {
-      const [cookiePart] = cookie.split(';');
-      const eqIdx = cookiePart.indexOf('=');
-      if (eqIdx > 0) {
-        this.cookies.set(cookiePart.substring(0, eqIdx), cookiePart.substring(eqIdx + 1));
+  for (const pattern of gradePatterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const num = parseInt(match[1], 10);
+      if (num >= 1 && num <= 10) {
+        grades.push({
+          subject: 'Unknown',
+          grade: num,
+          gradeType: 'Įvertinimas',
+          date: new Date().toISOString().split('T')[0],
+          semester: getSemester(new Date()),
+          teacher: 'Nenurodyta',
+        });
       }
     }
+    if (grades.length > 0) break;
   }
 
-  private getCookieHeader(): string {
-    return Array.from(this.cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
-  }
-
-  async login(username: string, password: string): Promise<boolean> {
-    try {
-      // Step 1: GET the login page to collect session cookies
-      console.log('[Tamo] Step 1: Loading login page...');
-      const loginPageRes = await fetch(`${this.baseUrl}/prisijungimas/login`, {
-        method: 'GET',
-        headers: {
-          ...BROWSER_HEADERS,
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'none',
-          'sec-fetch-user': '?1',
-        },
-        redirect: 'manual',
-      });
-      this.updateCookies(loginPageRes);
-      const pageHtml = await loginPageRes.text();
-      console.log('[Tamo] Login page status:', loginPageRes.status, 'Cookies:', this.cookies.size);
-      
-      // Check for any verification token in the page
-      const tokenMatch = pageHtml.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/i);
-      const token = tokenMatch ? tokenMatch[1] : null;
-      console.log('[Tamo] CSRF token found:', !!token);
-
-      // Follow any redirects from the login page
-      const location = loginPageRes.headers.get('location');
-      if (location) {
-        console.log('[Tamo] Login page redirected to:', location);
-        const redirectUrl = location.startsWith('http') ? location : `${this.baseUrl}${location}`;
-        const redirectRes = await fetch(redirectUrl, {
-          method: 'GET',
-          headers: {
-            ...BROWSER_HEADERS,
-            'Cookie': this.getCookieHeader(),
-            'Referer': `${this.baseUrl}/prisijungimas/login`,
-          },
-          redirect: 'manual',
-        });
-        this.updateCookies(redirectRes);
-        await redirectRes.text();
-      }
-
-      // Step 2: POST login credentials
-      // The form action is https://dienynas.tamo.lt/ (root)
-      console.log('[Tamo] Step 2: Submitting credentials...');
-      const formData = new URLSearchParams();
-      formData.append('UserName', username.trim());
-      formData.append('Password', password);
-      if (token) {
-        formData.append('__RequestVerificationToken', token);
-      }
-
-      const loginRes = await fetch(`${this.baseUrl}/`, {
-        method: 'POST',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': this.getCookieHeader(),
-          'Origin': this.baseUrl,
-          'Referer': `${this.baseUrl}/prisijungimas/login`,
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'same-origin',
-          'sec-fetch-user': '?1',
-        },
-        body: formData.toString(),
-        redirect: 'manual',
-      });
-      this.updateCookies(loginRes);
-      const loginStatus = loginRes.status;
-      const loginLocation = loginRes.headers.get('location') || '';
-      console.log('[Tamo] Login POST status:', loginStatus, 'Location:', loginLocation);
-
-      // If we get a redirect, follow it
-      if (loginStatus === 301 || loginStatus === 302) {
-        const redirectUrl = loginLocation.startsWith('http') ? loginLocation : `${this.baseUrl}${loginLocation}`;
-        console.log('[Tamo] Following login redirect to:', redirectUrl);
-        const afterLoginRes = await fetch(redirectUrl, {
-          method: 'GET',
-          headers: {
-            ...BROWSER_HEADERS,
-            'Cookie': this.getCookieHeader(),
-            'Referer': `${this.baseUrl}/prisijungimas/login`,
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
-          },
-          redirect: 'manual',
-        });
-        this.updateCookies(afterLoginRes);
-        const afterStatus = afterLoginRes.status;
-        const afterLocation = afterLoginRes.headers.get('location') || '';
-        console.log('[Tamo] After-login status:', afterStatus, 'Location:', afterLocation);
-        
-        // Follow one more redirect if needed
-        if (afterStatus === 301 || afterStatus === 302) {
-          const url2 = afterLocation.startsWith('http') ? afterLocation : `${this.baseUrl}${afterLocation}`;
-          const res2 = await fetch(url2, {
-            method: 'GET',
-            headers: {
-              ...BROWSER_HEADERS,
-              'Cookie': this.getCookieHeader(),
-              'Referer': redirectUrl,
-            },
-            redirect: 'manual',
-          });
-          this.updateCookies(res2);
-          await res2.text();
-          console.log('[Tamo] Second redirect status:', res2.status);
-        }
-      } else if (loginStatus === 200) {
-        // 200 on login POST usually means login failed (stayed on login page)
-        const body = await loginRes.text();
-        if (body.includes('Naudotojo vardas') && body.includes('Slaptažodis')) {
-          console.log('[Tamo] Login appears to have failed (still on login page)');
-          return false;
-        }
-      } else if (loginStatus === 403) {
-        const body = await loginRes.text();
-        console.log('[Tamo] Got 403. Response length:', body.length, 'First 200 chars:', body.substring(0, 200));
-        return false;
-      }
-
-      // Step 3: Verify session by accessing grades page
-      console.log('[Tamo] Step 3: Verifying session...');
-      const verifyRes = await fetch(`${this.baseUrl}/dienynas/pazymiai`, {
-        method: 'GET',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Cookie': this.getCookieHeader(),
-          'Referer': this.baseUrl,
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'same-origin',
-        },
-        redirect: 'manual',
-      });
-      this.updateCookies(verifyRes);
-      const verifyLocation = (verifyRes.headers.get('location') || '').toLowerCase();
-      console.log('[Tamo] Verify status:', verifyRes.status, 'Location:', verifyLocation);
-
-      const isLoggedIn = verifyRes.status === 200 || 
-        (verifyRes.status === 302 && !verifyLocation.includes('prisijungimas'));
-      
-      console.log('[Tamo] Login result:', isLoggedIn);
-      return isLoggedIn;
-    } catch (error) {
-      console.error('[Tamo] Login error:', error);
-      return false;
-    }
-  }
-
-  async getGrades(): Promise<TamoGrade[]> {
-    const grades: TamoGrade[] = [];
+  // Parse from markdown tables
+  if (grades.length === 0 && markdown) {
+    const lines = markdown.split('\n');
+    let currentSubject = '';
     
-    try {
-      const response = await fetch(`${this.baseUrl}/dienynas/pazymiai`, {
-        method: 'GET',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Cookie': this.getCookieHeader(),
-          'Referer': this.baseUrl,
-        },
-        redirect: 'manual',
-      });
-
-      if (response.status === 302) {
-        const loc = (response.headers.get('location') || '').toLowerCase();
-        if (loc.includes('prisijungimas')) throw new Error('Session expired');
-      }
-
-      if (response.status !== 200) {
-        console.log('[Tamo] Grades page status:', response.status);
-        return grades;
-      }
-
-      const html = await response.text();
-      console.log('[Tamo] Grades page length:', html.length);
-
-      // Parse grade data - Tamo uses tables with subject rows
-      // Look for grade values in the HTML
-      const gradeRegex = /class="[^"]*(?:grade|mark|pazymys)[^"]*"[^>]*>(\d{1,2})<\//gi;
-      let match;
-      while ((match = gradeRegex.exec(html)) !== null) {
-        const num = parseInt(match[1], 10);
-        if (num >= 1 && num <= 10) {
-          grades.push({
-            subject: 'Unknown',
-            grade: num,
-            gradeType: 'Įvertinimas',
-            date: new Date().toISOString().split('T')[0],
-            semester: getSemester(new Date()),
-            teacher: 'Nenurodyta',
-          });
-        }
-      }
-
-      // Try table-based parsing
-      if (grades.length === 0) {
-        // Look for subject-grade patterns in table rows
-        const rowRegex = /<tr[^>]*>[\s\S]*?<td[^>]*>([\s\S]*?)<\/td>[\s\S]*?<td[^>]*class="[^"]*(?:grade|mark)[^"]*"[^>]*>(\d{1,2})<\/td>/gi;
-        while ((match = rowRegex.exec(html)) !== null) {
-          const subject = match[1].replace(/<[^>]+>/g, '').trim();
-          const num = parseInt(match[2], 10);
-          if (subject && num >= 1 && num <= 10) {
-            grades.push({
-              subject,
-              grade: num,
-              gradeType: 'Įvertinimas',
-              date: new Date().toISOString().split('T')[0],
-              semester: getSemester(new Date()),
-              teacher: 'Nenurodyta',
-            });
+    for (const line of lines) {
+      if (line.includes('|')) {
+        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+        // Skip separator rows
+        if (cells.every(c => /^[-:]+$/.test(c))) continue;
+        
+        if (cells.length >= 2) {
+          // First cell is likely subject name
+          const firstCell = cells[0];
+          if (firstCell && !/^\d+$/.test(firstCell) && !firstCell.startsWith('-')) {
+            currentSubject = firstCell;
+          }
+          
+          for (let i = 1; i < cells.length; i++) {
+            const num = parseInt(cells[i], 10);
+            if (!isNaN(num) && num >= 1 && num <= 10) {
+              grades.push({
+                subject: currentSubject || 'Unknown',
+                grade: num,
+                gradeType: 'Įvertinimas',
+                date: new Date().toISOString().split('T')[0],
+                semester: getSemester(new Date()),
+                teacher: 'Nenurodyta',
+              });
+            }
           }
         }
       }
+    }
+  }
 
-      console.log('[Tamo] Parsed grades count:', grades.length);
-    } catch (error) {
-      console.error('[Tamo] Error fetching grades:', error);
-      throw error;
+  console.log('[Tamo] Parsed grades count:', grades.length);
+  return grades;
+}
+
+async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: TamoGrade[]; error?: string }> {
+  const loginUrl = 'https://dienynas.tamo.lt/prisijungimas/login';
+
+  try {
+    // Step 1: Use Firecrawl actions to fill login form and submit
+    console.log('[Tamo] Logging in via Firecrawl actions...');
+    const loginResult = await firecrawlScrapeWithActions(loginUrl, [
+      { type: 'wait', milliseconds: 2000 },
+      { type: 'click', selector: '#UserName' },
+      { type: 'write', text: username },
+      { type: 'click', selector: '#Password' },
+      { type: 'write', text: password },
+      { type: 'click', selector: '.c_btn.submit' },
+      { type: 'wait', milliseconds: 5000 },
+      // After login, we should be on the dashboard or redirected
+      { type: 'screenshot' },
+    ]);
+
+    if (!loginResult.success) {
+      return { success: false, grades: [], error: `Login failed: ${loginResult.error}` };
     }
 
-    return grades;
+    console.log('[Tamo] Post-login page HTML length:', loginResult.html?.length || 0);
+    console.log('[Tamo] Post-login markdown preview:', loginResult.markdown?.substring(0, 300));
+
+    // Check if still on login page (failed login)
+    const html = loginResult.html || '';
+    if (html.includes('Įveskite naudotojo vardą') || html.includes('Naudotojo vardas negali')) {
+      return { success: false, grades: [], error: 'Login failed - invalid credentials' };
+    }
+
+    // Step 2: Navigate to grades page
+    console.log('[Tamo] Navigating to grades page...');
+    const gradesResult = await firecrawlScrapeWithActions('https://dienynas.tamo.lt/dienynas/pazymiai', [
+      { type: 'wait', milliseconds: 3000 },
+    ]);
+
+    if (!gradesResult.success) {
+      // If grades page fails, try parsing from the post-login page
+      console.log('[Tamo] Direct grades page access failed, parsing from post-login page');
+      const grades = parseGradesFromContent(html, loginResult.markdown || '');
+      return { success: grades.length > 0, grades, error: grades.length === 0 ? 'No grades found on page' : undefined };
+    }
+
+    // Check if redirected back to login
+    const gradesHtml = gradesResult.html || '';
+    if (gradesHtml.includes('Įveskite naudotojo vardą')) {
+      return { success: false, grades: [], error: 'Session not maintained - try again' };
+    }
+
+    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+    return { success: true, grades };
+  } catch (error) {
+    console.error('[Tamo] Login and scrape error:', error);
+    return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -310,14 +215,17 @@ serve(async (req) => {
 
     const body = await req.json();
     const { action, username, password } = body;
-    const scraper = new TamoScraper();
 
     if (action === 'test_login') {
       if (!username || !password) throw new Error('Username and password required');
-      const success = await scraper.login(username, password);
+      const result = await loginAndScrapeGrades(username, password);
+
       return new Response(JSON.stringify({
-        success,
-        message: success ? 'Login successful' : 'Login failed - check credentials or try again later',
+        success: result.success,
+        message: result.success
+          ? `Login successful! Found ${result.grades.length} grades.`
+          : `Login test: ${result.error || 'Failed'}`,
+        gradesFound: result.grades.length,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -344,22 +252,20 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      const loginSuccess = await scraper.login(
+      const result = await loginAndScrapeGrades(
         decryptedCreds.username,
         atob(decryptedCreds.passwordHash)
       );
 
-      if (!loginSuccess) {
+      if (!result.success) {
         return new Response(JSON.stringify({
           success: false,
-          error: 'Failed to login to Tamo. The portal may be blocking automated access. Please try again later.',
+          error: result.error || 'Failed to sync with Tamo',
           sessionValid: false,
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const grades = await scraper.getGrades();
-
-      for (const grade of grades) {
+      for (const grade of result.grades) {
         await supabase.from('synced_grades').upsert({
           user_id: user.id,
           source: 'tamo',
@@ -376,9 +282,9 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        grades,
+        grades: result.grades,
         lastSync: new Date().toISOString(),
-        message: `Successfully synced ${grades.length} grades from Tamo`,
+        message: `Successfully synced ${result.grades.length} grades from Tamo`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
