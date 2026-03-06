@@ -277,7 +277,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     if (!gradesResult.success) {
       // If grades page fails, try parsing from the post-login page
       console.log('[Tamo] Direct grades page access failed, parsing from post-login page');
-      const grades = parseGradesFromContent(html, loginResult.markdown || '');
+      const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
       return { success: grades.length > 0, grades, error: grades.length === 0 ? 'No grades found on page' : undefined };
     }
 
