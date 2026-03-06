@@ -316,14 +316,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     // ManoDienynas login form: email input #dl_username, password #dl_password, submit #login_submit
     console.log('[ManoDienynas] Logging in via Firecrawl actions...');
     const loginResult = await firecrawlScrapeWithActions(loginUrl, [
-      { type: 'wait', milliseconds: 2000 },
+      { type: 'wait', milliseconds: 1500 },
       { type: 'click', selector: '#dl_username' },
       { type: 'write', text: username },
       { type: 'click', selector: '#dl_password' },
       { type: 'write', text: password },
       { type: 'click', selector: '#login_submit' },
-      { type: 'wait', milliseconds: 5000 },
-      { type: 'screenshot' },
+      { type: 'wait', milliseconds: 3500 },
     ]);
 
     if (!loginResult.success) {
