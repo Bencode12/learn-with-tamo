@@ -206,6 +206,8 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
       if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
 
       const subject = cleanText((grade.subject || 'Unknown')).substring(0, 120) || 'Unknown';
+      if (!isLikelySubject(subject)) return null;
+
       const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80) || 'Įvertinimas';
       const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10) || getSemester(new Date());
       const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
