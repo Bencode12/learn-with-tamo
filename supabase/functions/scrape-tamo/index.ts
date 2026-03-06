@@ -21,8 +21,10 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-// Use Firecrawl with actions to login and scrape
-async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+async function firecrawlScrapeWithActions(
+  url: string,
+  actions?: any[]
+): Promise<{ success: boolean; html?: string; markdown?: string; extractedJson?: any; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     return { success: false, error: 'Firecrawl API key not configured' };
@@ -59,6 +61,7 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
+      extractedJson: null,
     };
   } catch (error) {
     console.error('[Tamo] Firecrawl fetch error:', error);
@@ -66,9 +69,36 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
   }
 }
 
-// Parse grades from Tamo page content
-function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
+function parseGradesFromContent(html: string, markdown: string, extractedJson?: any): TamoGrade[] {
   const grades: TamoGrade[] = [];
+
+  const extractedGrades = Array.isArray(extractedJson?.grades)
+    ? extractedJson.grades
+    : Array.isArray(extractedJson)
+      ? extractedJson
+      : [];
+
+  if (extractedGrades.length > 0) {
+    for (const item of extractedGrades) {
+      const parsedGrade = Number.parseInt(String(item?.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) continue;
+
+      grades.push({
+        subject: String(item?.subject || 'Unknown').trim() || 'Unknown',
+        grade: parsedGrade,
+        gradeType: String(item?.gradeType || 'Įvertinimas').trim() || 'Įvertinimas',
+        date: String(item?.date || new Date().toISOString().split('T')[0]).slice(0, 10),
+        semester: String(item?.semester || getSemester(new Date())).trim() || getSemester(new Date()),
+        teacher: String(item?.teacher || 'Nenurodyta').trim() || 'Nenurodyta',
+        comment: item?.comment ? String(item.comment).trim() : undefined,
+      });
+    }
+  }
+
+  if (grades.length > 0) {
+    console.log('[Tamo] Parsed grades from JSON extraction:', grades.length);
+    return grades;
+  }
 
   // Try HTML-based parsing with various patterns
   const gradePatterns = [
@@ -137,6 +167,69 @@ function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
   return grades;
 }
 
+function normalizeGradeRows(userId: string, grades: TamoGrade[]) {
+  const today = new Date().toISOString().split('T')[0];
+  const nowIso = new Date().toISOString();
+  const dedupe = new Set<string>();
+
+  return grades
+    .map((grade) => {
+      const parsedGrade = Number.parseInt(String(grade.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
+
+      const subject = (grade.subject || 'Unknown').trim().substring(0, 120) || 'Unknown';
+      const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80) || 'Įvertinimas';
+      const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10) || getSemester(new Date());
+      const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
+
+      const fingerprint = `${subject}|${date}`;
+      if (dedupe.has(fingerprint)) return null;
+      dedupe.add(fingerprint);
+
+      return {
+        user_id: userId,
+        source: 'tamo' as const,
+        subject,
+        grade: parsedGrade,
+        grade_type: gradeType,
+        date,
+        semester,
+        teacher_name: teacherName,
+        notes: grade.comment?.trim()?.substring(0, 4000) || null,
+        synced_at: nowIso,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+}
+
+async function persistGrades(supabase: ReturnType<typeof createClient>, userId: string, grades: TamoGrade[]) {
+  const rows = normalizeGradeRows(userId, grades);
+  if (rows.length === 0) {
+    throw new Error('No valid grades were parsed to store.');
+  }
+
+  const { error: deleteError } = await supabase
+    .from('synced_grades')
+    .delete()
+    .eq('user_id', userId)
+    .eq('source', 'tamo');
+
+  if (deleteError) {
+    throw new Error(`Failed to clear previous Tamo grades: ${deleteError.message}`);
+  }
+
+  const { error: insertError } = await supabase
+    .from('synced_grades')
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(`Failed to save Tamo grades: ${insertError.message}`);
+  }
+
+  return rows.length;
+}
+
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: TamoGrade[]; error?: string }> {
   const loginUrl = 'https://dienynas.tamo.lt/prisijungimas/login';
 
@@ -177,7 +270,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     if (!gradesResult.success) {
       // If grades page fails, try parsing from the post-login page
       console.log('[Tamo] Direct grades page access failed, parsing from post-login page');
-      const grades = parseGradesFromContent(html, loginResult.markdown || '');
+      const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
       return { success: grades.length > 0, grades, error: grades.length === 0 ? 'No grades found on page' : undefined };
     }
 
@@ -187,7 +280,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return { success: false, grades: [], error: 'Session not maintained - try again' };
     }
 
-    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
     return { success: true, grades };
   } catch (error) {
     console.error('[Tamo] Login and scrape error:', error);
@@ -265,26 +358,14 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      for (const grade of result.grades) {
-        await supabase.from('synced_grades').upsert({
-          user_id: user.id,
-          source: 'tamo',
-          subject: grade.subject,
-          grade: grade.grade,
-          grade_type: grade.gradeType,
-          date: grade.date,
-          semester: grade.semester,
-          teacher_name: grade.teacher,
-          notes: grade.comment,
-          synced_at: new Date().toISOString()
-        }, { onConflict: 'user_id,source,subject,date' });
-      }
+      const persistedCount = await persistGrades(supabase, user.id, result.grades);
 
       return new Response(JSON.stringify({
         success: true,
         grades: result.grades,
+        gradesStored: persistedCount,
         lastSync: new Date().toISOString(),
-        message: `Successfully synced ${result.grades.length} grades from Tamo`,
+        message: `Successfully synced and stored ${persistedCount} grades from Tamo`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

@@ -21,7 +21,10 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+async function firecrawlScrapeWithActions(
+  url: string,
+  actions?: any[]
+): Promise<{ success: boolean; html?: string; markdown?: string; extractedJson?: any; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     return { success: false, error: 'Firecrawl API key not configured' };
@@ -57,6 +60,7 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
+      extractedJson: null,
     };
   } catch (error) {
     console.error('[ManoDienynas] Firecrawl fetch error:', error);
@@ -64,8 +68,36 @@ async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise
   }
 }
 
-function parseGradesFromContent(html: string, markdown: string): ManoDienynasGrade[] {
+function parseGradesFromContent(html: string, markdown: string, extractedJson?: any): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
+
+  const extractedGrades = Array.isArray(extractedJson?.grades)
+    ? extractedJson.grades
+    : Array.isArray(extractedJson)
+      ? extractedJson
+      : [];
+
+  if (extractedGrades.length > 0) {
+    for (const item of extractedGrades) {
+      const parsedGrade = Number.parseInt(String(item?.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) continue;
+
+      grades.push({
+        subject: String(item?.subject || 'Unknown').trim() || 'Unknown',
+        grade: parsedGrade,
+        gradeType: String(item?.gradeType || 'Įvertinimas').trim() || 'Įvertinimas',
+        date: String(item?.date || new Date().toISOString().split('T')[0]).slice(0, 10),
+        semester: String(item?.semester || getSemester(new Date())).trim() || getSemester(new Date()),
+        teacher: String(item?.teacher || 'Nenurodyta').trim() || 'Nenurodyta',
+        comment: item?.comment ? String(item.comment).trim() : undefined,
+      });
+    }
+  }
+
+  if (grades.length > 0) {
+    console.log('[ManoDienynas] Parsed grades from JSON extraction:', grades.length);
+    return grades;
+  }
 
   const gradePatterns = [
     /class="[^"]*(?:grade|mark|pazymys|pazymiai|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
@@ -126,6 +158,69 @@ function parseGradesFromContent(html: string, markdown: string): ManoDienynasGra
   return grades;
 }
 
+function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
+  const today = new Date().toISOString().split('T')[0];
+  const nowIso = new Date().toISOString();
+  const dedupe = new Set<string>();
+
+  return grades
+    .map((grade) => {
+      const parsedGrade = Number.parseInt(String(grade.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
+
+      const subject = (grade.subject || 'Unknown').trim().substring(0, 120) || 'Unknown';
+      const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80) || 'Įvertinimas';
+      const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10) || getSemester(new Date());
+      const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
+
+      const fingerprint = `${subject}|${date}`;
+      if (dedupe.has(fingerprint)) return null;
+      dedupe.add(fingerprint);
+
+      return {
+        user_id: userId,
+        source: 'manodienynas' as const,
+        subject,
+        grade: parsedGrade,
+        grade_type: gradeType,
+        date,
+        semester,
+        teacher_name: teacherName,
+        notes: grade.comment?.trim()?.substring(0, 4000) || null,
+        synced_at: nowIso,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+}
+
+async function persistGrades(supabase: ReturnType<typeof createClient>, userId: string, grades: ManoDienynasGrade[]) {
+  const rows = normalizeGradeRows(userId, grades);
+  if (rows.length === 0) {
+    throw new Error('No valid grades were parsed to store.');
+  }
+
+  const { error: deleteError } = await supabase
+    .from('synced_grades')
+    .delete()
+    .eq('user_id', userId)
+    .eq('source', 'manodienynas');
+
+  if (deleteError) {
+    throw new Error(`Failed to clear previous ManoDienynas grades: ${deleteError.message}`);
+  }
+
+  const { error: insertError } = await supabase
+    .from('synced_grades')
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(`Failed to save ManoDienynas grades: ${insertError.message}`);
+  }
+
+  return rows.length;
+}
+
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: ManoDienynasGrade[]; error?: string }> {
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
 
@@ -173,14 +268,14 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       const gradesHtml = gradesResult.html || '';
       if (gradesHtml.includes('dl_username')) continue; // Still on login
 
-      const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+      const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
       if (grades.length > 0) {
         return { success: true, grades };
       }
     }
 
     // Try parsing from post-login page itself
-    const grades = parseGradesFromContent(html, loginResult.markdown || '');
+    const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
     return {
       success: grades.length > 0,
       grades,
@@ -262,26 +357,14 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      for (const grade of result.grades) {
-        await supabase.from('synced_grades').upsert({
-          user_id: user.id,
-          source: 'manodienynas',
-          subject: grade.subject,
-          grade: grade.grade,
-          grade_type: grade.gradeType,
-          date: grade.date,
-          semester: grade.semester,
-          teacher_name: grade.teacher,
-          notes: grade.comment,
-          synced_at: new Date().toISOString()
-        }, { onConflict: 'user_id,source,subject,date' });
-      }
+      const persistedCount = await persistGrades(supabase, user.id, result.grades);
 
       return new Response(JSON.stringify({
         success: true,
         grades: result.grades,
+        gradesStored: persistedCount,
         lastSync: new Date().toISOString(),
-        message: `Successfully synced ${result.grades.length} grades from ManoDienynas`,
+        message: `Successfully synced and stored ${persistedCount} grades from ManoDienynas`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
