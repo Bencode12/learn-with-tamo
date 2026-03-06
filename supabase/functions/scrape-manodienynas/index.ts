@@ -282,7 +282,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     }
 
     // Try parsing from post-login page itself
-    const grades = parseGradesFromContent(html, loginResult.markdown || '');
+    const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
     return {
       success: grades.length > 0,
       grades,
