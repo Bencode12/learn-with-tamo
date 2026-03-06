@@ -275,7 +275,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       const gradesHtml = gradesResult.html || '';
       if (gradesHtml.includes('dl_username')) continue; // Still on login
 
-      const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+      const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
       if (grades.length > 0) {
         return { success: true, grades };
       }
