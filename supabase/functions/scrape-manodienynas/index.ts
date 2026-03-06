@@ -163,6 +163,8 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
 
   if (markdown) {
     const lines = markdown.split('\n');
+    let currentSubject = '';
+
     for (const line of lines) {
       if (!line.includes('|')) continue;
 
@@ -170,14 +172,19 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
       if (cells.length < 2) continue;
       if (cells.every((c) => /^[-:]+$/.test(c))) continue;
 
-      const subject = cells[0];
-      if (!isLikelySubject(subject)) continue;
+      const subjectCandidates = cells.filter((cell) => isLikelySubject(cell));
+      if (subjectCandidates.length > 0) {
+        currentSubject = subjectCandidates[0];
+      }
 
-      for (const cell of cells.slice(1)) {
-        const marks = extractGradeTokens(cell);
-        for (const mark of marks) {
-          grades.push(createGrade(subject, mark));
-        }
+      const gradesInRow = cells.flatMap((cell) => extractGradeTokens(cell));
+      if (gradesInRow.length === 0) continue;
+
+      const subjectForRow = subjectCandidates[0] || currentSubject;
+      if (!isLikelySubject(subjectForRow)) continue;
+
+      for (const mark of gradesInRow) {
+        grades.push(createGrade(subjectForRow, mark));
       }
     }
 
@@ -196,6 +203,8 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
 
   const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch: RegExpExecArray | null;
+  let currentSubjectFromHtml = '';
+
   while ((rowMatch = rowPattern.exec(html)) !== null) {
     const rowHtml = rowMatch[1];
     const cellPattern = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
@@ -207,14 +216,20 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
     }
 
     if (cells.length < 2) continue;
-    const subject = cells[0];
-    if (!isLikelySubject(subject)) continue;
 
-    for (const cell of cells.slice(1)) {
-      const marks = extractGradeTokens(cell);
-      for (const mark of marks) {
-        grades.push(createGrade(subject, mark));
-      }
+    const subjectCandidates = cells.filter((cell) => isLikelySubject(cell));
+    if (subjectCandidates.length > 0) {
+      currentSubjectFromHtml = subjectCandidates[0];
+    }
+
+    const gradesInRow = cells.flatMap((cell) => extractGradeTokens(cell));
+    if (gradesInRow.length === 0) continue;
+
+    const subjectForRow = subjectCandidates[0] || currentSubjectFromHtml;
+    if (!isLikelySubject(subjectForRow)) continue;
+
+    for (const mark of gradesInRow) {
+      grades.push(createGrade(subjectForRow, mark));
     }
   }
 
