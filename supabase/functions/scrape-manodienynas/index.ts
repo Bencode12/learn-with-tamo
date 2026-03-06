@@ -142,7 +142,7 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
       const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
       const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
 
-      const fingerprint = `${subject}|${parsedGrade}|${date}|${gradeType}`;
+      const fingerprint = `${subject}|${date}`;
       if (dedupe.has(fingerprint)) return null;
       dedupe.add(fingerprint);
 
