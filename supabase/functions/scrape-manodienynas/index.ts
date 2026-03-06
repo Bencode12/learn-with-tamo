@@ -66,7 +66,7 @@ async function firecrawlScrapeWithActions(
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
-      extractedJson: null,
+      extractedJson: data.data?.json || data.json || null,
     };
   } catch (error) {
     console.error('[ManoDienynas] Firecrawl fetch error:', error);
