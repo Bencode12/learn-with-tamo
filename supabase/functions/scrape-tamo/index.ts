@@ -21,25 +21,32 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-// Use Firecrawl to scrape Tamo pages (bypasses Cloudflare)
-async function firecrawlScrape(url: string): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+// Use Firecrawl with actions to login and scrape
+async function firecrawlScrapeWithActions(url: string, actions?: any[]): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     return { success: false, error: 'Firecrawl API key not configured' };
   }
 
   try {
+    const body: any = {
+      url,
+      formats: ['html', 'markdown'],
+    };
+
+    if (actions && actions.length > 0) {
+      body.actions = actions;
+    }
+
+    console.log('[Tamo] Firecrawl request to:', url, 'with', actions?.length || 0, 'actions');
+
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        url,
-        formats: ['html', 'markdown'],
-        waitFor: 3000,
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();
@@ -59,18 +66,17 @@ async function firecrawlScrape(url: string): Promise<{ success: boolean; html?: 
   }
 }
 
-// Parse grades from Tamo HTML/markdown
+// Parse grades from Tamo page content
 function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
   const grades: TamoGrade[] = [];
 
-  // Try parsing from HTML first
-  // Look for grade cells with numbers 1-10
+  // Try HTML-based parsing with various patterns
   const gradePatterns = [
-    // Common Tamo grade cell patterns
-    /class="[^"]*(?:grade|mark|pazymys|eval)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
+    /class="[^"]*(?:grade|mark|pazymys|eval|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
     /data-(?:grade|mark|value)="(\d{1,2})"/gi,
-    // Table cells with just numbers
     /<td[^>]*class="[^"]*(?:mark|grade|pazymys)[^"]*"[^>]*>\s*(\d{1,2})\s*<\/td>/gi,
+    // Generic: any small cell with just a number (common grade table pattern)
+    /<td[^>]*>\s*<[^>]*>\s*(\d{1,2})\s*<\/[^>]*>\s*<\/td>/gi,
   ];
 
   for (const pattern of gradePatterns) {
@@ -91,20 +97,29 @@ function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
     if (grades.length > 0) break;
   }
 
-  // Try parsing from markdown if HTML didn't work
+  // Parse from markdown tables
   if (grades.length === 0 && markdown) {
-    // Look for table rows with grade numbers
     const lines = markdown.split('\n');
+    let currentSubject = '';
+    
     for (const line of lines) {
       if (line.includes('|')) {
         const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+        // Skip separator rows
+        if (cells.every(c => /^[-:]+$/.test(c))) continue;
+        
         if (cells.length >= 2) {
-          const subject = cells[0];
+          // First cell is likely subject name
+          const firstCell = cells[0];
+          if (firstCell && !/^\d+$/.test(firstCell) && !firstCell.startsWith('-')) {
+            currentSubject = firstCell;
+          }
+          
           for (let i = 1; i < cells.length; i++) {
             const num = parseInt(cells[i], 10);
             if (!isNaN(num) && num >= 1 && num <= 10) {
               grades.push({
-                subject: subject || 'Unknown',
+                subject: currentSubject || 'Unknown',
                 grade: num,
                 gradeType: 'Įvertinimas',
                 date: new Date().toISOString().split('T')[0],
@@ -122,48 +137,60 @@ function parseGradesFromContent(html: string, markdown: string): TamoGrade[] {
   return grades;
 }
 
-// Attempt direct login + scrape with session cookies
-async function directLoginAndScrape(username: string, password: string): Promise<{ success: boolean; grades: TamoGrade[]; error?: string }> {
-  const baseUrl = 'https://dienynas.tamo.lt';
-  
+async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: TamoGrade[]; error?: string }> {
+  const loginUrl = 'https://dienynas.tamo.lt/prisijungimas/login';
+
   try {
-    // Use Firecrawl to get the login page first (gets past Cloudflare)
-    console.log('[Tamo] Using Firecrawl to access login page...');
-    const loginPageResult = await firecrawlScrape(`${baseUrl}/prisijungimas/login`);
-    
-    if (!loginPageResult.success) {
-      console.log('[Tamo] Firecrawl could not access login page:', loginPageResult.error);
-      return { success: false, grades: [], error: loginPageResult.error };
+    // Step 1: Use Firecrawl actions to fill login form and submit
+    console.log('[Tamo] Logging in via Firecrawl actions...');
+    const loginResult = await firecrawlScrapeWithActions(loginUrl, [
+      { type: 'wait', milliseconds: 2000 },
+      { type: 'click', selector: '#UserName' },
+      { type: 'write', text: username },
+      { type: 'click', selector: '#Password' },
+      { type: 'write', text: password },
+      { type: 'click', selector: '.c_btn.submit' },
+      { type: 'wait', milliseconds: 5000 },
+      // After login, we should be on the dashboard or redirected
+      { type: 'screenshot' },
+    ]);
+
+    if (!loginResult.success) {
+      return { success: false, grades: [], error: `Login failed: ${loginResult.error}` };
     }
 
-    console.log('[Tamo] Login page fetched via Firecrawl. HTML length:', loginPageResult.html?.length || 0);
+    console.log('[Tamo] Post-login page HTML length:', loginResult.html?.length || 0);
+    console.log('[Tamo] Post-login markdown preview:', loginResult.markdown?.substring(0, 300));
 
-    // Since Firecrawl doesn't support form submission/auth, we can try scraping
-    // the grades page directly if the user has a public session or API
-    // For now, try scraping the grades page directly
-    console.log('[Tamo] Attempting to scrape grades page...');
-    const gradesResult = await firecrawlScrape(`${baseUrl}/dienynas/pazymiai`);
-    
-    if (gradesResult.success && gradesResult.html) {
-      console.log('[Tamo] Grades page HTML length:', gradesResult.html.length);
-      
-      // Check if we got redirected to login
-      if (gradesResult.html.includes('Naudotojo vardas') && gradesResult.html.includes('Slaptažodis')) {
-        console.log('[Tamo] Redirected to login page - authentication required');
-        return { 
-          success: false, 
-          grades: [], 
-          error: 'Tamo requires authenticated session. Firecrawl cannot submit login forms. Manual grade entry or API integration needed.' 
-        };
-      }
-
-      const grades = parseGradesFromContent(gradesResult.html, gradesResult.markdown || '');
-      return { success: true, grades };
+    // Check if still on login page (failed login)
+    const html = loginResult.html || '';
+    if (html.includes('Įveskite naudotojo vardą') || html.includes('Naudotojo vardas negali')) {
+      return { success: false, grades: [], error: 'Login failed - invalid credentials' };
     }
 
-    return { success: false, grades: [], error: 'Could not access grades page' };
+    // Step 2: Navigate to grades page
+    console.log('[Tamo] Navigating to grades page...');
+    const gradesResult = await firecrawlScrapeWithActions('https://dienynas.tamo.lt/dienynas/pazymiai', [
+      { type: 'wait', milliseconds: 3000 },
+    ]);
+
+    if (!gradesResult.success) {
+      // If grades page fails, try parsing from the post-login page
+      console.log('[Tamo] Direct grades page access failed, parsing from post-login page');
+      const grades = parseGradesFromContent(html, loginResult.markdown || '');
+      return { success: grades.length > 0, grades, error: grades.length === 0 ? 'No grades found on page' : undefined };
+    }
+
+    // Check if redirected back to login
+    const gradesHtml = gradesResult.html || '';
+    if (gradesHtml.includes('Įveskite naudotojo vardą')) {
+      return { success: false, grades: [], error: 'Session not maintained - try again' };
+    }
+
+    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '');
+    return { success: true, grades };
   } catch (error) {
-    console.error('[Tamo] Direct login error:', error);
+    console.error('[Tamo] Login and scrape error:', error);
     return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -191,16 +218,14 @@ serve(async (req) => {
 
     if (action === 'test_login') {
       if (!username || !password) throw new Error('Username and password required');
-      
-      // Test if we can reach Tamo at all
-      const result = await directLoginAndScrape(username, password);
-      
+      const result = await loginAndScrapeGrades(username, password);
+
       return new Response(JSON.stringify({
         success: result.success,
-        message: result.success 
-          ? 'Connection to Tamo successful' 
-          : `Connection test: ${result.error || 'Failed'}`,
-        note: 'Tamo uses Cloudflare protection. Grade scraping uses Firecrawl to bypass bot detection.',
+        message: result.success
+          ? `Login successful! Found ${result.grades.length} grades.`
+          : `Login test: ${result.error || 'Failed'}`,
+        gradesFound: result.grades.length,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -227,7 +252,7 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      const result = await directLoginAndScrape(
+      const result = await loginAndScrapeGrades(
         decryptedCreds.username,
         atob(decryptedCreds.passwordHash)
       );
@@ -240,7 +265,6 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Store synced grades
       for (const grade of result.grades) {
         await supabase.from('synced_grades').upsert({
           user_id: user.id,
