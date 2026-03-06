@@ -61,7 +61,7 @@ async function firecrawlScrapeWithActions(
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
-      extractedJson: data.data?.json || data.json || null,
+      extractedJson: null,
     };
   } catch (error) {
     console.error('[Tamo] Firecrawl fetch error:', error);
