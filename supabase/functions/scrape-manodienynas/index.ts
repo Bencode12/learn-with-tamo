@@ -294,7 +294,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return { success: false, grades: [], error: 'Login failed - invalid credentials' };
     }
 
-    // Step 2: Navigate to grades page
+    const candidates: ManoDienynasGrade[][] = [];
+
+    const loginPageGrades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
+    if (loginPageGrades.length > 0) {
+      candidates.push(loginPageGrades);
+    }
+
     console.log('[ManoDienynas] Navigating to grades page...');
     const gradesUrls = [
       'https://www.manodienynas.lt/1/lt/diary/grades',
@@ -309,21 +315,26 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       if (!gradesResult.success) continue;
 
       const gradesHtml = gradesResult.html || '';
-      if (gradesHtml.includes('dl_username')) continue; // Still on login
+      if (gradesHtml.includes('dl_username')) continue;
 
       const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
       if (grades.length > 0) {
-        return { success: true, grades };
+        candidates.push(grades);
       }
     }
 
-    // Try parsing from post-login page itself
-    const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
-    return {
-      success: grades.length > 0,
-      grades,
-      error: grades.length === 0 ? 'Logged in but no grades found on page' : undefined,
-    };
+    const bestCandidate = candidates
+      .sort((a, b) => getGradeQualityScore(b) - getGradeQualityScore(a))[0] || [];
+
+    if (bestCandidate.length < 2 || getGradeQualityScore(bestCandidate) < 20) {
+      return {
+        success: false,
+        grades: [],
+        error: 'Could not reliably extract your grade list yet. Please try sync again after opening grades once in ManoDienynas.',
+      };
+    }
+
+    return { success: true, grades: bestCandidate };
   } catch (error) {
     console.error('[ManoDienynas] Login and scrape error:', error);
     return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
