@@ -350,6 +350,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     const gradesUrls = [
       'https://www.manodienynas.lt/1/lt/diary/grades',
       'https://www.manodienynas.lt/1/lt/page/marks',
+      'https://www.manodienynas.lt/1/lt/page/marks_pupil/marks',
     ];
 
     for (const url of gradesUrls) {
