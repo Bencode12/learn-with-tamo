@@ -21,236 +21,150 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-function getSetCookies(response: Response): string[] {
-  const direct = (response.headers as any).getSetCookie?.();
-  if (Array.isArray(direct) && direct.length > 0) return direct;
-  const cookies: string[] = [];
-  for (const [key, value] of response.headers.entries()) {
-    if (key.toLowerCase() === 'set-cookie') cookies.push(value);
+// Use Firecrawl to scrape ManoDienynas pages (bypasses Cloudflare)
+async function firecrawlScrape(url: string): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) {
+    return { success: false, error: 'Firecrawl API key not configured' };
   }
-  return cookies;
+
+  try {
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        formats: ['html', 'markdown'],
+        waitFor: 3000,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('[ManoDienynas] Firecrawl error:', JSON.stringify(data).substring(0, 500));
+      return { success: false, error: data.error || `Firecrawl returned ${response.status}` };
+    }
+
+    return {
+      success: true,
+      html: data.data?.html || data.html || '',
+      markdown: data.data?.markdown || data.markdown || '',
+    };
+  } catch (error) {
+    console.error('[ManoDienynas] Firecrawl fetch error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }
 
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-  'Accept-Language': 'lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-  'sec-ch-ua-mobile': '?0',
-  'sec-ch-ua-platform': '"Windows"',
-};
+// Parse grades from ManoDienynas HTML/markdown
+function parseGradesFromContent(html: string, markdown: string): ManoDienynasGrade[] {
+  const grades: ManoDienynasGrade[] = [];
 
-class ManoDienynasScraper {
-  private baseUrl = 'https://www.manodienynas.lt';
-  private cookies: Map<string, string> = new Map();
+  // Try parsing from HTML
+  const gradePatterns = [
+    /class="[^"]*(?:grade|mark|pazymys|pazymiai)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
+    /data-(?:grade|mark|value)="(\d{1,2})"/gi,
+    /<td[^>]*class="[^"]*(?:mark|grade)[^"]*"[^>]*>\s*(\d{1,2})\s*<\/td>/gi,
+  ];
 
-  private updateCookies(response: Response) {
-    const setCookies = getSetCookies(response);
-    for (const cookie of setCookies) {
-      const [cookiePart] = cookie.split(';');
-      const eqIdx = cookiePart.indexOf('=');
-      if (eqIdx > 0) {
-        this.cookies.set(cookiePart.substring(0, eqIdx), cookiePart.substring(eqIdx + 1));
+  for (const pattern of gradePatterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const num = parseInt(match[1], 10);
+      if (num >= 1 && num <= 10) {
+        grades.push({
+          subject: 'Unknown',
+          grade: num,
+          gradeType: 'Įvertinimas',
+          date: new Date().toISOString().split('T')[0],
+          semester: getSemester(new Date()),
+          teacher: 'Nenurodyta',
+        });
+      }
+    }
+    if (grades.length > 0) break;
+  }
+
+  // Try markdown tables
+  if (grades.length === 0 && markdown) {
+    const lines = markdown.split('\n');
+    for (const line of lines) {
+      if (line.includes('|')) {
+        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length >= 2) {
+          const subject = cells[0];
+          for (let i = 1; i < cells.length; i++) {
+            const num = parseInt(cells[i], 10);
+            if (!isNaN(num) && num >= 1 && num <= 10) {
+              grades.push({
+                subject: subject || 'Unknown',
+                grade: num,
+                gradeType: 'Įvertinimas',
+                date: new Date().toISOString().split('T')[0],
+                semester: getSemester(new Date()),
+                teacher: 'Nenurodyta',
+              });
+            }
+          }
+        }
       }
     }
   }
 
-  private getCookieHeader(): string {
-    return Array.from(this.cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
-  }
+  console.log('[ManoDienynas] Parsed grades count:', grades.length);
+  return grades;
+}
 
-  async login(username: string, password: string): Promise<boolean> {
-    try {
-      // Step 1: Load login page for session cookies
-      console.log('[ManoDienynas] Step 1: Loading login page...');
-      const loginPageRes = await fetch(`${this.baseUrl}/1/lt/public/public/login`, {
-        method: 'GET',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'none',
-          'sec-fetch-user': '?1',
-          'Upgrade-Insecure-Requests': '1',
-        },
-        redirect: 'manual',
-      });
-      this.updateCookies(loginPageRes);
-      await loginPageRes.text();
-      console.log('[ManoDienynas] Login page status:', loginPageRes.status, 'Cookies:', this.cookies.size);
+async function scrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: ManoDienynasGrade[]; error?: string }> {
+  const baseUrl = 'https://www.manodienynas.lt';
 
-      // Follow redirect if any
-      if (loginPageRes.status === 301 || loginPageRes.status === 302) {
-        const loc = loginPageRes.headers.get('location') || '';
-        const redirectUrl = loc.startsWith('http') ? loc : `${this.baseUrl}${loc}`;
-        console.log('[ManoDienynas] Following redirect to:', redirectUrl);
-        const r = await fetch(redirectUrl, {
-          method: 'GET',
-          headers: { ...BROWSER_HEADERS, 'Cookie': this.getCookieHeader() },
-          redirect: 'manual',
-        });
-        this.updateCookies(r);
-        await r.text();
-      }
+  try {
+    console.log('[ManoDienynas] Using Firecrawl to access login page...');
+    const loginPageResult = await firecrawlScrape(`${baseUrl}/1/lt/public/public/login`);
 
-      // Step 2: AJAX login - form posts to /1/lt/ajax/user/login
-      console.log('[ManoDienynas] Step 2: Submitting AJAX login...');
-      const formData = new URLSearchParams();
-      formData.append('username', username.trim());
-      formData.append('password', password);
-      formData.append('dienynas_remember_me', '1');
-
-      const loginRes = await fetch(`${this.baseUrl}/1/lt/ajax/user/login`, {
-        method: 'POST',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cookie': this.getCookieHeader(),
-          'Origin': this.baseUrl,
-          'Referer': `${this.baseUrl}/1/lt/public/public/login`,
-          'sec-fetch-dest': 'empty',
-          'sec-fetch-mode': 'cors',
-          'sec-fetch-site': 'same-origin',
-        },
-        body: formData.toString(),
-        redirect: 'manual',
-      });
-      this.updateCookies(loginRes);
-      const loginStatus = loginRes.status;
-      const responseText = await loginRes.text();
-      console.log('[ManoDienynas] Login status:', loginStatus, 'Response length:', responseText.length);
-      console.log('[ManoDienynas] Response preview:', responseText.substring(0, 300));
-
-      if (loginStatus === 403) {
-        console.log('[ManoDienynas] Got 403 - portal is blocking automated requests');
-        return false;
-      }
-
-      // Check for JSON response indicating success/failure
-      try {
-        const jsonRes = JSON.parse(responseText);
-        console.log('[ManoDienynas] JSON response:', JSON.stringify(jsonRes).substring(0, 200));
-        if (jsonRes.success === false || jsonRes.error) return false;
-        if (jsonRes.redirect || jsonRes.success) return true;
-      } catch {
-        // Not JSON - check if it's HTML with error messages
-        const lower = responseText.toLowerCase();
-        if (lower.includes('neteising') || lower.includes('neteisingas')) return false;
-      }
-
-      // Step 3: Verify by accessing a protected page
-      console.log('[ManoDienynas] Step 3: Verifying session...');
-      const verifyRes = await fetch(`${this.baseUrl}/1/lt/diary/grades`, {
-        method: 'GET',
-        headers: {
-          ...BROWSER_HEADERS,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Cookie': this.getCookieHeader(),
-          'Referer': `${this.baseUrl}/1/lt/public/public/login`,
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'same-origin',
-        },
-        redirect: 'manual',
-      });
-      this.updateCookies(verifyRes);
-      const verifyLocation = (verifyRes.headers.get('location') || '').toLowerCase();
-      console.log('[ManoDienynas] Verify status:', verifyRes.status, 'Location:', verifyLocation);
-
-      const isLoggedIn = verifyRes.status === 200 ||
-        (verifyRes.status === 302 && !verifyLocation.includes('/public/public/login'));
-
-      console.log('[ManoDienynas] Login result:', isLoggedIn);
-      return isLoggedIn;
-    } catch (error) {
-      console.error('[ManoDienynas] Login error:', error);
-      return false;
+    if (!loginPageResult.success) {
+      console.log('[ManoDienynas] Firecrawl could not access login page:', loginPageResult.error);
+      return { success: false, grades: [], error: loginPageResult.error };
     }
-  }
 
-  async getGrades(): Promise<ManoDienynasGrade[]> {
-    const grades: ManoDienynasGrade[] = [];
+    console.log('[ManoDienynas] Login page fetched. HTML length:', loginPageResult.html?.length || 0);
 
-    try {
-      // Try multiple possible grade page URLs
-      const urls = [
-        `${this.baseUrl}/1/lt/diary/grades`,
-        `${this.baseUrl}/1/lt/page/marks`,
-        `${this.baseUrl}/1/lt/diary/marks`,
-      ];
+    // Try accessing grades page directly
+    console.log('[ManoDienynas] Attempting to scrape grades page...');
+    const gradesUrls = [
+      `${baseUrl}/1/lt/diary/grades`,
+      `${baseUrl}/1/lt/page/marks`,
+    ];
 
-      for (const url of urls) {
-        console.log('[ManoDienynas] Trying grades URL:', url);
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            ...BROWSER_HEADERS,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Cookie': this.getCookieHeader(),
-            'Referer': this.baseUrl,
-          },
-          redirect: 'manual',
-        });
+    for (const url of gradesUrls) {
+      const result = await firecrawlScrape(url);
+      if (result.success && result.html) {
+        console.log('[ManoDienynas] Page HTML length:', result.html.length);
 
-        if (response.status === 302) {
-          const loc = (response.headers.get('location') || '').toLowerCase();
-          if (loc.includes('/public/public/login')) throw new Error('Session expired');
+        // Check if redirected to login
+        if (result.html.includes('dl_username') || result.html.includes('dienynas_form1')) {
+          console.log('[ManoDienynas] Redirected to login - auth required');
           continue;
         }
 
-        if (response.status !== 200) continue;
-
-        const html = await response.text();
-        console.log('[ManoDienynas] Grades page length:', html.length);
-
-        // Parse grade values from HTML using regex
-        const gradeRegex = /class="[^"]*(?:grade|mark|pazymys|pazymiai)[^"]*"[^>]*>(\d{1,2})<\//gi;
-        let match;
-        while ((match = gradeRegex.exec(html)) !== null) {
-          const num = parseInt(match[1], 10);
-          if (num >= 1 && num <= 10) {
-            grades.push({
-              subject: 'Unknown',
-              grade: num,
-              gradeType: 'Įvertinimas',
-              date: new Date().toISOString().split('T')[0],
-              semester: getSemester(new Date()),
-              teacher: 'Nenurodyta',
-            });
-          }
+        const grades = parseGradesFromContent(result.html, result.markdown || '');
+        if (grades.length > 0) {
+          return { success: true, grades };
         }
-
-        if (grades.length > 0) break;
-
-        // Try data attributes
-        const dataMarkRegex = /data-mark="(\d{1,2})"/gi;
-        while ((match = dataMarkRegex.exec(html)) !== null) {
-          const num = parseInt(match[1], 10);
-          if (num >= 1 && num <= 10) {
-            grades.push({
-              subject: 'Unknown',
-              grade: num,
-              gradeType: 'Įvertinimas',
-              date: new Date().toISOString().split('T')[0],
-              semester: getSemester(new Date()),
-              teacher: 'Nenurodyta',
-            });
-          }
-        }
-
-        if (grades.length > 0) break;
       }
-
-      console.log('[ManoDienynas] Parsed grades count:', grades.length);
-    } catch (error) {
-      console.error('[ManoDienynas] Error fetching grades:', error);
-      throw error;
     }
 
-    return grades;
+    return {
+      success: false,
+      grades: [],
+      error: 'ManoDienynas requires authenticated session. Firecrawl cannot submit login forms. Manual grade entry or API integration needed.',
+    };
+  } catch (error) {
+    console.error('[ManoDienynas] Scrape error:', error);
+    return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -274,14 +188,17 @@ serve(async (req) => {
 
     const body = await req.json();
     const { action, username, password } = body;
-    const scraper = new ManoDienynasScraper();
 
     if (action === 'test_login') {
       if (!username || !password) throw new Error('Username and password required');
-      const success = await scraper.login(username, password);
+      const result = await scrapeGrades(username, password);
+
       return new Response(JSON.stringify({
-        success,
-        message: success ? 'Login successful' : 'Login failed - check credentials or try again later',
+        success: result.success,
+        message: result.success
+          ? 'Connection to ManoDienynas successful'
+          : `Connection test: ${result.error || 'Failed'}`,
+        note: 'ManoDienynas uses Cloudflare protection. Grade scraping uses Firecrawl to bypass bot detection.',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -308,22 +225,20 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      const loginSuccess = await scraper.login(
+      const result = await scrapeGrades(
         decryptedCreds.username,
         atob(decryptedCreds.passwordHash)
       );
 
-      if (!loginSuccess) {
+      if (!result.success) {
         return new Response(JSON.stringify({
           success: false,
-          error: 'Failed to login to ManoDienynas. The portal may be blocking automated access.',
+          error: result.error || 'Failed to sync with ManoDienynas',
           sessionValid: false,
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      const grades = await scraper.getGrades();
-
-      for (const grade of grades) {
+      for (const grade of result.grades) {
         await supabase.from('synced_grades').upsert({
           user_id: user.id,
           source: 'manodienynas',
@@ -340,9 +255,9 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        grades,
+        grades: result.grades,
         lastSync: new Date().toISOString(),
-        message: `Successfully synced ${grades.length} grades from ManoDienynas`,
+        message: `Successfully synced ${result.grades.length} grades from ManoDienynas`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
