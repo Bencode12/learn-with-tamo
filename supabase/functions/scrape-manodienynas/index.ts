@@ -75,8 +75,36 @@ async function firecrawlScrapeWithActions(
   }
 }
 
-function parseGradesFromContent(html: string, markdown: string): ManoDienynasGrade[] {
+function parseGradesFromContent(html: string, markdown: string, extractedJson?: any): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
+
+  const extractedGrades = Array.isArray(extractedJson?.grades)
+    ? extractedJson.grades
+    : Array.isArray(extractedJson)
+      ? extractedJson
+      : [];
+
+  if (extractedGrades.length > 0) {
+    for (const item of extractedGrades) {
+      const parsedGrade = Number.parseInt(String(item?.grade), 10);
+      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) continue;
+
+      grades.push({
+        subject: String(item?.subject || 'Unknown').trim() || 'Unknown',
+        grade: parsedGrade,
+        gradeType: String(item?.gradeType || 'Įvertinimas').trim() || 'Įvertinimas',
+        date: String(item?.date || new Date().toISOString().split('T')[0]).slice(0, 10),
+        semester: String(item?.semester || getSemester(new Date())).trim() || getSemester(new Date()),
+        teacher: String(item?.teacher || 'Nenurodyta').trim() || 'Nenurodyta',
+        comment: item?.comment ? String(item.comment).trim() : undefined,
+      });
+    }
+  }
+
+  if (grades.length > 0) {
+    console.log('[ManoDienynas] Parsed grades from JSON extraction:', grades.length);
+    return grades;
+  }
 
   const gradePatterns = [
     /class="[^"]*(?:grade|mark|pazymys|pazymiai|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
