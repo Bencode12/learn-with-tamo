@@ -347,14 +347,14 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
 
     console.log('[ManoDienynas] Navigating to grades page...');
     const gradesUrls = [
+      'https://www.manodienynas.lt/1/lt/page/marks_pupil/marks',
       'https://www.manodienynas.lt/1/lt/diary/grades',
       'https://www.manodienynas.lt/1/lt/page/marks',
-      'https://www.manodienynas.lt/1/lt/page/marks_pupil/marks',
     ];
 
     for (const url of gradesUrls) {
       const gradesResult = await firecrawlScrapeWithActions(url, [
-        { type: 'wait', milliseconds: 3000 },
+        { type: 'wait', milliseconds: 2000 },
       ]);
 
       if (!gradesResult.success) continue;
@@ -365,6 +365,14 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
       if (grades.length > 0) {
         candidates.push(grades);
+      }
+
+      const currentBest = candidates.reduce((best, candidate) => {
+        return getGradeQualityScore(candidate) > getGradeQualityScore(best) ? candidate : best;
+      }, candidates[0] ?? []);
+
+      if (currentBest.length >= 3 && getGradeQualityScore(currentBest) >= 30) {
+        break;
       }
     }
 
