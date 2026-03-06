@@ -68,6 +68,36 @@ async function firecrawlScrapeWithActions(
   }
 }
 
+function cleanText(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isLikelySubject(value: string): boolean {
+  const text = cleanText(value);
+  if (text.length < 3 || text.length > 80) return false;
+  if (!/[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]/.test(text)) return false;
+  if (/^(unknown|nenurodyta)$/i.test(text)) return false;
+  if (/^(prisijungti|registruokis|dienos vaizdas|naujienos|pagalba)$/i.test(text)) return false;
+  if (/\b\d{2,}\b/.test(text)) return false;
+  return true;
+}
+
+function createGrade(subject: string, gradeValue: number, date?: string): ManoDienynasGrade {
+  return {
+    subject,
+    grade: gradeValue,
+    gradeType: 'Įvertinimas',
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? (date as string) : new Date().toISOString().split('T')[0],
+    semester: getSemester(new Date()),
+    teacher: 'Nenurodyta',
+  };
+}
+
 function parseGradesFromContent(html: string, markdown: string, extractedJson?: any): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
 
@@ -80,10 +110,12 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
   if (extractedGrades.length > 0) {
     for (const item of extractedGrades) {
       const parsedGrade = Number.parseInt(String(item?.grade), 10);
+      const subject = cleanText(String(item?.subject || ''));
       if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) continue;
+      if (!isLikelySubject(subject)) continue;
 
       grades.push({
-        subject: String(item?.subject || 'Unknown').trim() || 'Unknown',
+        subject,
         grade: parsedGrade,
         gradeType: String(item?.gradeType || 'Įvertinimas').trim() || 'Įvertinimas',
         date: String(item?.date || new Date().toISOString().split('T')[0]).slice(0, 10),
@@ -94,68 +126,73 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
     }
   }
 
-  if (grades.length > 0) {
-    console.log('[ManoDienynas] Parsed grades from JSON extraction:', grades.length);
-    return grades;
-  }
-
-  const gradePatterns = [
-    /class="[^"]*(?:grade|mark|pazymys|pazymiai|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
-    /data-(?:grade|mark|value)="(\d{1,2})"/gi,
-    /<td[^>]*class="[^"]*(?:mark|grade)[^"]*"[^>]*>\s*(\d{1,2})\s*<\/td>/gi,
-    /<td[^>]*>\s*<[^>]*>\s*(\d{1,2})\s*<\/[^>]*>\s*<\/td>/gi,
-  ];
-
-  for (const pattern of gradePatterns) {
-    let match;
-    while ((match = pattern.exec(html)) !== null) {
-      const num = parseInt(match[1], 10);
-      if (num >= 1 && num <= 10) {
-        grades.push({
-          subject: 'Unknown',
-          grade: num,
-          gradeType: 'Įvertinimas',
-          date: new Date().toISOString().split('T')[0],
-          semester: getSemester(new Date()),
-          teacher: 'Nenurodyta',
-        });
-      }
-    }
-    if (grades.length > 0) break;
-  }
-
-  if (grades.length === 0 && markdown) {
+  if (markdown) {
     const lines = markdown.split('\n');
-    let currentSubject = '';
     for (const line of lines) {
-      if (line.includes('|')) {
-        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
-        if (cells.every(c => /^[-:]+$/.test(c))) continue;
-        if (cells.length >= 2) {
-          const firstCell = cells[0];
-          if (firstCell && !/^\d+$/.test(firstCell) && !firstCell.startsWith('-')) {
-            currentSubject = firstCell;
-          }
-          for (let i = 1; i < cells.length; i++) {
-            const num = parseInt(cells[i], 10);
-            if (!isNaN(num) && num >= 1 && num <= 10) {
-              grades.push({
-                subject: currentSubject || 'Unknown',
-                grade: num,
-                gradeType: 'Įvertinimas',
-                date: new Date().toISOString().split('T')[0],
-                semester: getSemester(new Date()),
-                teacher: 'Nenurodyta',
-              });
-            }
-          }
+      if (!line.includes('|')) continue;
+
+      const cells = line.split('|').map((c) => cleanText(c)).filter(Boolean);
+      if (cells.length < 2) continue;
+      if (cells.every((c) => /^[-:]+$/.test(c))) continue;
+
+      const subject = cells[0];
+      if (!isLikelySubject(subject)) continue;
+
+      for (const cell of cells.slice(1)) {
+        const matches = cell.match(/\b(10|[1-9])\b/g) || [];
+        for (const match of matches) {
+          grades.push(createGrade(subject, Number.parseInt(match, 10)));
         }
       }
     }
+
+    const plainLinePattern = /(?:^|\n)\s*([A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž][^\n:|]{2,80})[:\-\s]+((?:10|[1-9])(?:[,\s;]+(?:10|[1-9]))*)/g;
+    let plainMatch: RegExpExecArray | null;
+    while ((plainMatch = plainLinePattern.exec(markdown)) !== null) {
+      const subject = cleanText(plainMatch[1]);
+      if (!isLikelySubject(subject)) continue;
+
+      const marks = plainMatch[2].match(/\b(10|[1-9])\b/g) || [];
+      for (const mark of marks) {
+        grades.push(createGrade(subject, Number.parseInt(mark, 10)));
+      }
+    }
   }
 
-  console.log('[ManoDienynas] Parsed grades count:', grades.length);
-  return grades;
+  const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let rowMatch: RegExpExecArray | null;
+  while ((rowMatch = rowPattern.exec(html)) !== null) {
+    const rowHtml = rowMatch[1];
+    const cellPattern = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    const cells: string[] = [];
+
+    let cellMatch: RegExpExecArray | null;
+    while ((cellMatch = cellPattern.exec(rowHtml)) !== null) {
+      cells.push(cleanText(cellMatch[1]));
+    }
+
+    if (cells.length < 2) continue;
+    const subject = cells[0];
+    if (!isLikelySubject(subject)) continue;
+
+    for (const cell of cells.slice(1)) {
+      const marks = cell.match(/\b(10|[1-9])\b/g) || [];
+      for (const mark of marks) {
+        grades.push(createGrade(subject, Number.parseInt(mark, 10)));
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+  const cleaned = grades.filter((grade) => {
+    const key = `${grade.subject}|${grade.grade}|${grade.date}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  console.log('[ManoDienynas] Parsed grades count:', cleaned.length);
+  return cleaned;
 }
 
 function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
