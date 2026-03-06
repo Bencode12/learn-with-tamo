@@ -258,6 +258,12 @@ async function persistGrades(supabase: ReturnType<typeof createClient>, userId: 
   return rows.length;
 }
 
+function getGradeQualityScore(grades: ManoDienynasGrade[]): number {
+  const uniqueSubjects = new Set(grades.map((g) => g.subject)).size;
+  const completeRows = grades.filter((g) => isLikelySubject(g.subject) && Number.isFinite(g.grade)).length;
+  return completeRows * 10 + uniqueSubjects * 5 + grades.length;
+}
+
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: ManoDienynasGrade[]; error?: string }> {
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
 
