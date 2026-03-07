@@ -479,7 +479,7 @@ const ProgramStudy = () => {
                 {lessonData.quiz.map((q, qi) => (
                   <Card key={qi} className={quizSubmitted ? (quizAnswers[qi] === q.correct ? "border-green-500/50" : "border-destructive/50") : ""}>
                     <CardContent className="p-5">
-                      <p className="font-medium mb-3">{qi + 1}. {q.question}</p>
+                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${q.question}`}</ReactMarkdown></div>
                       <RadioGroup
                         value={quizAnswers[qi]?.toString() || ""}
                         onValueChange={(v) => !quizSubmitted && setQuizAnswers(prev => ({ ...prev, [qi]: parseInt(v) }))}
