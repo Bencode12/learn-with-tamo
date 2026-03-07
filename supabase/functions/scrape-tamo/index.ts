@@ -21,6 +21,11 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
+function isInvalidTamoLogin(content: string): boolean {
+  const normalized = content.toLowerCase();
+  return normalized.includes('neteisingas prisijungimo vardas') || normalized.includes('neteisingas slaptažodis');
+}
+
 async function firecrawlScrapeWithActions(
   url: string,
   actions?: any[]
