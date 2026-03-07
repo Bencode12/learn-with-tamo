@@ -132,7 +132,7 @@ serve(async (req) => {
           .select('updated_at')
           .eq('user_id', user.id)
           .eq('service_name', source)
-          .single();
+          .maybeSingle();
 
         return new Response(JSON.stringify({
           success: true,
