@@ -492,7 +492,7 @@ const ProgramStudy = () => {
                             quizAnswers[qi] === oi ? "border-primary bg-primary/10" : "border-border"
                           }`}>
                             <RadioGroupItem value={oi.toString()} disabled={quizSubmitted} />
-                            <span className="text-sm">{opt}</span>
+                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{opt}</ReactMarkdown></span>
                             {quizSubmitted && oi === q.correct && <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />}
                             {quizSubmitted && quizAnswers[qi] === oi && oi !== q.correct && <XCircle className="h-4 w-4 text-destructive ml-auto" />}
                           </label>
