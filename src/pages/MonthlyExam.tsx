@@ -365,7 +365,7 @@ const MonthlyExam = () => {
               {questions.map((q, i) => {
                 const isCorrect = answers[i] === q.correct;
                 return (
-                  <div key={i} className={`p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5'}`}>
+                  <div key={i} className={`p-4 rounded-lg border ${isCorrect ? 'border-foreground/30 bg-foreground/5' : 'border-destructive/30 bg-destructive/5'}`}>
                     <div className="flex items-start gap-2">
                       {isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" /> : <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />}
                       <div className="flex-1">
