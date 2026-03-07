@@ -261,27 +261,38 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Generate sample data for charts
-  const heatmapData = Array.from({ length: 50 }, () => ({
-    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][Math.floor(Math.random() * 7)],
-    hour: Math.floor(Math.random() * 24),
-    value: Math.floor(Math.random() * 20)
-  }));
+  // Generate analytics data from actual student data
+  const heatmapData = useMemo(() => {
+    // Generate from student lesson activity if we had timestamps, placeholder for now
+    return Array.from({ length: 50 }, () => ({
+      day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][Math.floor(Math.random() * 7)],
+      hour: Math.floor(Math.random() * 24),
+      value: Math.floor(Math.random() * 20)
+    }));
+  }, [students]);
 
-  const radarData = [
-    { subject: 'Math', score: 85 },
-    { subject: 'Science', score: 78 },
-    { subject: 'Language', score: 92 },
-    { subject: 'History', score: 70 },
-    { subject: 'Art', score: 88 },
-    { subject: 'Music', score: 75 },
-  ];
+  const studentPerformanceData = useMemo(() => {
+    return students.map(s => ({
+      name: s.display_name || s.username,
+      value: s.avg_score
+    }));
+  }, [students]);
 
-  const trendData = Array.from({ length: 12 }, (_, i) => ({
-    name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-    value: 60 + Math.floor(Math.random() * 30),
-    value2: 50 + Math.floor(Math.random() * 30)
-  }));
+  const scoreDistribution = useMemo(() => {
+    const distribution = [
+      { name: 'Excellent (90%+)', value: 0 },
+      { name: 'Good (70-89%)', value: 0 },
+      { name: 'Average (50-69%)', value: 0 },
+      { name: 'Needs Work (<50%)', value: 0 },
+    ];
+    students.forEach(s => {
+      if (s.avg_score >= 90) distribution[0].value++;
+      else if (s.avg_score >= 70) distribution[1].value++;
+      else if (s.avg_score >= 50) distribution[2].value++;
+      else distribution[3].value++;
+    });
+    return distribution;
+  }, [students]);
 
   if (loading) {
     return (
