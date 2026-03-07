@@ -11,13 +11,83 @@ serve(async (req) => {
   }
 
   try {
-    const { subject, field, topic, difficulty, lessonNumber, weekNumber } = await req.json();
+    const body = await req.json();
+    const { action, subject, field, topic, difficulty, lessonNumber, weekNumber, questionCount } = body;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // ===== EXAM GENERATION MODE =====
+    if (action === 'generate_exam') {
+      const count = questionCount || 20;
+      const subjectLabel = subject === 'mixed' ? 'Mathematics, Science, History, Languages, Programming' : subject;
+      
+      const examPrompt = `Generate exactly ${count} multiple-choice exam questions covering: ${subjectLabel}.
+Each question should have 4 options with one correct answer.
+Mix difficulties: 30% easy, 50% medium, 20% hard.
+${subject === 'mixed' ? 'Distribute questions evenly across all subjects. Include the subject name for each question.' : ''}
+
+Respond with valid JSON in this exact format:
+{
+  "questions": [
+    {
+      "question": "Question text",
+      "options": ["A", "B", "C", "D"],
+      "correct": 0,
+      "subject": "math",
+      "difficulty": "medium"
+    }
+  ]
+}`;
+
+      const examResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "You are an exam question generator. Always respond with valid JSON only." },
+            { role: "user", content: examPrompt }
+          ],
+        }),
+      });
+
+      if (!examResponse.ok) {
+        throw new Error(`AI gateway error: ${examResponse.status}`);
+      }
+
+      const examData = await examResponse.json();
+      const examContent = examData.choices?.[0]?.message?.content;
+      if (!examContent) throw new Error("No exam content generated");
+
+      let parsed;
+      try {
+        const jsonMatch = examContent.match(/```json\n?([\s\S]*?)\n?```/) || examContent.match(/```\n?([\s\S]*?)\n?```/);
+        parsed = JSON.parse((jsonMatch ? jsonMatch[1] : examContent).trim());
+      } catch {
+        throw new Error("Failed to parse exam questions");
+      }
+
+      // Sanitize questions
+      const questions = (parsed.questions || []).map((q: any) => ({
+        question: typeof q.question === 'string' ? q.question : JSON.stringify(q.question),
+        options: Array.isArray(q.options) ? q.options.map((o: any) => typeof o === 'string' ? o : String(o)) : [],
+        correct: typeof q.correct === 'number' ? q.correct : 0,
+        subject: typeof q.subject === 'string' ? q.subject : subject,
+        difficulty: typeof q.difficulty === 'string' ? q.difficulty : 'medium',
+      }));
+
+      return new Response(JSON.stringify({ questions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== LESSON GENERATION MODE =====
     const systemPrompt = `You are an expert educational content creator. Generate comprehensive, engaging lesson content for students. 
 Your lessons should be:
 - Clear and well-structured with multiple sections

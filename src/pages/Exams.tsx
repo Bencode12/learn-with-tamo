@@ -70,7 +70,22 @@ const Exams = () => {
 
   return (
     <AppLayout title="Practice Exams" subtitle="Test your knowledge with timed exams and get detailed analytics">
-
+      {/* Monthly Exam CTA */}
+      <Card className="mb-6 border-foreground/20 bg-foreground/5">
+        <CardContent className="flex items-center justify-between py-6">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Monthly Examination
+            </h3>
+            <p className="text-sm text-muted-foreground">AI-generated exam across all subjects with detailed analytics</p>
+          </div>
+          <Button onClick={() => navigate('/monthly-exam')} className="gap-2 bg-foreground text-background hover:bg-foreground/90">
+            <Play className="h-4 w-4" />
+            Take Monthly Exam
+          </Button>
+        </CardContent>
+      </Card>
 
         {loading ? (
           <div className="text-center py-12">

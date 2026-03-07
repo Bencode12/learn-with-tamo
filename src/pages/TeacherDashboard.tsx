@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -261,27 +261,38 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Generate sample data for charts
-  const heatmapData = Array.from({ length: 50 }, () => ({
-    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][Math.floor(Math.random() * 7)],
-    hour: Math.floor(Math.random() * 24),
-    value: Math.floor(Math.random() * 20)
-  }));
+  // Generate analytics data from actual student data
+  const heatmapData = useMemo(() => {
+    // Generate from student lesson activity if we had timestamps, placeholder for now
+    return Array.from({ length: 50 }, () => ({
+      day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][Math.floor(Math.random() * 7)],
+      hour: Math.floor(Math.random() * 24),
+      value: Math.floor(Math.random() * 20)
+    }));
+  }, [students]);
 
-  const radarData = [
-    { subject: 'Math', score: 85 },
-    { subject: 'Science', score: 78 },
-    { subject: 'Language', score: 92 },
-    { subject: 'History', score: 70 },
-    { subject: 'Art', score: 88 },
-    { subject: 'Music', score: 75 },
-  ];
+  const studentPerformanceData = useMemo(() => {
+    return students.map(s => ({
+      name: s.display_name || s.username,
+      value: s.avg_score
+    }));
+  }, [students]);
 
-  const trendData = Array.from({ length: 12 }, (_, i) => ({
-    name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-    value: 60 + Math.floor(Math.random() * 30),
-    value2: 50 + Math.floor(Math.random() * 30)
-  }));
+  const scoreDistribution = useMemo(() => {
+    const distribution = [
+      { name: 'Excellent (90%+)', value: 0 },
+      { name: 'Good (70-89%)', value: 0 },
+      { name: 'Average (50-69%)', value: 0 },
+      { name: 'Needs Work (<50%)', value: 0 },
+    ];
+    students.forEach(s => {
+      if (s.avg_score >= 90) distribution[0].value++;
+      else if (s.avg_score >= 70) distribution[1].value++;
+      else if (s.avg_score >= 50) distribution[2].value++;
+      else distribution[3].value++;
+    });
+    return distribution;
+  }, [students]);
 
   if (loading) {
     return (
@@ -579,44 +590,36 @@ const TeacherDashboard = () => {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PerformanceHeatmap 
-              data={heatmapData} 
-              title="Class Activity Heatmap"
-              maxValue={20}
-            />
-            <RadarChart 
-              data={radarData} 
-              title="Subject Performance Overview"
-            />
-            <LineChart 
-              data={trendData} 
-              title="Monthly Progress Trend"
-              lines={[
-                { key: "value", name: "This Year" },
-                { key: "value2", name: "Last Year" }
-              ]}
-            />
-            <AreaChart 
-              data={trendData} 
-              title="Cumulative Progress"
-              areaKey="value"
-            />
-            <PieChart 
-              data={[
-                { name: 'Excellent (90%+)', value: 12 },
-                { name: 'Good (70-89%)', value: 25 },
-                { name: 'Average (50-69%)', value: 18 },
-                { name: 'Needs Work (<50%)', value: 8 },
-              ]}
-              title="Grade Distribution"
-            />
-            <BarChart 
-              data={radarData.map(d => ({ name: d.subject, value: d.score }))}
-              title="Subject Comparison"
-              horizontal
-            />
-          </div>
+          {selectedClass ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PerformanceHeatmap 
+                data={heatmapData} 
+                title={`${selectedClass.name} - Activity Heatmap`}
+                maxValue={20}
+              />
+              <PieChart 
+                data={scoreDistribution}
+                title="Student Score Distribution"
+              />
+              <BarChart 
+                data={studentPerformanceData}
+                title="Student Performance Comparison"
+                horizontal
+              />
+              <AreaChart 
+                data={studentPerformanceData.map((s, i) => ({ name: s.name, value: s.value }))}
+                title="Student Scores Overview"
+                areaKey="value"
+              />
+            </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Select a class to view analytics</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
       </Tabs>

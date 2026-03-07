@@ -18,6 +18,7 @@ import Progress from "./pages/Progress";
 import Store from "./pages/Store";
 import GameModes from "./pages/GameModes";
 import Exams from "./pages/Exams";
+import MonthlyExam from "./pages/MonthlyExam";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ContactUs from "./pages/ContactUs";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
+            <Route path="/monthly-exam" element={<ProtectedRoute><MonthlyExam /></ProtectedRoute>} />
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/teacher-dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
