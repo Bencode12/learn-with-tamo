@@ -456,7 +456,7 @@ const ProgramLearning = () => {
             <CardContent>
               <div className="mb-6">
                 <Badge className="mb-3">
-                  {mathFields.find(f => f.id === assessmentQuestions[currentQuestion].field)?.name}
+                  {(subjectFieldsMap[selectedSubject] || []).find(f => f.id === assessmentQuestions[currentQuestion].field)?.name}
                 </Badge>
                 <h3 className="text-xl font-semibold mb-4">
                   {assessmentQuestions[currentQuestion].question}
