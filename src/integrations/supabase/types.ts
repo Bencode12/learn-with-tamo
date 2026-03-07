@@ -107,6 +107,48 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       class_students: {
         Row: {
           class_id: string
@@ -243,6 +285,72 @@ export type Database = {
           questions?: Json
           subject?: string
           xp_reward?: number
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          created_at: string | null
+          email_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          announcements: boolean | null
+          exam_results: boolean | null
+          updated_at: string | null
+          user_id: string
+          warnings: boolean | null
+          weekly_reports: boolean | null
+        }
+        Insert: {
+          announcements?: boolean | null
+          exam_results?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          warnings?: boolean | null
+          weekly_reports?: boolean | null
+        }
+        Update: {
+          announcements?: boolean | null
+          exam_results?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          warnings?: boolean | null
+          weekly_reports?: boolean | null
         }
         Relationships: []
       }
