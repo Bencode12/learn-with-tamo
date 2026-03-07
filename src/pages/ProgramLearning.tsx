@@ -362,11 +362,11 @@ const ProgramLearning = () => {
                 <Sparkles className="h-5 w-5 text-primary" />
                 Select Fields to Study
               </CardTitle>
-              <CardDescription>Choose the mathematical areas you want to focus on</CardDescription>
+              <CardDescription>Choose the areas you want to focus on</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                {mathFields.map((field) => (
+                {(subjectFieldsMap[selectedSubject] || []).map((field) => (
                   <button
                     key={field.id}
                     onClick={() => handleFieldToggle(field.id)}
