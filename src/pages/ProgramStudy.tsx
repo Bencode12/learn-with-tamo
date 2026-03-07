@@ -16,6 +16,13 @@ import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
+// Ensure any value rendered as text is a string (guards against AI returning objects)
+const safeString = (val: unknown): string => {
+  if (typeof val === 'string') return val;
+  if (val === null || val === undefined) return '';
+  return JSON.stringify(val, null, 2);
+};
+
 interface WeekPlan {
   week: number;
   focus: string;
@@ -444,7 +451,7 @@ const ProgramStudy = () => {
                   <CardContent>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
-                        {lessonData.sections[currentSection].content}
+                        {safeString(lessonData.sections[currentSection].content)}
                       </ReactMarkdown>
                     </div>
                   </CardContent>
@@ -480,7 +487,7 @@ const ProgramStudy = () => {
                 {lessonData.quiz.map((q, qi) => (
                   <Card key={qi} className={quizSubmitted ? (quizAnswers[qi] === q.correct ? "border-green-500/50" : "border-destructive/50") : ""}>
                     <CardContent className="p-5">
-                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${q.question}`}</ReactMarkdown></div>
+                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${safeString(q.question)}`}</ReactMarkdown></div>
                       <RadioGroup
                         value={quizAnswers[qi]?.toString() || ""}
                         onValueChange={(v) => !quizSubmitted && setQuizAnswers(prev => ({ ...prev, [qi]: parseInt(v) }))}
@@ -493,14 +500,14 @@ const ProgramStudy = () => {
                             quizAnswers[qi] === oi ? "border-primary bg-primary/10" : "border-border"
                           }`}>
                             <RadioGroupItem value={oi.toString()} disabled={quizSubmitted} />
-                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{opt}</ReactMarkdown></span>
+                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{safeString(opt)}</ReactMarkdown></span>
                             {quizSubmitted && oi === q.correct && <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />}
                             {quizSubmitted && quizAnswers[qi] === oi && oi !== q.correct && <XCircle className="h-4 w-4 text-destructive ml-auto" />}
                           </label>
                         ))}
                       </RadioGroup>
                       {quizSubmitted && (
-                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown></div>
+                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{safeString(q.explanation)}</ReactMarkdown></div>
                       )}
                     </CardContent>
                   </Card>

@@ -131,9 +131,15 @@ export const LessonViewer = ({
     }
   };
 
-  const renderMarkdown = (content: string) => {
-    // Simple markdown rendering
-    return content
+  const safeString = (val: unknown): string => {
+    if (typeof val === 'string') return val;
+    if (val === null || val === undefined) return '';
+    return JSON.stringify(val, null, 2);
+  };
+
+  const renderMarkdown = (content: unknown) => {
+    const text = safeString(content);
+    return text
       .split('\n')
       .map((line, idx) => {
         if (line.startsWith('### ')) {
