@@ -78,7 +78,7 @@ const Exams = () => {
               <Award className="h-5 w-5" />
               Monthly Examination
             </h3>
-            <p className="text-sm text-muted-foreground">AI-generated exam across all subjects with detailed analytics</p>
+            <p className="text-sm text-muted-foreground">Auto-generated from your learning activity — results adjust your learning plans</p>
           </div>
           <Button onClick={() => navigate('/monthly-exam')} className="gap-2 bg-foreground text-background hover:bg-foreground/90">
             <Play className="h-4 w-4" />
