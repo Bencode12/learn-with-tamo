@@ -338,9 +338,12 @@ serve(async (req) => {
           }
         }
 
+        const successfulSyncs = Object.values(results).filter((result: any) => result?.success).length;
+
         return new Response(JSON.stringify({
-          success: true,
+          success: successfulSyncs > 0,
           results,
+          message: successfulSyncs > 0 ? `Synced ${successfulSyncs} portal(s)` : 'No portal sync succeeded',
           lastSync: new Date().toISOString(),
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
