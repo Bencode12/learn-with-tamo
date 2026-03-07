@@ -218,6 +218,19 @@ const Progress = () => {
     }
   };
 
+  const fetchLearningPlans = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('learning_plans')
+      .select('id, name, subject')
+      .eq('user_id', user.id);
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach(p => { map[p.id] = p.name || p.subject; });
+      setPlanNameMap(map);
+    }
+  };
+
   // Build a map from subject_id to readable name
   const subjectNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -226,10 +239,20 @@ const Progress = () => {
   }, []);
 
   const getReadableSubject = (subjectId: string) => {
-    return subjectNameMap[subjectId] || subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
+    // Check static lesson data first
+    if (subjectNameMap[subjectId]) return subjectNameMap[subjectId];
+    // Check learning plan names (for UUIDs from program learning)
+    if (planNameMap[subjectId]) return planNameMap[subjectId];
+    // Fallback: format nicely
+    return subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
   };
 
   const getReadableLessonName = (lesson: LessonProgress) => {
+    // Handle program study lesson IDs like "w1_l1"
+    const weekLessonMatch = lesson.lesson_id.match(/^w(\d+)_l(\d+)$/i);
+    if (weekLessonMatch) {
+      return `Week ${weekLessonMatch[1]}, Lesson ${weekLessonMatch[2]}`;
+    }
     // Try to find lesson title from lessonData
     for (const subject of lessonData) {
       const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
@@ -243,8 +266,31 @@ const Progress = () => {
     return lesson.lesson_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
+  const getReadableChapter = (chapterId: string) => {
+    // Handle program study chapter IDs like "week_1"
+    const weekMatch = chapterId.match(/^week_(\d+)$/i);
+    if (weekMatch) return `Week ${weekMatch[1]}`;
+    // Try lessonData
+    for (const subject of lessonData) {
+      const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
+      for (const chapter of chapters) {
+        if (chapter.id === chapterId) return chapter.name;
+      }
+    }
+    return chapterId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const getSubjectIcon = (subjectId: string) => {
     const icons: Record<string, string> = { math: "📊", science: "🔬", language: "📝", social: "📚", cs: "💻" };
+    // Also check plan names for icon hints
+    const planName = planNameMap[subjectId]?.toLowerCase() || '';
+    if (planName.includes('math')) return "📊";
+    if (planName.includes('science') || planName.includes('physics') || planName.includes('chem') || planName.includes('bio')) return "🔬";
+    if (planName.includes('programming') || planName.includes('coding') || planName.includes('code')) return "💻";
+    if (planName.includes('music')) return "🎵";
+    if (planName.includes('art') || planName.includes('design')) return "🎨";
+    if (planName.includes('history')) return "📜";
+    if (planName.includes('language')) return "🌍";
     return icons[subjectId] || "📖";
   };
 
