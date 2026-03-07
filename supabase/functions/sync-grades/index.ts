@@ -258,22 +258,22 @@ serve(async (req) => {
         });
 
         for (const [portalSource, config] of Object.entries(PORTAL_CONFIGS)) {
-          if (credentialMap[portalSource]) {
-            syncPerformed = true;
-            try {
-              const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
-              const response = await fetch(scraperUrl, {
-                method: 'POST',
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'sync' }),
-              });
-              results[portalSource] = await response.json();
-            } catch (error) {
-              results[portalSource] = {
-                success: false,
-                error: error instanceof Error ? error.message : 'Sync failed',
-              };
-            }
+          if (!credentialMap[portalSource]) continue;
+
+          syncPerformed = true;
+          try {
+            const scraperUrl = `${supabaseUrl}/functions/v1/${config.functionName}`;
+            const response = await fetch(scraperUrl, {
+              method: 'POST',
+              headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync' }),
+            });
+            results[portalSource] = await response.json();
+          } catch (error) {
+            results[portalSource] = {
+              success: false,
+              error: error instanceof Error ? error.message : 'Sync failed',
+            };
           }
         }
 
@@ -285,10 +285,24 @@ serve(async (req) => {
           }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
+        const successfulSyncs = Object.values(results).filter((result: any) => result?.success).length;
+        const failedSources = Object.entries(results)
+          .filter(([, result]: [string, any]) => !result?.success)
+          .map(([portalSource]) => portalSource);
+
+        if (successfulSyncs === 0) {
+          return new Response(JSON.stringify({
+            success: false,
+            results,
+            error: `Sync failed for all connected portals (${failedSources.join(', ')}).`,
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
         return new Response(JSON.stringify({
           success: true,
           results,
-          message: `Successfully synced from ${Object.keys(results).length} portal(s)`,
+          warning: failedSources.length > 0 ? `Some portals failed: ${failedSources.join(', ')}` : null,
+          message: `Synced ${successfulSyncs} portal(s) successfully`,
           lastSync: new Date().toISOString(),
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
