@@ -258,7 +258,7 @@ const StaffHub = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto">
+        <TabsList className="flex flex-wrap w-full lg:w-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pilots">Pilots</TabsTrigger>
           <TabsTrigger value="tickets">Tickets</TabsTrigger>
@@ -266,6 +266,8 @@ const StaffHub = () => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
+          {userRole === 'admin' && <TabsTrigger value="api">API</TabsTrigger>}
         </TabsList>
 
         {/* Overview Tab */}
