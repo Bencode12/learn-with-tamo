@@ -69,7 +69,7 @@ async function firecrawlScrapeWithActions(
   }
 }
 
-function parseGradesFromContent(html: string, markdown: string, extractedJson?: any): TamoGrade[] {
+function parseGradesFromContent(_html: string, markdown: string, extractedJson?: any): TamoGrade[] {
   const grades: TamoGrade[] = [];
 
   const extractedGrades = Array.isArray(extractedJson?.grades)
@@ -100,65 +100,71 @@ function parseGradesFromContent(html: string, markdown: string, extractedJson?: 
     return grades;
   }
 
-  // Try HTML-based parsing with various patterns
-  const gradePatterns = [
-    /class="[^"]*(?:grade|mark|pazymys|eval|assessment)[^"]*"[^>]*>\s*(\d{1,2})\s*</gi,
-    /data-(?:grade|mark|value)="(\d{1,2})"/gi,
-    /<td[^>]*class="[^"]*(?:mark|grade|pazymys)[^"]*"[^>]*>\s*(\d{1,2})\s*<\/td>/gi,
-    // Generic: any small cell with just a number (common grade table pattern)
-    /<td[^>]*>\s*<[^>]*>\s*(\d{1,2})\s*<\/[^>]*>\s*<\/td>/gi,
-  ];
+  // Strict markdown table parser to avoid false positives from random dashboard numbers
+  if (!markdown) return [];
 
-  for (const pattern of gradePatterns) {
-    let match;
-    while ((match = pattern.exec(html)) !== null) {
-      const num = parseInt(match[1], 10);
-      if (num >= 1 && num <= 10) {
+  const blockedSubjectTokens = new Set([
+    'dalykas', 'pažymys', 'vidurkis', 'komentaras', 'mokytojas', 'data', 'tipas',
+    'nėra duomenų', 'pusmečio vidurkis', 'metinis vidurkis',
+  ]);
+
+  const lines = markdown.split('\n');
+  let inGradeTable = false;
+  let currentSubject = '';
+
+  for (const line of lines) {
+    if (!line.includes('|')) continue;
+
+    const cells = line
+      .split('|')
+      .map((cell) => cell.trim())
+      .filter((_, index, arr) => index > 0 && index < arr.length - 1);
+
+    if (cells.length < 2) continue;
+    if (cells.every((cell) => /^[-:]+$/.test(cell) || cell === '')) continue;
+
+    const firstCellNormalized = cells[0].toLowerCase().replace(/\s+/g, ' ').trim();
+
+    if (firstCellNormalized === 'dalykas' || firstCellNormalized.includes('mokomasis dalykas')) {
+      inGradeTable = true;
+      continue;
+    }
+
+    if (!inGradeTable) continue;
+
+    if (cells[0]) {
+      const maybeSubject = cells[0].replace(/<[^>]*>/g, '').trim();
+      const normalizedSubject = maybeSubject.toLowerCase().replace(/\s+/g, ' ').trim();
+      const containsLetters = /[a-ząčęėįšųūž]/i.test(maybeSubject);
+
+      if (
+        containsLetters &&
+        !blockedSubjectTokens.has(normalizedSubject) &&
+        !/^\d+$/.test(normalizedSubject)
+      ) {
+        currentSubject = maybeSubject.substring(0, 120);
+      }
+    }
+
+    if (!currentSubject) continue;
+
+    for (let i = 1; i < cells.length; i++) {
+      const cell = cells[i];
+      if (!cell) continue;
+
+      const tokens = cell.split(/[\s,;]+/).map((token) => token.trim()).filter(Boolean);
+      for (const token of tokens) {
+        const parsed = Number.parseInt(token, 10);
+        if (!Number.isFinite(parsed) || parsed < 1 || parsed > 10) continue;
+
         grades.push({
-          subject: 'Unknown',
-          grade: num,
+          subject: currentSubject,
+          grade: parsed,
           gradeType: 'Įvertinimas',
           date: new Date().toISOString().split('T')[0],
           semester: getSemester(new Date()),
           teacher: 'Nenurodyta',
         });
-      }
-    }
-    if (grades.length > 0) break;
-  }
-
-  // Parse from markdown tables
-  if (grades.length === 0 && markdown) {
-    const lines = markdown.split('\n');
-    let currentSubject = '';
-    
-    for (const line of lines) {
-      if (line.includes('|')) {
-        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
-        // Skip separator rows
-        if (cells.every(c => /^[-:]+$/.test(c))) continue;
-        
-        if (cells.length >= 2) {
-          // First cell is likely subject name
-          const firstCell = cells[0];
-          if (firstCell && !/^\d+$/.test(firstCell) && !firstCell.startsWith('-')) {
-            currentSubject = firstCell;
-          }
-          
-          for (let i = 1; i < cells.length; i++) {
-            const num = parseInt(cells[i], 10);
-            if (!isNaN(num) && num >= 1 && num <= 10) {
-              grades.push({
-                subject: currentSubject || 'Unknown',
-                grade: num,
-                gradeType: 'Įvertinimas',
-                date: new Date().toISOString().split('T')[0],
-                semester: getSemester(new Date()),
-                teacher: 'Nenurodyta',
-              });
-            }
-          }
-        }
       }
     }
   }
