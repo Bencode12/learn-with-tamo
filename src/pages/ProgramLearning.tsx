@@ -29,85 +29,8 @@ const timeframes = [
   { id: "6months", label: "6 Months", months: 6, hoursPerDay: "1" },
 ];
 
-// Comprehensive math assessment questions covering all fields
-const generateMathAssessment = (selectedFields: string[]) => {
-  const allQuestions = [
-    // Algebra
-    { id: "alg1", field: "algebra", question: "Solve for x: 3x + 7 = 22", options: ["3", "5", "7", "15"], correct: "5", difficulty: "easy" },
-    { id: "alg2", field: "algebra", question: "Simplify: (x² - 4) / (x - 2)", options: ["x + 2", "x - 2", "x² - 2", "2x"], correct: "x + 2", difficulty: "medium" },
-    { id: "alg3", field: "algebra", question: "Find the roots of x² - 5x + 6 = 0", options: ["2 and 3", "1 and 6", "-2 and -3", "3 and -2"], correct: "2 and 3", difficulty: "easy" },
-    { id: "alg4", field: "algebra", question: "What is the sum of a geometric series: 1 + 2 + 4 + 8 + ... + 128?", options: ["255", "256", "127", "254"], correct: "255", difficulty: "hard" },
-    
-    // Geometry
-    { id: "geo1", field: "geometry", question: "What is the area of a circle with radius 5?", options: ["25π", "10π", "5π", "50π"], correct: "25π", difficulty: "easy" },
-    { id: "geo2", field: "geometry", question: "In a right triangle with legs 3 and 4, what is the hypotenuse?", options: ["5", "7", "6", "√7"], correct: "5", difficulty: "easy" },
-    { id: "geo3", field: "geometry", question: "What is the sum of interior angles of a hexagon?", options: ["720°", "540°", "360°", "900°"], correct: "720°", difficulty: "medium" },
-    { id: "geo4", field: "geometry", question: "Find the volume of a sphere with radius 3", options: ["36π", "27π", "108π", "12π"], correct: "36π", difficulty: "medium" },
-    
-    // Calculus
-    { id: "calc1", field: "calculus", question: "What is the derivative of x³?", options: ["3x²", "x²", "3x", "x³"], correct: "3x²", difficulty: "easy" },
-    { id: "calc2", field: "calculus", question: "∫ 2x dx = ?", options: ["x²", "x² + C", "2x²", "2x² + C"], correct: "x² + C", difficulty: "easy" },
-    { id: "calc3", field: "calculus", question: "What is the limit of (sin x)/x as x → 0?", options: ["1", "0", "∞", "undefined"], correct: "1", difficulty: "medium" },
-    { id: "calc4", field: "calculus", question: "Find d/dx of e^(2x)", options: ["2e^(2x)", "e^(2x)", "e^x", "2e^x"], correct: "2e^(2x)", difficulty: "medium" },
-    
-    // Probability
-    { id: "prob1", field: "probability", question: "What is the probability of getting heads twice in two coin flips?", options: ["1/4", "1/2", "1/3", "3/4"], correct: "1/4", difficulty: "easy" },
-    { id: "prob2", field: "probability", question: "In a standard deck, what's P(drawing a face card)?", options: ["12/52", "4/52", "16/52", "3/52"], correct: "12/52", difficulty: "easy" },
-    { id: "prob3", field: "probability", question: "What is the mean of: 2, 4, 6, 8, 10?", options: ["6", "5", "7", "8"], correct: "6", difficulty: "easy" },
-    { id: "prob4", field: "probability", question: "If P(A) = 0.3 and P(B) = 0.4, and A,B are independent, what is P(A∩B)?", options: ["0.12", "0.7", "0.1", "0.4"], correct: "0.12", difficulty: "medium" },
-    
-    // Linear Algebra
-    { id: "lin1", field: "linear_algebra", question: "What is the determinant of [[1,2],[3,4]]?", options: ["-2", "2", "10", "-10"], correct: "-2", difficulty: "easy" },
-    { id: "lin2", field: "linear_algebra", question: "What is the dimension of R³?", options: ["3", "2", "1", "∞"], correct: "3", difficulty: "easy" },
-    { id: "lin3", field: "linear_algebra", question: "What is the rank of a 3×3 identity matrix?", options: ["3", "1", "9", "0"], correct: "3", difficulty: "easy" },
-    { id: "lin4", field: "linear_algebra", question: "Which is NOT a property of matrix multiplication?", options: ["Commutativity", "Associativity", "Distributivity", "Identity element"], correct: "Commutativity", difficulty: "medium" },
-    
-    // Complex Analysis
-    { id: "complex1", field: "complex_analysis", question: "What is i²?", options: ["-1", "1", "i", "-i"], correct: "-1", difficulty: "easy" },
-    { id: "complex2", field: "complex_analysis", question: "What is the modulus of 3 + 4i?", options: ["5", "7", "1", "12"], correct: "5", difficulty: "easy" },
-    { id: "complex3", field: "complex_analysis", question: "What is the conjugate of 2 - 3i?", options: ["2 + 3i", "-2 + 3i", "-2 - 3i", "3 - 2i"], correct: "2 + 3i", difficulty: "easy" },
-    { id: "complex4", field: "complex_analysis", question: "e^(iπ) equals?", options: ["-1", "1", "i", "0"], correct: "-1", difficulty: "medium" },
-    
-    // Trigonometry
-    { id: "trig1", field: "trigonometry", question: "What is sin(90°)?", options: ["1", "0", "-1", "undefined"], correct: "1", difficulty: "easy" },
-    { id: "trig2", field: "trigonometry", question: "What is cos(0°)?", options: ["1", "0", "-1", "undefined"], correct: "1", difficulty: "easy" },
-    { id: "trig3", field: "trigonometry", question: "sin²(x) + cos²(x) = ?", options: ["1", "0", "2", "sin(2x)"], correct: "1", difficulty: "easy" },
-    { id: "trig4", field: "trigonometry", question: "What is tan(45°)?", options: ["1", "0", "√2", "undefined"], correct: "1", difficulty: "easy" },
-    
-    // Number Theory
-    { id: "num1", field: "number_theory", question: "What is the GCD of 12 and 18?", options: ["6", "3", "12", "36"], correct: "6", difficulty: "easy" },
-    { id: "num2", field: "number_theory", question: "Is 17 a prime number?", options: ["Yes", "No"], correct: "Yes", difficulty: "easy" },
-    { id: "num3", field: "number_theory", question: "What is 15 mod 4?", options: ["3", "2", "1", "0"], correct: "3", difficulty: "easy" },
-    { id: "num4", field: "number_theory", question: "The LCM of 4 and 6 is?", options: ["12", "24", "2", "6"], correct: "12", difficulty: "easy" },
-    
-    // Discrete Math
-    { id: "disc1", field: "discrete_math", question: "How many subsets does a set with 3 elements have?", options: ["8", "6", "3", "9"], correct: "8", difficulty: "easy" },
-    { id: "disc2", field: "discrete_math", question: "What is 5! (5 factorial)?", options: ["120", "25", "60", "24"], correct: "120", difficulty: "easy" },
-    { id: "disc3", field: "discrete_math", question: "In graph theory, what is a vertex with degree 0 called?", options: ["Isolated vertex", "Pendant vertex", "Hub", "Source"], correct: "Isolated vertex", difficulty: "medium" },
-    { id: "disc4", field: "discrete_math", question: "C(5,2) equals?", options: ["10", "20", "25", "5"], correct: "10", difficulty: "easy" },
-    
-    // Differential Equations
-    { id: "diff1", field: "differential_equations", question: "What is the order of dy/dx + y = 0?", options: ["1", "2", "0", "3"], correct: "1", difficulty: "easy" },
-    { id: "diff2", field: "differential_equations", question: "The general solution of dy/dx = 2x is?", options: ["y = x² + C", "y = 2x + C", "y = x²", "y = 2"], correct: "y = x² + C", difficulty: "easy" },
-    { id: "diff3", field: "differential_equations", question: "y'' + y = 0 has solutions involving?", options: ["sin and cos", "e^x", "polynomials", "log"], correct: "sin and cos", difficulty: "medium" },
-    { id: "diff4", field: "differential_equations", question: "A separable DE can be written as?", options: ["f(x)dx = g(y)dy", "f(x,y)dx", "f(y)dx", "None"], correct: "f(x)dx = g(y)dy", difficulty: "medium" },
-  ];
-  
-  // Filter questions based on selected fields and return 3-4 per field
-  let filteredQuestions: typeof allQuestions = [];
-  selectedFields.forEach(field => {
-    const fieldQuestions = allQuestions.filter(q => q.field === field);
-    filteredQuestions = [...filteredQuestions, ...fieldQuestions.slice(0, 4)];
-  });
-  
-  // Ensure minimum 15 questions
-  if (filteredQuestions.length < 15) {
-    const remaining = allQuestions.filter(q => !filteredQuestions.includes(q));
-    filteredQuestions = [...filteredQuestions, ...remaining.slice(0, 15 - filteredQuestions.length)];
-  }
-  
-  return filteredQuestions;
-};
+// Generate assessment from the centralized bank
+
 
 const ProgramLearning = () => {
   const { t } = useLanguage();
