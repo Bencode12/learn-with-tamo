@@ -101,7 +101,7 @@ const MonthlyExam = () => {
       .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
       .limit(10);
-    setPastAttempts((data || []) as ExamAttempt[]);
+    setPastAttempts((data || []) as unknown as ExamAttempt[]);
     setLoadingAttempts(false);
   };
 
