@@ -163,7 +163,7 @@ serve(async (req) => {
           .select('encrypted_data')
           .eq('user_id', user.id)
           .eq('service_name', source)
-          .single();
+          .maybeSingle();
 
         if (credError || !credentials) {
           return new Response(JSON.stringify({
