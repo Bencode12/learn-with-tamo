@@ -441,8 +441,10 @@ const ProgramStudy = () => {
                     <CardTitle>{lessonData.sections[currentSection].title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                      {lessonData.sections[currentSection].content}
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {lessonData.sections[currentSection].content}
+                      </ReactMarkdown>
                     </div>
                   </CardContent>
                 </Card>
