@@ -18,7 +18,7 @@ import Progress from "./pages/Progress";
 import Store from "./pages/Store";
 import GameModes from "./pages/GameModes";
 import Exams from "./pages/Exams";
-import MonthlyExam from "./pages/MonthlyExam";
+
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ContactUs from "./pages/ContactUs";
