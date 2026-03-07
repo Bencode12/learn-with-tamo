@@ -324,11 +324,9 @@ function extractGradesFromCells(params: {
     if (/val\.?$/i.test(cell)) continue;
     if (/^\d+\s*val\.?$/i.test(cell)) continue;
 
-    const tokens = cell.split(/[\s,;]+/).map((token) => token.trim()).filter(Boolean);
+    const numericGrades = extractNumericGradesFromCell(cell);
 
-    for (const token of tokens) {
-      if (!isNumericGrade(token)) continue;
-
+    for (const parsedGrade of numericGrades) {
       const monthHeader = monthByIndex[columnIndex] || '';
       let semester = getSemester(new Date());
       if (FIRST_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) semester = 'I';
@@ -336,7 +334,7 @@ function extractGradesFromCells(params: {
 
       grades.push({
         subject,
-        grade: parseInt(token, 10),
+        grade: parsedGrade,
         gradeType: subject.toLowerCase().startsWith('formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
         date: new Date().toISOString().split('T')[0],
         semester,
