@@ -308,12 +308,22 @@ function extractGradesFromCells(params: {
 function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
   const nowIso = new Date().toISOString();
   const today = new Date().toISOString().split('T')[0];
+  const dedupe = new Set<string>();
 
   return grades
-    .map((grade, index) => {
+    .map((grade) => {
       if (!Number.isFinite(grade.grade) || grade.grade < 1 || grade.grade > 10) return null;
       const subject = grade.subject.substring(0, 120);
       if (!subject || subject.length < 3) return null;
+
+      const rowDate = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
+      const semester = (grade.semester || getSemester(new Date())).substring(0, 10);
+      const teacherName = (grade.teacher || 'Nenurodyta').substring(0, 120);
+      const notes = grade.comment?.trim()?.substring(0, 4000) || null;
+
+      const fingerprint = `${subject}|${grade.grade}|${rowDate}|${semester}|${teacherName}|${notes || ''}`;
+      if (dedupe.has(fingerprint)) return null;
+      dedupe.add(fingerprint);
 
       return {
         user_id: userId,
@@ -321,10 +331,10 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
         subject,
         grade: grade.grade,
         grade_type: (grade.gradeType || 'Įvertinimas').substring(0, 80),
-        date: /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today,
-        semester: (grade.semester || getSemester(new Date())).substring(0, 10),
-        teacher_name: (grade.teacher || 'Nenurodyta').substring(0, 120),
-        notes: grade.comment?.trim()?.substring(0, 4000) || null,
+        date: rowDate,
+        semester,
+        teacher_name: teacherName,
+        notes,
         synced_at: nowIso,
       };
     })
