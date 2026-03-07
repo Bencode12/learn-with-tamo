@@ -198,6 +198,26 @@ function extractTeacher(cellText: string): { subject: string; teacher: string } 
 const FIRST_SEMESTER_MONTHS = ['rugsėjis', 'spalis', 'lapkritis', 'gruodis'];
 const SECOND_SEMESTER_MONTHS = ['sausis', 'vasaris', 'kovas', 'balandis', 'gegužė', 'birželis'];
 
+const MONTH_TO_NUMBER: Record<string, number> = {
+  'rugsėjis': 9, 'spalis': 10, 'lapkritis': 11, 'gruodis': 12,
+  'sausis': 1, 'vasaris': 2, 'kovas': 3, 'balandis': 4, 'gegužė': 5, 'birželis': 6,
+};
+
+function monthNameToDate(monthName: string): string {
+  const monthNum = MONTH_TO_NUMBER[monthName];
+  if (!monthNum) return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  // If month is in second semester (Jan-Jun), use current year
+  // If month is in first semester (Sep-Dec), use current school year start
+  let year = now.getFullYear();
+  if (monthNum >= 9) {
+    // For Sep-Dec: if we're currently in Jan-Aug, the grades are from last year
+    if (now.getMonth() + 1 < 9) year = year - 1;
+  }
+  // Use the 15th as a reasonable mid-month date
+  return `${year}-${String(monthNum).padStart(2, '0')}-15`;
+}
+
 function normalizeHeaderText(value: string): string {
   return cleanText(value)
     .toLowerCase()
