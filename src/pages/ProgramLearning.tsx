@@ -128,9 +128,10 @@ const ProgramLearning = () => {
     
     // Generate weekly plan based on assessment results
     const weeklyPlan = [];
+    const currentFields = subjectFieldsMap[selectedSubject] || [];
     const fieldsToStudy = selectedFields.map(f => ({
       id: f,
-      name: mathFields.find(mf => mf.id === f)?.name || f,
+      name: currentFields.find(mf => mf.id === f)?.name || f,
       score: score.byField[f] ? Math.round((score.byField[f].correct / score.byField[f].total) * 100) : 0
     }));
     
