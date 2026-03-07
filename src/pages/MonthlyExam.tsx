@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Clock, BookOpen, CheckCircle, XCircle, Target, TrendingUp, 
-  Loader2, ArrowLeft, ArrowRight, Play, Trophy, AlertTriangle 
+import {
+  Clock, CheckCircle, XCircle, Target, TrendingUp,
+  Loader2, ArrowLeft, ArrowRight, Trophy, AlertTriangle, Play, BookOpen
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,33 +24,20 @@ interface ExamQuestion {
   difficulty: string;
 }
 
-interface ExamAttempt {
-  id: string;
-  score: number;
-  total_questions: number;
-  time_taken_seconds: number;
-  completed_at: string;
-  subject_breakdown: Record<string, { correct: number; total: number }> | null;
+interface LearningActivity {
+  subject_id: string;
+  plan_name: string;
+  lessons_completed: number;
+  avg_score: number;
+  total_time: number;
 }
-
-const SUBJECTS = [
-  { id: "math", name: "Mathematics", icon: "📐" },
-  { id: "science", name: "Science", icon: "🔬" },
-  { id: "history", name: "History", icon: "📜" },
-  { id: "languages", name: "Languages", icon: "🌍" },
-  { id: "programming", name: "Programming", icon: "💻" },
-  { id: "mixed", name: "Mixed (All Subjects)", icon: "🎯" },
-];
 
 const MonthlyExam = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Setup state
-  const [phase, setPhase] = useState<"setup" | "exam" | "results">("setup");
-  const [selectedSubject, setSelectedSubject] = useState("mixed");
-  const [questionCount, setQuestionCount] = useState("20");
-  const [timeLimit, setTimeLimit] = useState("30");
+  const [phase, setPhase] = useState<"loading" | "no-activity" | "ready" | "exam" | "results">("loading");
+  const [learningActivity, setLearningActivity] = useState<LearningActivity[]>([]);
 
   // Exam state
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -67,14 +53,14 @@ const MonthlyExam = () => {
     total: number;
     timeTaken: number;
     subjectBreakdown: Record<string, { correct: number; total: number }>;
+    planAdjustments: { planId: string; planName: string; action: string }[];
   } | null>(null);
 
-  // Past attempts
-  const [pastAttempts, setPastAttempts] = useState<ExamAttempt[]>([]);
-  const [loadingAttempts, setLoadingAttempts] = useState(true);
+  // Past results
+  const [pastResults, setPastResults] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user) fetchPastAttempts();
+    if (user) loadMonthlyData();
   }, [user]);
 
   // Timer
@@ -93,27 +79,85 @@ const MonthlyExam = () => {
     return () => clearInterval(timer);
   }, [phase, timeRemaining]);
 
-  const fetchPastAttempts = async () => {
+  const loadMonthlyData = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('exam_attempts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('completed_at', { ascending: false })
-      .limit(10);
-    setPastAttempts((data || []) as unknown as ExamAttempt[]);
-    setLoadingAttempts(false);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // Fetch this month's lesson progress + learning plans + past exam results in parallel
+    const [progressRes, plansRes, resultsRes] = await Promise.all([
+      supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('last_accessed', monthStart),
+      supabase
+        .from('learning_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active'),
+      supabase
+        .from('exam_results')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(5),
+    ]);
+
+    setPastResults(resultsRes.data || []);
+
+    const progress = progressRes.data || [];
+    const plans = plansRes.data || [];
+
+    if (progress.length === 0) {
+      setPhase("no-activity");
+      return;
+    }
+
+    // Group progress by plan/subject
+    const activityMap: Record<string, LearningActivity> = {};
+    for (const p of progress) {
+      const key = p.plan_id || p.subject_id;
+      const plan = plans.find((pl: any) => pl.id === p.plan_id);
+      if (!activityMap[key]) {
+        activityMap[key] = {
+          subject_id: p.subject_id,
+          plan_name: plan?.name || p.subject_id,
+          lessons_completed: 0,
+          avg_score: 0,
+          total_time: 0,
+        };
+      }
+      if (p.completed) activityMap[key].lessons_completed++;
+      activityMap[key].avg_score += (p.score || 0);
+      activityMap[key].total_time += (p.time_spent || 0);
+    }
+
+    // Calculate averages
+    const activities = Object.values(activityMap).map(a => ({
+      ...a,
+      avg_score: a.lessons_completed > 0 ? Math.round(a.avg_score / a.lessons_completed) : 0,
+    }));
+
+    setLearningActivity(activities);
+    setPhase("ready");
   };
 
   const startExam = async () => {
     setLoading(true);
     try {
+      // Build subject list from what user actually studied
+      const subjects = learningActivity.map(a => a.plan_name).join(', ');
+      const questionCount = Math.min(Math.max(learningActivity.reduce((sum, a) => sum + a.lessons_completed, 0) * 2, 10), 30);
+
       const { data, error } = await supabase.functions.invoke('generate-lesson', {
         body: {
           action: 'generate_exam',
-          subject: selectedSubject,
-          questionCount: parseInt(questionCount),
+          subject: 'mixed',
+          questionCount,
           difficulty: 'mixed',
+          context: `Generate questions ONLY about these subjects the student studied this month: ${subjects}. Weight more questions toward subjects with lower scores.`,
         }
       });
 
@@ -127,7 +171,7 @@ const MonthlyExam = () => {
         question: typeof q.question === 'string' ? q.question : JSON.stringify(q.question),
         options: (q.options || []).map((o: any) => typeof o === 'string' ? o : JSON.stringify(o)),
         correct: typeof q.correct === 'number' ? q.correct : 0,
-        subject: q.subject || selectedSubject,
+        subject: q.subject || 'general',
         difficulty: q.difficulty || 'medium',
       }));
 
@@ -135,7 +179,8 @@ const MonthlyExam = () => {
       setCurrentQuestion(0);
       setAnswers({});
       setStartTime(Date.now());
-      setTimeRemaining(parseInt(timeLimit) * 60);
+      // 1 minute per question
+      setTimeRemaining(formattedQuestions.length * 60);
       setPhase("exam");
     } catch (e: any) {
       toast.error("Failed to generate exam: " + (e.message || "Unknown error"));
@@ -160,16 +205,53 @@ const MonthlyExam = () => {
       }
     });
 
-    setExamResult({
-      score: correct,
-      total: questions.length,
-      timeTaken,
-      subjectBreakdown,
-    });
+    const percentage = Math.round((correct / questions.length) * 100);
 
-    // Save to database - find or create an exam record
+    // Adjust learning plans based on performance
+    const planAdjustments: { planId: string; planName: string; action: string }[] = [];
+
     try {
-      // Get current month for exam grouping
+      const { data: activePlans } = await supabase
+        .from('learning_plans')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('status', 'active');
+
+      if (activePlans) {
+        for (const plan of activePlans) {
+          const planSubjectScores = learningActivity.find(
+            a => a.plan_name === plan.name || a.subject_id === plan.subject
+          );
+
+          let action = 'unchanged';
+          const updates: any = {};
+
+          if (percentage >= 85 && (planSubjectScores?.avg_score || 0) >= 70) {
+            // Student is excelling — shorten the plan
+            const newDuration = Math.max(1, plan.duration_months - 1);
+            if (newDuration !== plan.duration_months) {
+              updates.duration_months = newDuration;
+              action = `Shortened by 1 month (now ${newDuration}mo)`;
+            } else {
+              action = 'Already at minimum duration';
+            }
+          } else if (percentage < 50) {
+            // Student is struggling — extend the plan
+            updates.duration_months = plan.duration_months + 1;
+            action = `Extended by 1 month (now ${plan.duration_months + 1}mo)`;
+          } else {
+            action = 'On track — no changes';
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await supabase.from('learning_plans').update(updates).eq('id', plan.id);
+          }
+
+          planAdjustments.push({ planId: plan.id, planName: plan.name, action });
+        }
+      }
+
+      // Save exam result
       const now = new Date();
       const examMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
@@ -179,11 +261,11 @@ const MonthlyExam = () => {
         subjects: subjectBreakdown as any,
         total_score: correct,
         max_score: questions.length,
-        percentage: Math.round((correct / questions.length) * 100),
+        percentage,
       });
 
-      // Update XP
-      const xpGained = Math.round((correct / questions.length) * 50) + 20;
+      // Award XP
+      const xpGained = Math.round(percentage * 0.5) + 20;
       const { data: profile } = await supabase
         .from('profiles')
         .select('experience')
@@ -198,8 +280,16 @@ const MonthlyExam = () => {
       console.error('Failed to save exam result:', e);
     }
 
+    setExamResult({
+      score: correct,
+      total: questions.length,
+      timeTaken,
+      subjectBreakdown,
+      planAdjustments,
+    });
+
     setPhase("results");
-  }, [questions, answers, startTime, user]);
+  }, [questions, answers, startTime, user, learningActivity]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -259,9 +349,9 @@ const MonthlyExam = () => {
               </RadioGroup>
 
               <div className="flex justify-between mt-8">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setCurrentQuestion(c => c - 1)} 
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentQuestion(c => c - 1)}
                   disabled={currentQuestion === 0}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />Previous
@@ -271,7 +361,7 @@ const MonthlyExam = () => {
                     Next<ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     onClick={submitExam}
                     className="bg-foreground text-background hover:bg-foreground/90"
                   >
@@ -280,17 +370,16 @@ const MonthlyExam = () => {
                 )}
               </div>
 
-              {/* Question nav dots */}
               <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t">
                 {questions.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentQuestion(i)}
                     className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${
-                      i === currentQuestion 
-                        ? 'bg-foreground text-background' 
-                        : answers[i] !== undefined 
-                        ? 'bg-foreground/20 text-foreground' 
+                      i === currentQuestion
+                        ? 'bg-foreground text-background'
+                        : answers[i] !== undefined
+                        ? 'bg-foreground/20 text-foreground'
                         : 'bg-muted text-muted-foreground'
                     }`}
                   >
@@ -323,7 +412,7 @@ const MonthlyExam = () => {
             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
               percentage >= 70 ? "bg-foreground/10" : percentage >= 50 ? "bg-muted" : "bg-destructive/10"
             }`}>
-              {percentage >= 70 
+              {percentage >= 70
                 ? <Trophy className="h-10 w-10 text-foreground" />
                 : percentage >= 50
                 ? <Target className="h-10 w-10 text-muted-foreground" />
@@ -338,6 +427,23 @@ const MonthlyExam = () => {
               {examResult.score}/{examResult.total} correct in {formatTime(examResult.timeTaken)}
             </p>
           </div>
+
+          {/* Plan adjustments */}
+          {examResult.planAdjustments.length > 0 && (
+            <Card className="border-border/40">
+              <CardHeader><CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5" />Learning Plan Impact</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {examResult.planAdjustments.map((adj, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/30">
+                    <span className="text-sm font-medium">{adj.planName}</span>
+                    <Badge variant={adj.action.includes('Shortened') ? 'default' : adj.action.includes('Extended') ? 'destructive' : 'secondary'} className="text-xs">
+                      {adj.action}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Subject breakdown */}
           <Card className="border-border/40">
@@ -387,131 +493,116 @@ const MonthlyExam = () => {
             <Link to="/exams" className="flex-1">
               <Button variant="outline" className="w-full">Back to Exams</Button>
             </Link>
-            <Button onClick={() => { setPhase("setup"); setExamResult(null); }} className="flex-1">
-              Take Another Exam
-            </Button>
+            <Link to="/progress" className="flex-1">
+              <Button className="w-full">View Progress</Button>
+            </Link>
           </div>
         </main>
       </div>
     );
   }
 
-  // ========== SETUP PHASE ==========
+  // ========== LOADING / READY / NO-ACTIVITY ==========
   return (
-    <AppLayout title="Monthly Examination" subtitle="Test your knowledge across all subjects">
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+    <AppLayout title="Monthly Examination" subtitle="Auto-generated based on your learning activity this month">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {phase === "loading" && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-muted-foreground">Analyzing your monthly activity...</p>
+          </div>
+        )}
+
+        {phase === "no-activity" && (
           <Card className="border-border/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Configure Your Exam
-              </CardTitle>
-              <CardDescription>Customize your monthly examination</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Subject */}
-              <div className="space-y-2">
-                <Label className="font-medium">Subject</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {SUBJECTS.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedSubject(s.id)}
-                      className={`p-3 rounded-lg border text-left transition-colors ${
-                        selectedSubject === s.id
-                          ? 'border-foreground bg-foreground/5'
-                          : 'border-border/40 hover:bg-muted/50'
-                      }`}
-                    >
-                      <span className="text-lg">{s.icon}</span>
-                      <p className="text-sm font-medium mt-1">{s.name}</p>
-                    </button>
+            <CardContent className="text-center py-16 space-y-4">
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
+              <h3 className="text-lg font-semibold">No Learning Activity This Month</h3>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Complete some lessons first — the monthly exam is generated based on what you've studied.
+              </p>
+              <Link to="/program-learning">
+                <Button className="mt-2">Start Learning</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {phase === "ready" && (
+          <>
+            <Card className="border-border/40">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Your Exam is Ready
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Based on your activity this month, we've prepared an exam covering:
+                </p>
+
+                <div className="space-y-2">
+                  {learningActivity.map((activity, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/30">
+                      <div>
+                        <p className="text-sm font-medium">{activity.plan_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.lessons_completed} lessons • avg score {activity.avg_score}%
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {Math.round(activity.total_time / 60)}m studied
+                      </Badge>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Question count */}
-              <div className="space-y-2">
-                <Label className="font-medium">Number of Questions</Label>
-                <Select value={questionCount} onValueChange={setQuestionCount}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 Questions</SelectItem>
-                    <SelectItem value="20">20 Questions</SelectItem>
-                    <SelectItem value="30">30 Questions</SelectItem>
-                    <SelectItem value="50">50 Questions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Time limit */}
-              <div className="space-y-2">
-                <Label className="font-medium">Time Limit</Label>
-                <Select value={timeLimit} onValueChange={setTimeLimit}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 Minutes</SelectItem>
-                    <SelectItem value="30">30 Minutes</SelectItem>
-                    <SelectItem value="45">45 Minutes</SelectItem>
-                    <SelectItem value="60">60 Minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button 
-                onClick={startExam} 
-                disabled={loading}
-                className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 gap-2"
-              >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
-                {loading ? "Generating Exam..." : "Start Exam"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Past Results */}
-        <div className="space-y-4">
-          <Card className="border-border/40">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                Past Results
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingAttempts ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-1">
+                  <p>• Questions are weighted toward your weaker subjects</p>
+                  <p>• Time limit: ~1 minute per question</p>
+                  <p>• Results will adjust your learning plan durations</p>
                 </div>
-              ) : pastAttempts.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No exams taken yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {pastAttempts.map(attempt => {
-                    const pct = Math.round((attempt.score / attempt.total_questions) * 100);
-                    return (
-                      <div key={attempt.id} className="p-3 rounded-lg border border-border/40 bg-muted/30">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm font-medium">{pct}%</p>
-                            <p className="text-xs text-muted-foreground">
-                              {attempt.score}/{attempt.total_questions} • {formatTime(attempt.time_taken_seconds)}
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(attempt.completed_at).toLocaleDateString()}
-                          </p>
-                        </div>
+
+                <Button
+                  onClick={startExam}
+                  disabled={loading}
+                  className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 gap-2"
+                >
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
+                  {loading ? "Generating Exam..." : "Begin Monthly Exam"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Past results */}
+            {pastResults.length > 0 && (
+              <Card className="border-border/40">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Trophy className="h-5 w-5" />
+                    Past Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {pastResults.map((result: any) => (
+                    <div key={result.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/30">
+                      <div>
+                        <p className="text-sm font-medium">{result.percentage}%</p>
+                        <p className="text-xs text-muted-foreground">
+                          {result.total_score}/{result.max_score} correct
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(result.completed_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     </AppLayout>
   );
