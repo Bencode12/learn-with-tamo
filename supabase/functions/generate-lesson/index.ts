@@ -138,6 +138,38 @@ Make the lesson engaging, educational, and include at least:
       };
     }
 
+    // Sanitize: ensure all content fields are strings, not objects
+    const stringify = (val: unknown): string => {
+      if (typeof val === 'string') return val;
+      if (val === null || val === undefined) return '';
+      return JSON.stringify(val, null, 2);
+    };
+
+    if (lessonContent.sections && Array.isArray(lessonContent.sections)) {
+      lessonContent.sections = lessonContent.sections.map((s: any) => ({
+        title: stringify(s.title),
+        type: typeof s.type === 'string' ? s.type : 'theory',
+        content: stringify(s.content),
+      }));
+    }
+
+    if (lessonContent.quiz && Array.isArray(lessonContent.quiz)) {
+      lessonContent.quiz = lessonContent.quiz.map((q: any) => ({
+        question: stringify(q.question),
+        options: Array.isArray(q.options) ? q.options.map((o: any) => stringify(o)) : [],
+        correct: typeof q.correct === 'number' ? q.correct : 0,
+        explanation: stringify(q.explanation),
+      }));
+    }
+
+    if (lessonContent.key_concepts && Array.isArray(lessonContent.key_concepts)) {
+      lessonContent.key_concepts = lessonContent.key_concepts.map((c: any) => stringify(c));
+    }
+
+    lessonContent.title = stringify(lessonContent.title);
+    lessonContent.description = stringify(lessonContent.description);
+    lessonContent.next_steps = stringify(lessonContent.next_steps);
+
     return new Response(JSON.stringify({ lesson: lessonContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

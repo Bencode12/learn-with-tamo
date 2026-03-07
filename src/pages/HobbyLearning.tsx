@@ -87,7 +87,9 @@ const HobbyLearning = () => {
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                {lessonData.sections[currentSection]?.content}
+                {typeof lessonData.sections[currentSection]?.content === 'string'
+                  ? lessonData.sections[currentSection].content
+                  : JSON.stringify(lessonData.sections[currentSection]?.content, null, 2)}
               </div>
             </CardContent>
           </Card>
