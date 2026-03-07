@@ -76,6 +76,7 @@ const Progress = () => {
   const [wellnessCheckins, setWellnessCheckins] = useState<WellnessCheckin[]>([]);
   const [syncedGrades, setSyncedGrades] = useState<SyncedGrade[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [planNameMap, setPlanNameMap] = useState<Record<string, string>>({});
   const [stats, setStats] = useState({
     totalLessons: 0,
     completedLessons: 0,
@@ -92,6 +93,7 @@ const Progress = () => {
     fetchProgress();
     fetchWellnessCheckins();
     fetchSyncedGrades();
+    fetchLearningPlans();
   }, [user]);
 
   const fetchProgress = async () => {
