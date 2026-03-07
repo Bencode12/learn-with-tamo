@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
@@ -417,7 +418,7 @@ const ProgramStudy = () => {
               </Button>
               <span className="text-sm font-medium truncate mx-4">{lessonData.title}</span>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">W{weekNum} L{lessonNum}</Badge>
+                <Badge variant="outline">Week {weekNum}, Lesson {lessonNum}</Badge>
                 <Badge variant="secondary">{lessonData.duration_minutes}m</Badge>
               </div>
             </div>
@@ -442,7 +443,7 @@ const ProgramStudy = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
                         {lessonData.sections[currentSection].content}
                       </ReactMarkdown>
                     </div>
@@ -479,7 +480,7 @@ const ProgramStudy = () => {
                 {lessonData.quiz.map((q, qi) => (
                   <Card key={qi} className={quizSubmitted ? (quizAnswers[qi] === q.correct ? "border-green-500/50" : "border-destructive/50") : ""}>
                     <CardContent className="p-5">
-                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${q.question}`}</ReactMarkdown></div>
+                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${q.question}`}</ReactMarkdown></div>
                       <RadioGroup
                         value={quizAnswers[qi]?.toString() || ""}
                         onValueChange={(v) => !quizSubmitted && setQuizAnswers(prev => ({ ...prev, [qi]: parseInt(v) }))}
@@ -492,14 +493,14 @@ const ProgramStudy = () => {
                             quizAnswers[qi] === oi ? "border-primary bg-primary/10" : "border-border"
                           }`}>
                             <RadioGroupItem value={oi.toString()} disabled={quizSubmitted} />
-                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{opt}</ReactMarkdown></span>
+                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{opt}</ReactMarkdown></span>
                             {quizSubmitted && oi === q.correct && <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />}
                             {quizSubmitted && quizAnswers[qi] === oi && oi !== q.correct && <XCircle className="h-4 w-4 text-destructive ml-auto" />}
                           </label>
                         ))}
                       </RadioGroup>
                       {quizSubmitted && (
-                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown></div>
+                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown></div>
                       )}
                     </CardContent>
                   </Card>
