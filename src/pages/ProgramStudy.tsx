@@ -10,6 +10,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 interface WeekPlan {
   week: number;
@@ -437,8 +441,10 @@ const ProgramStudy = () => {
                     <CardTitle>{lessonData.sections[currentSection].title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                      {lessonData.sections[currentSection].content}
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {lessonData.sections[currentSection].content}
+                      </ReactMarkdown>
                     </div>
                   </CardContent>
                 </Card>
@@ -473,7 +479,7 @@ const ProgramStudy = () => {
                 {lessonData.quiz.map((q, qi) => (
                   <Card key={qi} className={quizSubmitted ? (quizAnswers[qi] === q.correct ? "border-green-500/50" : "border-destructive/50") : ""}>
                     <CardContent className="p-5">
-                      <p className="font-medium mb-3">{qi + 1}. {q.question}</p>
+                      <div className="font-medium mb-3 prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{`${qi + 1}. ${q.question}`}</ReactMarkdown></div>
                       <RadioGroup
                         value={quizAnswers[qi]?.toString() || ""}
                         onValueChange={(v) => !quizSubmitted && setQuizAnswers(prev => ({ ...prev, [qi]: parseInt(v) }))}
@@ -486,14 +492,14 @@ const ProgramStudy = () => {
                             quizAnswers[qi] === oi ? "border-primary bg-primary/10" : "border-border"
                           }`}>
                             <RadioGroupItem value={oi.toString()} disabled={quizSubmitted} />
-                            <span className="text-sm">{opt}</span>
+                            <span className="text-sm flex-1"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{p: ({children}) => <span>{children}</span>}}>{opt}</ReactMarkdown></span>
                             {quizSubmitted && oi === q.correct && <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />}
                             {quizSubmitted && quizAnswers[qi] === oi && oi !== q.correct && <XCircle className="h-4 w-4 text-destructive ml-auto" />}
                           </label>
                         ))}
                       </RadioGroup>
                       {quizSubmitted && (
-                        <p className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded">{q.explanation}</p>
+                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown></div>
                       )}
                     </CardContent>
                   </Card>
