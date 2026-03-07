@@ -333,20 +333,14 @@ const ProgramLearning = () => {
                   <button
                     key={subject.id}
                     onClick={() => setSelectedSubject(subject.id)}
-                    disabled={subject.id !== "math"} // Only math enabled for now
                     className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
                       selectedSubject === subject.id
                         ? "border-primary bg-primary/10"
-                        : subject.id === "math"
-                        ? "border-border hover:border-primary/50"
-                        : "border-border opacity-50 cursor-not-allowed"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <subject.icon className="h-8 w-8 mb-2" />
                     <span className="text-sm font-medium">{subject.name}</span>
-                    {subject.id !== "math" && (
-                      <Badge variant="secondary" className="mt-1 text-xs">Coming Soon</Badge>
-                    )}
                   </button>
                 ))}
               </div>
