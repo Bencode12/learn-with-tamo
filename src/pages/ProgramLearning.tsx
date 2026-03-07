@@ -157,7 +157,8 @@ const ProgramLearning = () => {
       });
     }
     
-    const planName = `Math Mastery - ${selectedFields.length} Fields`;
+    const subjectName = subjects.find(s => s.id === selectedSubject)?.name || selectedSubject;
+    const planName = `${subjectName} Mastery - ${selectedFields.length} Fields`;
     
     // Save to database
     const { data, error } = await supabase
