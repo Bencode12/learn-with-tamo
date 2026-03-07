@@ -16,6 +16,13 @@ import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
+// Ensure any value rendered as text is a string (guards against AI returning objects)
+const safeString = (val: unknown): string => {
+  if (typeof val === 'string') return val;
+  if (val === null || val === undefined) return '';
+  return JSON.stringify(val, null, 2);
+};
+
 interface WeekPlan {
   week: number;
   focus: string;
