@@ -349,14 +349,21 @@ function extractGradesFromCells(params: {
     for (const parsedGrade of numericGrades) {
       const monthHeader = monthByIndex[columnIndex] || '';
       let semester = getSemester(new Date());
-      if (FIRST_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) semester = 'I';
-      if (SECOND_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) semester = 'II';
+      let gradeDate = new Date().toISOString().split('T')[0];
+      if (FIRST_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) {
+        semester = 'I';
+        gradeDate = monthNameToDate(monthHeader);
+      }
+      if (SECOND_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) {
+        semester = 'II';
+        gradeDate = monthNameToDate(monthHeader);
+      }
 
       grades.push({
         subject,
         grade: parsedGrade,
         gradeType: subject.toLowerCase().startsWith('formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
-        date: new Date().toISOString().split('T')[0],
+        date: gradeDate,
         semester,
         teacher,
       });
