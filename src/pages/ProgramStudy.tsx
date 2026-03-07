@@ -451,7 +451,7 @@ const ProgramStudy = () => {
                   <CardContent>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
-                        {lessonData.sections[currentSection].content}
+                        {safeString(lessonData.sections[currentSection].content)}
                       </ReactMarkdown>
                     </div>
                   </CardContent>
