@@ -267,32 +267,49 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     console.log('[Tamo] Post-login page HTML length:', loginResult.html?.length || 0);
     console.log('[Tamo] Post-login markdown preview:', loginResult.markdown?.substring(0, 300));
 
-    // Check if still on login page (failed login)
     const html = loginResult.html || '';
-    if (html.includes('Įveskite naudotojo vardą') || html.includes('Naudotojo vardas negali')) {
-      return { success: false, grades: [], error: 'Login failed - invalid credentials' };
+    const markdown = loginResult.markdown || '';
+    const loginPageContent = `${html}\n${markdown}`;
+
+    if (
+      html.includes('Įveskite naudotojo vardą') ||
+      html.includes('Naudotojo vardas negali') ||
+      isInvalidTamoLogin(loginPageContent)
+    ) {
+      return { success: false, grades: [], error: 'Login failed - invalid Tamo credentials' };
     }
 
-    // Step 2: Navigate to grades page
+    // Try parsing directly from the authenticated post-login page first
+    const gradesFromLoginPage = parseGradesFromContent(html, markdown, loginResult.extractedJson);
+    if (gradesFromLoginPage.length > 0) {
+      return { success: true, grades: gradesFromLoginPage };
+    }
+
+    // Fallback: direct grades page request
     console.log('[Tamo] Navigating to grades page...');
     const gradesResult = await firecrawlScrapeWithActions('https://dienynas.tamo.lt/dienynas/pazymiai', [
-      { type: 'wait', milliseconds: 3000 },
+      { type: 'wait', milliseconds: 4000 },
     ]);
 
     if (!gradesResult.success) {
-      // If grades page fails, try parsing from the post-login page
-      console.log('[Tamo] Direct grades page access failed, parsing from post-login page');
-      const grades = parseGradesFromContent(html, loginResult.markdown || '', loginResult.extractedJson);
-      return { success: grades.length > 0, grades, error: grades.length === 0 ? 'No grades found on page' : undefined };
+      return {
+        success: false,
+        grades: [],
+        error: `Failed to open Tamo gradebook page: ${gradesResult.error || 'Unknown error'}`,
+      };
     }
 
-    // Check if redirected back to login
     const gradesHtml = gradesResult.html || '';
-    if (gradesHtml.includes('Įveskite naudotojo vardą')) {
-      return { success: false, grades: [], error: 'Session not maintained - try again' };
+    const gradesMarkdown = gradesResult.markdown || '';
+    if (gradesHtml.includes('Įveskite naudotojo vardą') || isInvalidTamoLogin(`${gradesHtml}\n${gradesMarkdown}`)) {
+      return { success: false, grades: [], error: 'Tamo session expired after login. Please retry sync.' };
     }
 
-    const grades = parseGradesFromContent(gradesHtml, gradesResult.markdown || '', gradesResult.extractedJson);
+    const grades = parseGradesFromContent(gradesHtml, gradesMarkdown, gradesResult.extractedJson);
+    if (grades.length === 0) {
+      return { success: false, grades: [], error: 'No grades found in Tamo gradebook.' };
+    }
+
     return { success: true, grades };
   } catch (error) {
     console.error('[Tamo] Login and scrape error:', error);
