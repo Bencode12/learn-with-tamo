@@ -92,10 +92,10 @@ export const GradesDashboard = () => {
 
       if (data.success) {
         toast({
-          title: "Grades Synced",
-          description: source === 'all' 
+          title: data.warning ? "Sync Partially Complete" : "Grades Synced",
+          description: data.warning || (source === 'all' 
             ? "All connected portals have been synced" 
-            : `${source === 'tamo' ? 'Tamo' : 'ManoDienynas'} grades synced successfully`
+            : `${source === 'tamo' ? 'Tamo' : 'ManoDienynas'} grades synced successfully`)
         });
         fetchGrades();
       } else if (data.requiresSetup) {
@@ -111,7 +111,7 @@ export const GradesDashboard = () => {
       console.error('Sync error:', error);
       toast({
         title: "Sync Failed",
-        description: "Failed to sync grades. Please check your credentials.",
+        description: error instanceof Error ? error.message : "Failed to sync grades. Please check your credentials.",
         variant: "destructive"
       });
     } finally {

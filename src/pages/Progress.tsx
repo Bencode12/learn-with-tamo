@@ -208,7 +208,7 @@ const Progress = () => {
       console.error('Sync error:', error);
       toast({
         title: "Sync Failed",
-        description: "Failed to sync grades. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to sync grades. Please try again.",
         variant: "destructive"
       });
     } finally {
