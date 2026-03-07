@@ -79,7 +79,7 @@ const ProgramLearning = () => {
   };
 
   const startAssessment = () => {
-    const questions = generateMathAssessment(selectedFields);
+    const questions = generateAssessment(selectedSubject, selectedFields);
     setAssessmentQuestions(questions);
     setCurrentQuestion(0);
     setAssessmentAnswers({});
