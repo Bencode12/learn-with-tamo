@@ -321,12 +321,12 @@ const MonthlyExam = () => {
         <main className="max-w-2xl mx-auto px-4 py-12 space-y-6">
           <div className="text-center space-y-4">
             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
-              percentage >= 70 ? "bg-green-500/10" : percentage >= 50 ? "bg-yellow-500/10" : "bg-destructive/10"
+              percentage >= 70 ? "bg-foreground/10" : percentage >= 50 ? "bg-muted" : "bg-destructive/10"
             }`}>
               {percentage >= 70 
-                ? <Trophy className="h-10 w-10 text-green-500" />
+                ? <Trophy className="h-10 w-10 text-foreground" />
                 : percentage >= 50
-                ? <Target className="h-10 w-10 text-yellow-500" />
+                ? <Target className="h-10 w-10 text-muted-foreground" />
                 : <AlertTriangle className="h-10 w-10 text-destructive" />
               }
             </div>
