@@ -92,10 +92,10 @@ export const GradesDashboard = () => {
 
       if (data.success) {
         toast({
-          title: "Grades Synced",
-          description: source === 'all' 
+          title: data.warning ? "Sync Partially Complete" : "Grades Synced",
+          description: data.warning || (source === 'all' 
             ? "All connected portals have been synced" 
-            : `${source === 'tamo' ? 'Tamo' : 'ManoDienynas'} grades synced successfully`
+            : `${source === 'tamo' ? 'Tamo' : 'ManoDienynas'} grades synced successfully`)
         });
         fetchGrades();
       } else if (data.requiresSetup) {
