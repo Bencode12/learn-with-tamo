@@ -26,9 +26,7 @@ async function firecrawlScrapeWithActions(
   actions?: any[]
 ): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) {
-    return { success: false, error: 'Firecrawl API key not configured' };
-  }
+  if (!apiKey) return { success: false, error: 'Firecrawl API key not configured' };
 
   try {
     const body: any = {
@@ -36,11 +34,9 @@ async function firecrawlScrapeWithActions(
       formats: ['html', 'markdown'],
       onlyMainContent: false,
     };
-    if (actions && actions.length > 0) {
-      body.actions = actions;
-    }
+    if (actions && actions.length > 0) body.actions = actions;
 
-    console.log('[ManoDienynas] Firecrawl request to:', url, 'with', actions?.length || 0, 'actions');
+    console.log('[MD] Firecrawl request to:', url, 'actions:', actions?.length || 0);
 
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
@@ -53,7 +49,7 @@ async function firecrawlScrapeWithActions(
 
     const data = await response.json();
     if (!response.ok) {
-      console.error('[ManoDienynas] Firecrawl error:', JSON.stringify(data).substring(0, 500));
+      console.error('[MD] Firecrawl error:', JSON.stringify(data).substring(0, 500));
       return { success: false, error: data.error || `Firecrawl returned ${response.status}` };
     }
 
@@ -63,65 +59,107 @@ async function firecrawlScrapeWithActions(
       markdown: data.data?.markdown || data.markdown || '',
     };
   } catch (error) {
-    console.error('[ManoDienynas] Firecrawl fetch error:', error);
+    console.error('[MD] Firecrawl fetch error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 function cleanText(value: string): string {
-  return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim();
 }
 
-// Clean subject name: remove class codes like "(-) IMYP2", trailing dashes, etc.
 function cleanSubjectName(raw: string): string {
   let name = raw
-    .replace(/\s*\(-\)\s*/g, ' ')
-    .replace(/\s*IMYP\d*/gi, '')
-    .replace(/\s*MYP\d*/gi, '')
-    .replace(/\s*I\s*MYP\d*/gi, '')
+    .replace(/\s*\(-?\)\s*/g, ' ')
+    .replace(/\s*I?MYP\d*/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
-  // Remove trailing " I" or " II" semester markers
   name = name.replace(/\s+I{1,2}$/, '').trim();
   return name;
 }
 
-const blockedSubjectPatterns = [
-  /^(unknown|nenurodyta)$/i,
-  /^(prisijungti|registruokis|dienos vaizdas|naujienos|pagalba)$/i,
-  /^(atlikti iki|terminas|liko|užduotis|užduoties tipas)$/i,
-  /^(pažymys|įvertinimas|vidurkis|svertinis vidurkis|komentaras|mokytojas|data|tipas)$/i,
-  /^(pamoka|tema|skyrius|klasė|grupė|mokslo metai)$/i,
-  /^(dalykas|gruodis|sausis|vasaris|kovas|balandis|gegužė|birželis|rugsėjis|spalis|lapkritis)$/i,
-  /^(spausdinimo versija)$/i,
-  /^(klasės vadovo veikla)$/i,
-  /^(socialinė.pilietinė veikla)$/i,
-];
+// Strict blocklist: anything that is NOT a real school subject
+const BLOCKED_SUBJECTS = new Set([
+  'unknown', 'nenurodyta', 'dalykas', 'eil. nr.', 'eil. nr', 'eil.nr.', 'eil.nr',
+  'nr.', 'nr', 'eilės numeris',
+  'prisijungti', 'registruokis', 'dienos vaizdas', 'naujienos', 'pagalba',
+  'atlikti iki', 'terminas', 'liko', 'užduotis', 'užduoties tipas',
+  'pažymys', 'įvertinimas', 'vidurkis', 'svertinis vidurkis', 'komentaras',
+  'mokytojas', 'data', 'tipas', 'pamoka', 'tema', 'skyrius', 'klasė',
+  'grupė', 'mokslo metai', 'spausdinimo versija',
+  'gruodis', 'sausis', 'vasaris', 'kovas', 'balandis', 'gegužė',
+  'birželis', 'rugsėjis', 'spalis', 'lapkritis', 'gruodžio',
+]);
 
 function isLikelySubject(value: string): boolean {
-  const text = cleanText(value);
-  if (text.length < 3 || text.length > 100) return false;
-  if (!/[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]/.test(text)) return false;
-  const cleaned = cleanSubjectName(text);
-  if (cleaned.length < 3) return false;
-  return !blockedSubjectPatterns.some((pattern) => pattern.test(cleaned));
+  const text = cleanText(value).toLowerCase();
+  if (text.length < 3 || text.length > 120) return false;
+  if (BLOCKED_SUBJECTS.has(text)) return false;
+  // Must contain letters
+  if (!/[a-ząčęėįšųūž]/i.test(text)) return false;
+  // Must not be purely numeric
+  if (/^\d+$/.test(text)) return false;
+  return true;
 }
 
 function isNumericGrade(value: string): boolean {
-  const trimmed = value.trim();
-  return /^(10|[1-9])$/.test(trimmed);
+  return /^(10|[1-9])$/.test(value.trim());
+}
+
+/**
+ * Extract teacher name from a subject cell.
+ * ManoDienynas format: "Subject Name (-) CODE  Teacher Firstname Lastname"
+ * The teacher name is usually at the end, with Lithuanian names.
+ */
+function extractTeacher(cellText: string): { subject: string; teacher: string } {
+  // The PDF shows format: "Subject (-) IMYP2  TeacherLastname TeacherFirstname"
+  // In the table: subject and teacher are in separate cells usually
+  // But in markdown they may be merged
+  
+  // Try to find teacher name pattern at end: "Lastname Firstname" or "Lastname Firstname Middlename"
+  // Lithuanian names: capital letter followed by lowercase
+  const namePattern = /\s+((?:[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+\s+){1,2}[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+(?:\s+[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)?)$/;
+  
+  // Also handle "D. Sudarienė, R. Pranevičienė" format
+  const multiTeacherPattern = /\s+([A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+(?:,\s*[A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)+)$/;
+  // Also: "S. Aleknienė, K. Gimpelson"
+  const initialsPattern = /\s+([A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)$/;
+
+  let cleaned = cleanSubjectName(cellText);
+  
+  const multiMatch = cleaned.match(multiTeacherPattern);
+  if (multiMatch) {
+    return {
+      subject: cleanSubjectName(cleaned.replace(multiTeacherPattern, '')),
+      teacher: multiMatch[1].trim(),
+    };
+  }
+  
+  const nameMatch = cleaned.match(namePattern);
+  if (nameMatch) {
+    return {
+      subject: cleanSubjectName(cleaned.replace(namePattern, '')),
+      teacher: nameMatch[1].trim(),
+    };
+  }
+  
+  const initMatch = cleaned.match(initialsPattern);
+  if (initMatch) {
+    return {
+      subject: cleanSubjectName(cleaned.replace(initialsPattern, '')),
+      teacher: initMatch[1].trim(),
+    };
+  }
+
+  return { subject: cleaned, teacher: '' };
 }
 
 /**
  * Parse the ManoDienynas marks table from markdown.
- * The table format from the PDF/page is:
- * | Subject (with teacher on first row) | Month1 grades | Month2 grades | ...
- * Continuation rows have empty first cell and more grades.
+ * Expected format from the PDF:
+ * | Dalykas | Gruodis | Sausis | ...
+ * | Subject (-) CODE Teacher Name | grades... | grades... |
+ * | (empty first cell = continuation) | more grades | more grades |
  */
 function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
@@ -129,188 +167,116 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
   
   let currentSubject = '';
   let currentTeacher = '';
-  let inTable = false;
+  let monthHeaders: string[] = [];
 
   for (const line of lines) {
-    // Skip non-table lines
-    if (!line.includes('|')) {
-      inTable = false;
-      continue;
-    }
+    if (!line.includes('|')) continue;
 
     const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
     
-    // Skip separator rows
+    // Skip separator rows (----)
     if (cells.every(c => /^[-:]+$/.test(c) || c === '')) continue;
     
-    // Skip header rows
-    if (cells.length >= 2 && cells[0] === 'Dalykas') {
-      inTable = true;
+    // Detect header row: "Dalykas | Month1 | Month2 | ..."
+    if (cells.length >= 2 && cells[0].toLowerCase() === 'dalykas') {
+      monthHeaders = cells.slice(1).map(c => c.trim());
+      console.log('[MD] Found month headers:', monthHeaders.join(', '));
       continue;
     }
 
     if (cells.length < 2) continue;
-    inTable = true;
 
     const firstCell = cleanText(cells[0]);
     
-    // Determine if this is a new subject row or a continuation row
-    if (firstCell.length > 0 && !/^(10|[1-9])$/.test(firstCell) && !/^[nN]$/.test(firstCell) && firstCell !== 'įsk') {
-      // This is a subject row - extract subject name and teacher
-      // The format is: "Subject Name (-) CODE  Teacher Name"
-      // But in markdown it's in one cell
+    // Check if first cell is a subject (non-empty, not a grade, not "n", not "įsk")
+    if (firstCell.length > 0 && !isNumericGrade(firstCell) && !/^[nN]$/.test(firstCell) && !/^įsk$/i.test(firstCell)) {
+      const { subject, teacher } = extractTeacher(firstCell);
       
-      // Try to split subject from teacher name
-      // Teacher names typically start with a capital letter and contain first + last name
-      const subjectTeacherMatch = firstCell.match(/^(.+?)\s+((?:[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+\s+){1,2}[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+(?:\s+[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)?)$/);
-      
-      if (subjectTeacherMatch) {
-        currentSubject = cleanSubjectName(subjectTeacherMatch[1]);
-        currentTeacher = subjectTeacherMatch[2].trim();
+      if (isLikelySubject(subject)) {
+        currentSubject = subject;
+        currentTeacher = teacher || 'Nenurodyta';
+        console.log('[MD] Subject:', currentSubject, '| Teacher:', currentTeacher);
       } else {
-        currentSubject = cleanSubjectName(firstCell);
-        currentTeacher = 'Nenurodyta';
-      }
-
-      if (!isLikelySubject(currentSubject)) {
+        // Not a valid subject - reset
         currentSubject = '';
+        currentTeacher = '';
         continue;
       }
-    }
-
-    if (!currentSubject) continue;
-
-    // Extract grades from all cells (including first cell for continuation rows)
-    const gradeCells = firstCell.length === 0 || /^(10|[1-9])$/.test(firstCell) 
-      ? cells 
-      : cells.slice(1);
-
-    for (const cell of gradeCells) {
-      const trimmed = cell.trim();
-      // Skip non-grade values: "n", "įsk", "val.", empty, dates, teacher names
-      if (!trimmed) continue;
-      if (/^[nN]$/.test(trimmed)) continue;
-      if (/įsk/i.test(trimmed)) continue;
-      if (/val\./i.test(trimmed)) continue;
-      if (/^\d+\s*val\.?$/i.test(trimmed)) continue;
       
-      // Extract all numeric grades from the cell
-      const tokens = trimmed.split(/[\s,;]+/);
-      for (const token of tokens) {
-        if (isNumericGrade(token)) {
-          grades.push({
-            subject: currentSubject,
-            grade: parseInt(token, 10),
-            gradeType: currentSubject.startsWith('Formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
-            date: new Date().toISOString().split('T')[0],
-            semester: getSemester(new Date()),
-            teacher: currentTeacher,
-          });
-        }
-      }
+      // Process grade cells (skip first cell which is the subject)
+      extractGradesFromCells(cells.slice(1), currentSubject, currentTeacher, monthHeaders, grades);
+    } else if (currentSubject) {
+      // Continuation row - all cells are potential grades
+      extractGradesFromCells(cells, currentSubject, currentTeacher, monthHeaders, grades);
     }
   }
 
-  console.log('[ManoDienynas] Parsed grades from markdown:', grades.length);
+  console.log('[MD] Total parsed from markdown:', grades.length, 'grades across', new Set(grades.map(g => g.subject)).size, 'subjects');
   return grades;
 }
 
-/**
- * Parse grades from HTML table rows as fallback
- */
-function parseGradesFromHtml(html: string): ManoDienynasGrade[] {
-  const grades: ManoDienynasGrade[] = [];
-  
-  const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  let rowMatch: RegExpExecArray | null;
-  let currentSubject = '';
-  let currentTeacher = '';
-
-  while ((rowMatch = rowPattern.exec(html)) !== null) {
-    const rowHtml = rowMatch[1];
-    const cellPattern = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-    const cells: string[] = [];
-
-    let cellMatch: RegExpExecArray | null;
-    while ((cellMatch = cellPattern.exec(rowHtml)) !== null) {
-      cells.push(cleanText(cellMatch[1]));
-    }
-
-    if (cells.length < 2) continue;
-
-    const firstCell = cells[0];
+function extractGradesFromCells(
+  cells: string[],
+  subject: string,
+  teacher: string,
+  monthHeaders: string[],
+  grades: ManoDienynasGrade[]
+) {
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i].trim();
+    if (!cell) continue;
     
-    if (firstCell.length > 3 && !isNumericGrade(firstCell) && !/^[nN]$/.test(firstCell)) {
-      const cleaned = cleanSubjectName(firstCell);
-      if (isLikelySubject(cleaned)) {
-        currentSubject = cleaned;
-        // Try second cell as teacher
-        if (cells.length >= 3 && cells[1].length > 5 && /[A-ZĄČĘĖĮŠŲŪŽ]/.test(cells[1])) {
-          currentTeacher = cells[1];
+    // Skip non-grade values
+    if (/^[nN]$/.test(cell)) continue;
+    if (/^įsk$/i.test(cell)) continue;
+    if (/val\.?$/i.test(cell)) continue;
+    if (/^\d+\s*val\.?$/i.test(cell)) continue;
+    
+    // Split by whitespace to handle multiple grades in one cell
+    const tokens = cell.split(/[\s,;]+/);
+    for (const token of tokens) {
+      if (isNumericGrade(token)) {
+        // Determine semester from month header if available
+        const monthName = (monthHeaders[i] || '').toLowerCase();
+        let semester = getSemester(new Date());
+        if (['rugsėjis', 'spalis', 'lapkritis', 'gruodis'].some(m => monthName.includes(m))) {
+          semester = 'I';
+        } else if (['sausis', 'vasaris', 'kovas', 'balandis', 'gegužė', 'birželis'].some(m => monthName.includes(m))) {
+          semester = 'II';
         }
-      }
-    }
-
-    if (!currentSubject) continue;
-
-    const gradeCells = firstCell.length === 0 || isNumericGrade(firstCell) ? cells : cells.slice(1);
-
-    for (const cell of gradeCells) {
-      const trimmed = cell.trim();
-      if (!trimmed || /^[nN]$/.test(trimmed) || /įsk/i.test(trimmed) || /val\./i.test(trimmed)) continue;
-
-      const tokens = trimmed.split(/[\s,;]+/);
-      for (const token of tokens) {
-        if (isNumericGrade(token)) {
-          grades.push({
-            subject: currentSubject,
-            grade: parseInt(token, 10),
-            gradeType: currentSubject.startsWith('Formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
-            date: new Date().toISOString().split('T')[0],
-            semester: getSemester(new Date()),
-            teacher: currentTeacher || 'Nenurodyta',
-          });
-        }
+        
+        grades.push({
+          subject,
+          grade: parseInt(token, 10),
+          gradeType: subject.toLowerCase().startsWith('formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
+          date: new Date().toISOString().split('T')[0],
+          semester,
+          teacher,
+        });
       }
     }
   }
-
-  console.log('[ManoDienynas] Parsed grades from HTML:', grades.length);
-  return grades;
 }
 
 function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
   const nowIso = new Date().toISOString();
   const today = new Date().toISOString().split('T')[0];
-  const dedupe = new Set<string>();
 
   return grades
     .map((grade, index) => {
-      const parsedGrade = grade.grade;
-      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
-
+      if (!Number.isFinite(grade.grade) || grade.grade < 1 || grade.grade > 10) return null;
       const subject = grade.subject.substring(0, 120);
       if (!subject || subject.length < 3) return null;
-
-      const gradeType = (grade.gradeType || 'Įvertinimas').substring(0, 80);
-      const semester = (grade.semester || getSemester(new Date())).substring(0, 10);
-      const teacherName = (grade.teacher || 'Nenurodyta').substring(0, 120);
-      const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
-
-      // Use index in fingerprint to allow multiple same-grade entries for same subject
-      const fingerprint = `${subject}|${parsedGrade}|${gradeType}|${teacherName}|${index}`;
-      if (dedupe.has(fingerprint)) return null;
-      dedupe.add(fingerprint);
 
       return {
         user_id: userId,
         source: 'manodienynas' as const,
         subject,
-        grade: parsedGrade,
-        grade_type: gradeType,
-        date,
-        semester,
-        teacher_name: teacherName,
+        grade: grade.grade,
+        grade_type: (grade.gradeType || 'Įvertinimas').substring(0, 80),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today,
+        semester: (grade.semester || getSemester(new Date())).substring(0, 10),
+        teacher_name: (grade.teacher || 'Nenurodyta').substring(0, 120),
         notes: grade.comment?.trim()?.substring(0, 4000) || null,
         synced_at: nowIso,
       };
@@ -320,11 +286,9 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
 
 async function persistGrades(supabase: ReturnType<typeof createClient>, userId: string, grades: ManoDienynasGrade[]) {
   const rows = normalizeGradeRows(userId, grades);
-  if (rows.length === 0) {
-    throw new Error('No valid grades were parsed to store.');
-  }
+  if (rows.length === 0) throw new Error('No valid grades were parsed to store.');
 
-  console.log('[ManoDienynas] Persisting', rows.length, 'grade rows. Subjects:', [...new Set(rows.map(r => r.subject))].join(', '));
+  console.log('[MD] Persisting', rows.length, 'grades. Subjects:', [...new Set(rows.map(r => r.subject))].join(', '));
 
   const { error: deleteError } = await supabase
     .from('synced_grades')
@@ -332,17 +296,13 @@ async function persistGrades(supabase: ReturnType<typeof createClient>, userId: 
     .eq('user_id', userId)
     .eq('source', 'manodienynas');
 
-  if (deleteError) {
-    throw new Error(`Failed to clear previous ManoDienynas grades: ${deleteError.message}`);
-  }
+  if (deleteError) throw new Error(`Failed to clear previous grades: ${deleteError.message}`);
 
   const { error: insertError } = await supabase
     .from('synced_grades')
     .insert(rows);
 
-  if (insertError) {
-    throw new Error(`Failed to save ManoDienynas grades: ${insertError.message}`);
-  }
+  if (insertError) throw new Error(`Failed to save grades: ${insertError.message}`);
 
   return rows.length;
 }
@@ -351,74 +311,62 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
 
   try {
-    // KEY FIX: Login AND navigate to grades page in ONE action sequence
-    // Firecrawl doesn't maintain sessions between separate calls
-    console.log('[ManoDienynas] Login + navigate to grades in single session...');
+    console.log('[MD] Login + navigate to grades in single session...');
     const result = await firecrawlScrapeWithActions(loginUrl, [
-      { type: 'wait', milliseconds: 1500 },
+      { type: 'wait', milliseconds: 2000 },
       { type: 'click', selector: '#dl_username' },
       { type: 'write', text: username },
       { type: 'click', selector: '#dl_password' },
       { type: 'write', text: password },
       { type: 'click', selector: '#login_submit' },
+      { type: 'wait', milliseconds: 5000 },
+      // Navigate to marks page
+      { type: 'click', selector: 'a[href*="marks_pupil/marks"]' },
       { type: 'wait', milliseconds: 4000 },
-      // Navigate to grades page within the same session
-      { type: 'click', selector: 'a[href*="marks_pupil/marks"], a[title*="Pažy"]' },
-      { type: 'wait', milliseconds: 3000 },
     ]);
 
     if (!result.success) {
       return { success: false, grades: [], error: `Login failed: ${result.error}` };
     }
 
-    console.log('[ManoDienynas] Result HTML length:', result.html?.length || 0);
-    console.log('[ManoDienynas] Result markdown length:', result.markdown?.length || 0);
-    console.log('[ManoDienynas] Markdown preview:', result.markdown?.substring(0, 500));
-
     const html = result.html || '';
     const markdown = result.markdown || '';
+
+    console.log('[MD] HTML length:', html.length, '| Markdown length:', markdown.length);
+    console.log('[MD] Markdown first 800 chars:', markdown.substring(0, 800));
 
     // Check if still on login page
     if (html.includes('dl_username') && html.includes('dienynas_form1') && html.length < 50000) {
       return { success: false, grades: [], error: 'Login failed - invalid credentials' };
     }
 
-    // Try markdown parsing first (most reliable for table data)
+    // Parse from markdown (primary)
     let grades = parseGradesFromMarkdown(markdown);
     
-    // Fallback to HTML parsing
-    if (grades.length < 3) {
-      console.log('[ManoDienynas] Markdown parsing got', grades.length, 'grades, trying HTML...');
-      const htmlGrades = parseGradesFromHtml(html);
-      if (htmlGrades.length > grades.length) {
-        grades = htmlGrades;
-      }
-    }
+    console.log('[MD] Markdown parser found:', grades.length, 'grades');
 
-    // If we still don't have enough grades, try the direct URL approach as fallback
-    if (grades.length < 3) {
-      console.log('[ManoDienynas] Few grades found, trying direct navigate action...');
+    // If too few, try a fallback navigation
+    if (grades.length < 5) {
+      console.log('[MD] Too few grades, trying fallback...');
       const fallback = await firecrawlScrapeWithActions(loginUrl, [
-        { type: 'wait', milliseconds: 1500 },
+        { type: 'wait', milliseconds: 2000 },
         { type: 'click', selector: '#dl_username' },
         { type: 'write', text: username },
         { type: 'click', selector: '#dl_password' },
         { type: 'write', text: password },
         { type: 'click', selector: '#login_submit' },
-        { type: 'wait', milliseconds: 4000 },
-        // Try clicking through navigation
+        { type: 'wait', milliseconds: 5000 },
+        // Try direct URL navigation via address bar approach
         { type: 'click', selector: 'a[href*="marks"]' },
-        { type: 'wait', milliseconds: 3000 },
+        { type: 'wait', milliseconds: 4000 },
       ]);
 
       if (fallback.success) {
+        console.log('[MD] Fallback markdown length:', fallback.markdown?.length);
+        console.log('[MD] Fallback first 800:', fallback.markdown?.substring(0, 800));
         const fallbackGrades = parseGradesFromMarkdown(fallback.markdown || '');
         if (fallbackGrades.length > grades.length) {
           grades = fallbackGrades;
-        }
-        const fallbackHtmlGrades = parseGradesFromHtml(fallback.html || '');
-        if (fallbackHtmlGrades.length > grades.length) {
-          grades = fallbackHtmlGrades;
         }
       }
     }
@@ -427,14 +375,14 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return {
         success: false,
         grades: [],
-        error: 'No grades found. Please open ManoDienynas grades page once manually, then try syncing again.',
+        error: 'No grades found. The marks page may not have loaded correctly.',
       };
     }
 
-    console.log('[ManoDienynas] Total grades found:', grades.length, 'across', new Set(grades.map(g => g.subject)).size, 'subjects');
+    console.log('[MD] Final:', grades.length, 'grades across', new Set(grades.map(g => g.subject)).size, 'subjects');
     return { success: true, grades };
   } catch (error) {
-    console.error('[ManoDienynas] Login and scrape error:', error);
+    console.error('[MD] Error:', error);
     return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -467,10 +415,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: result.success,
         message: result.success
-          ? `Login successful! Found ${result.grades.length} grades across ${new Set(result.grades.map(g => g.subject)).size} subjects.`
-          : `Login test: ${result.error || 'Failed'}`,
+          ? `Found ${result.grades.length} grades across ${new Set(result.grades.map(g => g.subject)).size} subjects.`
+          : `${result.error || 'Failed'}`,
         gradesFound: result.grades.length,
         subjects: [...new Set(result.grades.map(g => g.subject))],
+        sampleGrades: result.grades.slice(0, 10),
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -506,7 +455,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: false,
           error: result.error || 'Failed to sync with ManoDienynas',
-          sessionValid: false,
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
@@ -514,8 +462,8 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        grades: result.grades,
         gradesStored: persistedCount,
+        subjects: [...new Set(result.grades.map(g => g.subject))],
         lastSync: new Date().toISOString(),
         message: `Successfully synced ${persistedCount} grades from ManoDienynas`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -523,7 +471,7 @@ serve(async (req) => {
 
     throw new Error('Invalid action. Use "test_login" or "sync"');
   } catch (error) {
-    console.error('[ManoDienynas] Scraper error:', error);
+    console.error('[MD] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({
       success: false,
