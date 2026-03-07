@@ -593,6 +593,18 @@ const StaffHub = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Emails Tab */}
+        <TabsContent value="emails" className="space-y-6">
+          <EmailManagementTab />
+        </TabsContent>
+
+        {/* API Tab - Admin Only */}
+        {userRole === 'admin' && (
+          <TabsContent value="api" className="space-y-6">
+            <ApiManagementTab />
+          </TabsContent>
+        )}
       </Tabs>
     </AppLayout>
   );
