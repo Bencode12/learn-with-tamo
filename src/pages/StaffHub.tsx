@@ -13,13 +13,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { 
   Shield, Users, MessageSquare, AlertTriangle, BookOpen, UserPlus, Search, Crown, 
-  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban
+  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban,
+  Mail, Key, Copy, Trash2, Globe
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { EmailManagementTab } from "@/components/staff/EmailManagementTab";
+import { ApiManagementTab } from "@/components/staff/ApiManagementTab";
 
 interface ChatMessage {
   id: string;
@@ -257,7 +260,7 @@ const StaffHub = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto">
+        <TabsList className="flex flex-wrap w-full lg:w-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pilots">Pilots</TabsTrigger>
           <TabsTrigger value="tickets">Tickets</TabsTrigger>
@@ -265,6 +268,8 @@ const StaffHub = () => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
+          {userRole === 'admin' && <TabsTrigger value="api">API</TabsTrigger>}
         </TabsList>
 
         {/* Overview Tab */}
@@ -590,6 +595,18 @@ const StaffHub = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Emails Tab */}
+        <TabsContent value="emails" className="space-y-6">
+          <EmailManagementTab />
+        </TabsContent>
+
+        {/* API Tab - Admin Only */}
+        {userRole === 'admin' && (
+          <TabsContent value="api" className="space-y-6">
+            <ApiManagementTab />
+          </TabsContent>
+        )}
       </Tabs>
     </AppLayout>
   );
