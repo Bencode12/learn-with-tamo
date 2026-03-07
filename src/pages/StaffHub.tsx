@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { 
   Shield, Users, MessageSquare, AlertTriangle, BookOpen, UserPlus, Search, Crown, 
-  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban
+  Activity, Clock, TrendingUp, Send, BarChart3, Ticket, School, Plus, Eye, Ban,
+  Mail, Key, Copy, Trash2, Globe
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
