@@ -418,7 +418,7 @@ const ProgramStudy = () => {
               </Button>
               <span className="text-sm font-medium truncate mx-4">{lessonData.title}</span>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">Week {weekNum}, Lesson {lessonNum}</Badge>
+                <Badge variant="outline">{lessonData.title}</Badge>
                 <Badge variant="secondary">{lessonData.duration_minutes}m</Badge>
               </div>
             </div>
