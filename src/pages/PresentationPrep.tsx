@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Presentation, Upload, Mic, Video, Play, Pause, CheckCircle, ArrowLeft, BookOpen, Loader2, AlertCircle } from 'lucide-react';
+import { Presentation, Upload, Mic, Video, Play, Pause, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { AppLayout } from '@/components/AppLayout';
 
 const PresentationPrep = () => {
   const [step, setStep] = useState<'upload' | 'setup' | 'practice' | 'feedback'>('upload');
@@ -34,8 +35,8 @@ const PresentationPrep = () => {
       }
       setStep('practice');
       toast.success('Camera and microphone enabled!');
-    } catch (error) {
-      toast.error('Could not access camera/microphone. Please check permissions.');
+    } catch {
+      toast.error('Could not access camera/microphone.');
     }
   };
 
@@ -54,9 +55,9 @@ const PresentationPrep = () => {
     setStep('feedback');
     setFeedback({
       overall: 85,
-      speech: { score: 88, notes: "Good pacing and clear articulation. Consider adding more pauses for emphasis." },
-      posture: { score: 82, notes: "Good eye contact. Try to avoid looking down too often." },
-      content: { score: 85, notes: "Well-structured presentation with clear points." },
+      speech: { score: 88, notes: "Good pacing. Add more pauses for emphasis." },
+      posture: { score: 82, notes: "Good eye contact. Avoid looking down too often." },
+      content: { score: 85, notes: "Well-structured with clear points." },
       tips: [
         "Use more hand gestures to emphasize key points",
         "Speak slightly slower during complex explanations",
@@ -67,188 +68,146 @@ const PresentationPrep = () => {
 
   const stopCamera = () => {
     if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link to="/game-modes"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></Link>
-              <Link to="/" className="flex items-center space-x-3">
-                <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center">
-                  <span className="text-background font-bold text-base">K</span>
+    <AppLayout title="Presentation Prep" subtitle="Practice presenting with AI-powered feedback">
+      {step === 'upload' && (
+        <div className="max-w-md mx-auto text-center space-y-6">
+          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center">
+            <Presentation className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold">Upload Your Presentation</h2>
+          <p className="text-muted-foreground text-sm">Upload slides and practice with real-time AI feedback on speech and posture.</p>
+          
+          <Card>
+            <CardContent className="p-8">
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-border rounded-lg p-8 hover:border-primary transition-colors">
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="font-medium">Choose File</p>
+                  <p className="text-sm text-muted-foreground mt-1">PPTX, PDF, or PPT</p>
                 </div>
-                <h1 className="text-xl font-bold">KnowIt AI</h1>
-              </Link>
-            </div>
+                <Input type="file" accept=".pptx,.pdf,.ppt" onChange={handleFileUpload} className="hidden" />
+              </label>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
+      {step === 'setup' && (
+        <div className="max-w-lg mx-auto space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ready to Practice</CardTitle>
+              <CardDescription>{file?.name}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg text-sm space-y-1">
+                <p>• Ensure good lighting for posture analysis</p>
+                <p>• Position head & shoulders in frame</p>
+                <p>• Speak clearly into your microphone</p>
+              </div>
+              <Button onClick={startPractice} className="w-full" size="lg">
+                <Video className="h-4 w-4 mr-2" />Enable Camera & Start
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {step === 'practice' && (
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle>Camera</CardTitle></CardHeader>
+              <CardContent>
+                <video ref={videoRef} className="w-full rounded-lg bg-black aspect-video" muted />
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <Button onClick={toggleRecording} variant={isRecording ? "destructive" : "default"} size="lg">
+                    {isRecording ? <><Pause className="h-4 w-4 mr-2" />Stop</> : <><Play className="h-4 w-4 mr-2" />Start</>}
+                  </Button>
+                </div>
+                {isRecording && (
+                  <div className="flex items-center justify-center mt-4">
+                    <Badge variant="destructive" className="animate-pulse">● Recording</Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Real-time Tips</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 bg-green-500/10 rounded-lg text-sm flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />Good eye contact
+                </div>
+                <div className="p-3 bg-yellow-500/10 rounded-lg text-sm flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />Try speaking a bit louder
+                </div>
+                <div className="p-3 bg-muted rounded-lg text-sm flex items-center gap-2">
+                  <Mic className="h-4 w-4" />Audio levels: Good
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {step === 'upload' && (
-          <div className="space-y-6 text-center">
-            <Presentation className="h-16 w-16 mx-auto text-primary" />
-            <h2 className="text-3xl font-bold">Presentation Prep</h2>
-            <p className="text-muted-foreground">Upload your presentation and practice with AI-powered feedback on your speech and posture.</p>
-            
-            <Card className="max-w-md mx-auto">
-              <CardContent className="p-8">
-                <label className="block cursor-pointer">
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 hover:border-primary transition-colors">
-                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="font-medium">Upload Presentation</p>
-                    <p className="text-sm text-muted-foreground mt-1">PPTX, PDF, Google Slides link</p>
-                  </div>
-                  <Input type="file" accept=".pptx,.pdf,.ppt" onChange={handleFileUpload} className="hidden" />
-                </label>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+      {step === 'feedback' && feedback && (
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-6 text-center">
+              <div className="text-5xl font-black text-primary mb-1">{feedback.overall}%</div>
+              <p className="text-muted-foreground">Overall Score</p>
+            </CardContent>
+          </Card>
 
-        {step === 'setup' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Presentation Loaded</CardTitle>
-                <CardDescription>{file?.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Before you start:</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Ensure good lighting for posture analysis</li>
-                    <li>• Position yourself in frame (head and shoulders visible)</li>
-                    <li>• Speak clearly into your microphone</li>
-                    <li>• Have your slides ready to present</li>
-                  </ul>
-                </div>
-                <Button onClick={startPractice} className="w-full" size="lg">
-                  <Video className="h-4 w-4 mr-2" />
-                  Enable Camera & Microphone
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {step === 'practice' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Camera</CardTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { title: "Speech", data: feedback.speech, icon: Mic },
+              { title: "Posture", data: feedback.posture, icon: Video },
+              { title: "Content", data: feedback.content, icon: Presentation }
+            ].map((item, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <item.icon className="h-4 w-4" />{item.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <video ref={videoRef} className="w-full rounded-lg bg-black aspect-video" muted />
-                  <div className="flex items-center justify-center gap-4 mt-4">
-                    <Button onClick={toggleRecording} variant={isRecording ? "destructive" : "default"} size="lg">
-                      {isRecording ? <><Pause className="h-4 w-4 mr-2" />Stop</> : <><Play className="h-4 w-4 mr-2" />Start Recording</>}
-                    </Button>
-                  </div>
-                  {isRecording && (
-                    <div className="flex items-center justify-center mt-4">
-                      <Badge variant="destructive" className="animate-pulse">● Recording</Badge>
-                    </div>
-                  )}
+                  <div className="text-2xl font-bold mb-1">{item.data.score}%</div>
+                  <Progress value={item.data.score} className="h-2 mb-2" />
+                  <p className="text-xs text-muted-foreground">{item.data.notes}</p>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Real-time Tips</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg text-sm">
-                    <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
-                    Good eye contact detected
-                  </div>
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg text-sm">
-                    <AlertCircle className="h-4 w-4 inline mr-2 text-yellow-600" />
-                    Try to speak a bit louder
-                  </div>
-                  <div className="p-3 bg-muted rounded-lg text-sm">
-                    <Mic className="h-4 w-4 inline mr-2" />
-                    Audio levels: Good
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            ))}
           </div>
-        )}
 
-        {step === 'feedback' && feedback && (
-          <div className="space-y-6">
-            <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
-              <CardHeader>
-                <CardTitle className="text-2xl">Practice Complete!</CardTitle>
-                <CardDescription>Here's your AI-powered feedback</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-6">
-                  <div className="text-5xl font-bold text-primary">{feedback.overall}%</div>
-                  <p className="text-muted-foreground">Overall Score</p>
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Tips for Improvement</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {feedback.tips.map((tip: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />{tip}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { title: "Speech", data: feedback.speech, icon: Mic },
-                { title: "Posture", data: feedback.posture, icon: Video },
-                { title: "Content", data: feedback.content, icon: Presentation }
-              ].map((item, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <item.icon className="h-5 w-5" />
-                      {item.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold mb-2">{item.data.score}%</div>
-                    <Progress value={item.data.score} className="h-2 mb-3" />
-                    <p className="text-sm text-muted-foreground">{item.data.notes}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Improvement Tips</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {feedback.tips.map((tip: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-4">
-              <Button onClick={() => { stopCamera(); setStep('upload'); setFile(null); }} variant="outline" className="flex-1">
-                Try Another Presentation
-              </Button>
-              <Link to="/game-modes" className="flex-1">
-                <Button className="w-full">Back to Learning Modules</Button>
-              </Link>
-            </div>
+          <div className="flex gap-3">
+            <Button onClick={() => { stopCamera(); setStep('upload'); setFile(null); }} variant="outline" className="flex-1">
+              Try Another
+            </Button>
+            <Link to="/game-modes" className="flex-1"><Button className="w-full">Back to Learning</Button></Link>
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+      )}
+    </AppLayout>
   );
 };
 
