@@ -10,100 +10,16 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-// Math subfields with comprehensive assessment questions
-const mathFields = [
-  { id: "algebra", name: "Algebra", icon: "📐" },
-  { id: "geometry", name: "Geometry", icon: "📏" },
-  { id: "calculus", name: "Calculus", icon: "∫" },
-  { id: "probability", name: "Probability & Statistics", icon: "🎲" },
-  { id: "linear_algebra", name: "Linear Algebra", icon: "📊" },
-  { id: "complex_analysis", name: "Complex Analysis", icon: "ℂ" },
-  { id: "trigonometry", name: "Trigonometry", icon: "📐" },
-  { id: "number_theory", name: "Number Theory", icon: "🔢" },
-  { id: "discrete_math", name: "Discrete Mathematics", icon: "🧮" },
-  { id: "differential_equations", name: "Differential Equations", icon: "∂" },
-];
-
-// Science subfields
-const scienceFields = [
-  { id: "physics_mechanics", name: "Classical Mechanics", icon: "⚙️" },
-  { id: "physics_em", name: "Electromagnetism", icon: "⚡" },
-  { id: "physics_quantum", name: "Quantum Mechanics", icon: "🔬" },
-  { id: "physics_thermo", name: "Thermodynamics", icon: "🌡️" },
-  { id: "chemistry_organic", name: "Organic Chemistry", icon: "🧪" },
-  { id: "chemistry_inorganic", name: "Inorganic Chemistry", icon: "⚗️" },
-  { id: "chemistry_physical", name: "Physical Chemistry", icon: "🔥" },
-  { id: "biology_cell", name: "Cell Biology", icon: "🦠" },
-  { id: "biology_genetics", name: "Genetics", icon: "🧬" },
-  { id: "biology_ecology", name: "Ecology", icon: "🌿" },
-];
-
-// History subfields
-const historyFields = [
-  { id: "ancient_history", name: "Ancient History", icon: "🏛️" },
-  { id: "medieval_history", name: "Medieval History", icon: "⚔️" },
-  { id: "modern_history", name: "Modern History", icon: "🏭" },
-  { id: "world_wars", name: "World Wars", icon: "🎖️" },
-  { id: "american_history", name: "American History", icon: "🗽" },
-  { id: "european_history", name: "European History", icon: "🏰" },
-  { id: "asian_history", name: "Asian History", icon: "🏯" },
-  { id: "art_history", name: "Art History", icon: "🎨" },
-];
-
-// Programming subfields
-const codingFields = [
-  { id: "python", name: "Python", icon: "🐍" },
-  { id: "javascript", name: "JavaScript", icon: "📜" },
-  { id: "typescript", name: "TypeScript", icon: "💎" },
-  { id: "react", name: "React", icon: "⚛️" },
-  { id: "algorithms", name: "Algorithms", icon: "🔄" },
-  { id: "data_structures", name: "Data Structures", icon: "📦" },
-  { id: "databases", name: "Databases", icon: "🗄️" },
-  { id: "web_dev", name: "Web Development", icon: "🌐" },
-  { id: "machine_learning", name: "Machine Learning", icon: "🤖" },
-];
-
-// Languages subfields
-const languagesFields = [
-  { id: "spanish", name: "Spanish", icon: "🇪🇸" },
-  { id: "french", name: "French", icon: "🇫🇷" },
-  { id: "german", name: "German", icon: "🇩🇪" },
-  { id: "japanese", name: "Japanese", icon: "🇯🇵" },
-  { id: "chinese", name: "Chinese (Mandarin)", icon: "🇨🇳" },
-  { id: "korean", name: "Korean", icon: "🇰🇷" },
-  { id: "italian", name: "Italian", icon: "🇮🇹" },
-  { id: "portuguese", name: "Portuguese", icon: "🇵🇹" },
-];
-
-// Music subfields
-const musicFields = [
-  { id: "music_theory", name: "Music Theory", icon: "🎼" },
-  { id: "piano", name: "Piano", icon: "🎹" },
-  { id: "guitar", name: "Guitar", icon: "🎸" },
-  { id: "composition", name: "Composition", icon: "✍️" },
-  { id: "ear_training", name: "Ear Training", icon: "👂" },
-  { id: "music_production", name: "Music Production", icon: "🎧" },
-];
-
-// Art subfields
-const artFields = [
-  { id: "drawing", name: "Drawing Fundamentals", icon: "✏️" },
-  { id: "painting", name: "Painting", icon: "🎨" },
-  { id: "digital_art", name: "Digital Art", icon: "💻" },
-  { id: "graphic_design", name: "Graphic Design", icon: "🖼️" },
-  { id: "ui_ux", name: "UI/UX Design", icon: "📱" },
-  { id: "3d_modeling", name: "3D Modeling", icon: "🧊" },
-];
+import { generateAssessment, subjectFieldsMap } from "@/data/programAssessments";
 
 const subjects = [
-  { id: "math", name: "Mathematics", icon: Calculator, fields: mathFields },
-  { id: "science", name: "Science", icon: Atom, fields: scienceFields },
-  { id: "history", name: "History", icon: History, fields: historyFields },
-  { id: "languages", name: "Languages", icon: Languages, fields: languagesFields },
-  { id: "coding", name: "Programming", icon: Code, fields: codingFields },
-  { id: "music", name: "Music", icon: Music, fields: musicFields },
-  { id: "art", name: "Art & Design", icon: Palette, fields: artFields },
+  { id: "math", name: "Mathematics", icon: Calculator },
+  { id: "science", name: "Science", icon: Atom },
+  { id: "history", name: "History", icon: History },
+  { id: "languages", name: "Languages", icon: Languages },
+  { id: "coding", name: "Programming", icon: Code },
+  { id: "music", name: "Music", icon: Music },
+  { id: "art", name: "Art & Design", icon: Palette },
 ];
 
 const timeframes = [
@@ -113,85 +29,8 @@ const timeframes = [
   { id: "6months", label: "6 Months", months: 6, hoursPerDay: "1" },
 ];
 
-// Comprehensive math assessment questions covering all fields
-const generateMathAssessment = (selectedFields: string[]) => {
-  const allQuestions = [
-    // Algebra
-    { id: "alg1", field: "algebra", question: "Solve for x: 3x + 7 = 22", options: ["3", "5", "7", "15"], correct: "5", difficulty: "easy" },
-    { id: "alg2", field: "algebra", question: "Simplify: (x² - 4) / (x - 2)", options: ["x + 2", "x - 2", "x² - 2", "2x"], correct: "x + 2", difficulty: "medium" },
-    { id: "alg3", field: "algebra", question: "Find the roots of x² - 5x + 6 = 0", options: ["2 and 3", "1 and 6", "-2 and -3", "3 and -2"], correct: "2 and 3", difficulty: "easy" },
-    { id: "alg4", field: "algebra", question: "What is the sum of a geometric series: 1 + 2 + 4 + 8 + ... + 128?", options: ["255", "256", "127", "254"], correct: "255", difficulty: "hard" },
-    
-    // Geometry
-    { id: "geo1", field: "geometry", question: "What is the area of a circle with radius 5?", options: ["25π", "10π", "5π", "50π"], correct: "25π", difficulty: "easy" },
-    { id: "geo2", field: "geometry", question: "In a right triangle with legs 3 and 4, what is the hypotenuse?", options: ["5", "7", "6", "√7"], correct: "5", difficulty: "easy" },
-    { id: "geo3", field: "geometry", question: "What is the sum of interior angles of a hexagon?", options: ["720°", "540°", "360°", "900°"], correct: "720°", difficulty: "medium" },
-    { id: "geo4", field: "geometry", question: "Find the volume of a sphere with radius 3", options: ["36π", "27π", "108π", "12π"], correct: "36π", difficulty: "medium" },
-    
-    // Calculus
-    { id: "calc1", field: "calculus", question: "What is the derivative of x³?", options: ["3x²", "x²", "3x", "x³"], correct: "3x²", difficulty: "easy" },
-    { id: "calc2", field: "calculus", question: "∫ 2x dx = ?", options: ["x²", "x² + C", "2x²", "2x² + C"], correct: "x² + C", difficulty: "easy" },
-    { id: "calc3", field: "calculus", question: "What is the limit of (sin x)/x as x → 0?", options: ["1", "0", "∞", "undefined"], correct: "1", difficulty: "medium" },
-    { id: "calc4", field: "calculus", question: "Find d/dx of e^(2x)", options: ["2e^(2x)", "e^(2x)", "e^x", "2e^x"], correct: "2e^(2x)", difficulty: "medium" },
-    
-    // Probability
-    { id: "prob1", field: "probability", question: "What is the probability of getting heads twice in two coin flips?", options: ["1/4", "1/2", "1/3", "3/4"], correct: "1/4", difficulty: "easy" },
-    { id: "prob2", field: "probability", question: "In a standard deck, what's P(drawing a face card)?", options: ["12/52", "4/52", "16/52", "3/52"], correct: "12/52", difficulty: "easy" },
-    { id: "prob3", field: "probability", question: "What is the mean of: 2, 4, 6, 8, 10?", options: ["6", "5", "7", "8"], correct: "6", difficulty: "easy" },
-    { id: "prob4", field: "probability", question: "If P(A) = 0.3 and P(B) = 0.4, and A,B are independent, what is P(A∩B)?", options: ["0.12", "0.7", "0.1", "0.4"], correct: "0.12", difficulty: "medium" },
-    
-    // Linear Algebra
-    { id: "lin1", field: "linear_algebra", question: "What is the determinant of [[1,2],[3,4]]?", options: ["-2", "2", "10", "-10"], correct: "-2", difficulty: "easy" },
-    { id: "lin2", field: "linear_algebra", question: "What is the dimension of R³?", options: ["3", "2", "1", "∞"], correct: "3", difficulty: "easy" },
-    { id: "lin3", field: "linear_algebra", question: "What is the rank of a 3×3 identity matrix?", options: ["3", "1", "9", "0"], correct: "3", difficulty: "easy" },
-    { id: "lin4", field: "linear_algebra", question: "Which is NOT a property of matrix multiplication?", options: ["Commutativity", "Associativity", "Distributivity", "Identity element"], correct: "Commutativity", difficulty: "medium" },
-    
-    // Complex Analysis
-    { id: "complex1", field: "complex_analysis", question: "What is i²?", options: ["-1", "1", "i", "-i"], correct: "-1", difficulty: "easy" },
-    { id: "complex2", field: "complex_analysis", question: "What is the modulus of 3 + 4i?", options: ["5", "7", "1", "12"], correct: "5", difficulty: "easy" },
-    { id: "complex3", field: "complex_analysis", question: "What is the conjugate of 2 - 3i?", options: ["2 + 3i", "-2 + 3i", "-2 - 3i", "3 - 2i"], correct: "2 + 3i", difficulty: "easy" },
-    { id: "complex4", field: "complex_analysis", question: "e^(iπ) equals?", options: ["-1", "1", "i", "0"], correct: "-1", difficulty: "medium" },
-    
-    // Trigonometry
-    { id: "trig1", field: "trigonometry", question: "What is sin(90°)?", options: ["1", "0", "-1", "undefined"], correct: "1", difficulty: "easy" },
-    { id: "trig2", field: "trigonometry", question: "What is cos(0°)?", options: ["1", "0", "-1", "undefined"], correct: "1", difficulty: "easy" },
-    { id: "trig3", field: "trigonometry", question: "sin²(x) + cos²(x) = ?", options: ["1", "0", "2", "sin(2x)"], correct: "1", difficulty: "easy" },
-    { id: "trig4", field: "trigonometry", question: "What is tan(45°)?", options: ["1", "0", "√2", "undefined"], correct: "1", difficulty: "easy" },
-    
-    // Number Theory
-    { id: "num1", field: "number_theory", question: "What is the GCD of 12 and 18?", options: ["6", "3", "12", "36"], correct: "6", difficulty: "easy" },
-    { id: "num2", field: "number_theory", question: "Is 17 a prime number?", options: ["Yes", "No"], correct: "Yes", difficulty: "easy" },
-    { id: "num3", field: "number_theory", question: "What is 15 mod 4?", options: ["3", "2", "1", "0"], correct: "3", difficulty: "easy" },
-    { id: "num4", field: "number_theory", question: "The LCM of 4 and 6 is?", options: ["12", "24", "2", "6"], correct: "12", difficulty: "easy" },
-    
-    // Discrete Math
-    { id: "disc1", field: "discrete_math", question: "How many subsets does a set with 3 elements have?", options: ["8", "6", "3", "9"], correct: "8", difficulty: "easy" },
-    { id: "disc2", field: "discrete_math", question: "What is 5! (5 factorial)?", options: ["120", "25", "60", "24"], correct: "120", difficulty: "easy" },
-    { id: "disc3", field: "discrete_math", question: "In graph theory, what is a vertex with degree 0 called?", options: ["Isolated vertex", "Pendant vertex", "Hub", "Source"], correct: "Isolated vertex", difficulty: "medium" },
-    { id: "disc4", field: "discrete_math", question: "C(5,2) equals?", options: ["10", "20", "25", "5"], correct: "10", difficulty: "easy" },
-    
-    // Differential Equations
-    { id: "diff1", field: "differential_equations", question: "What is the order of dy/dx + y = 0?", options: ["1", "2", "0", "3"], correct: "1", difficulty: "easy" },
-    { id: "diff2", field: "differential_equations", question: "The general solution of dy/dx = 2x is?", options: ["y = x² + C", "y = 2x + C", "y = x²", "y = 2"], correct: "y = x² + C", difficulty: "easy" },
-    { id: "diff3", field: "differential_equations", question: "y'' + y = 0 has solutions involving?", options: ["sin and cos", "e^x", "polynomials", "log"], correct: "sin and cos", difficulty: "medium" },
-    { id: "diff4", field: "differential_equations", question: "A separable DE can be written as?", options: ["f(x)dx = g(y)dy", "f(x,y)dx", "f(y)dx", "None"], correct: "f(x)dx = g(y)dy", difficulty: "medium" },
-  ];
-  
-  // Filter questions based on selected fields and return 3-4 per field
-  let filteredQuestions: typeof allQuestions = [];
-  selectedFields.forEach(field => {
-    const fieldQuestions = allQuestions.filter(q => q.field === field);
-    filteredQuestions = [...filteredQuestions, ...fieldQuestions.slice(0, 4)];
-  });
-  
-  // Ensure minimum 15 questions
-  if (filteredQuestions.length < 15) {
-    const remaining = allQuestions.filter(q => !filteredQuestions.includes(q));
-    filteredQuestions = [...filteredQuestions, ...remaining.slice(0, 15 - filteredQuestions.length)];
-  }
-  
-  return filteredQuestions;
-};
+// Generate assessment from the centralized bank
+
 
 const ProgramLearning = () => {
   const { t } = useLanguage();
@@ -240,7 +79,7 @@ const ProgramLearning = () => {
   };
 
   const startAssessment = () => {
-    const questions = generateMathAssessment(selectedFields);
+    const questions = generateAssessment(selectedSubject, selectedFields);
     setAssessmentQuestions(questions);
     setCurrentQuestion(0);
     setAssessmentAnswers({});
@@ -289,9 +128,10 @@ const ProgramLearning = () => {
     
     // Generate weekly plan based on assessment results
     const weeklyPlan = [];
+    const currentFields = subjectFieldsMap[selectedSubject] || [];
     const fieldsToStudy = selectedFields.map(f => ({
       id: f,
-      name: mathFields.find(mf => mf.id === f)?.name || f,
+      name: currentFields.find(mf => mf.id === f)?.name || f,
       score: score.byField[f] ? Math.round((score.byField[f].correct / score.byField[f].total) * 100) : 0
     }));
     
@@ -317,7 +157,8 @@ const ProgramLearning = () => {
       });
     }
     
-    const planName = `Math Mastery - ${selectedFields.length} Fields`;
+    const subjectName = subjects.find(s => s.id === selectedSubject)?.name || selectedSubject;
+    const planName = `${subjectName} Mastery - ${selectedFields.length} Fields`;
     
     // Save to database
     const { data, error } = await supabase
@@ -492,20 +333,14 @@ const ProgramLearning = () => {
                   <button
                     key={subject.id}
                     onClick={() => setSelectedSubject(subject.id)}
-                    disabled={subject.id !== "math"} // Only math enabled for now
                     className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
                       selectedSubject === subject.id
                         ? "border-primary bg-primary/10"
-                        : subject.id === "math"
-                        ? "border-border hover:border-primary/50"
-                        : "border-border opacity-50 cursor-not-allowed"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <subject.icon className="h-8 w-8 mb-2" />
                     <span className="text-sm font-medium">{subject.name}</span>
-                    {subject.id !== "math" && (
-                      <Badge variant="secondary" className="mt-1 text-xs">Coming Soon</Badge>
-                    )}
                   </button>
                 ))}
               </div>
@@ -527,11 +362,11 @@ const ProgramLearning = () => {
                 <Sparkles className="h-5 w-5 text-primary" />
                 Select Fields to Study
               </CardTitle>
-              <CardDescription>Choose the mathematical areas you want to focus on</CardDescription>
+              <CardDescription>Choose the areas you want to focus on</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                {mathFields.map((field) => (
+                {(subjectFieldsMap[selectedSubject] || []).map((field) => (
                   <button
                     key={field.id}
                     onClick={() => handleFieldToggle(field.id)}
@@ -621,7 +456,7 @@ const ProgramLearning = () => {
             <CardContent>
               <div className="mb-6">
                 <Badge className="mb-3">
-                  {mathFields.find(f => f.id === assessmentQuestions[currentQuestion].field)?.name}
+                  {(subjectFieldsMap[selectedSubject] || []).find(f => f.id === assessmentQuestions[currentQuestion].field)?.name}
                 </Badge>
                 <h3 className="text-xl font-semibold mb-4">
                   {assessmentQuestions[currentQuestion].question}
