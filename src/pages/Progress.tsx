@@ -540,7 +540,7 @@ const Progress = () => {
                       <div className="text-2xl">{getSubjectIcon(lesson.subject_id)}</div>
                       <div>
                         <h4 className="font-semibold">{getReadableLessonName(lesson)}</h4>
-                        <p className="text-sm text-muted-foreground">{getReadableSubject(lesson.subject_id)} • {lesson.chapter_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
+                        <p className="text-sm text-muted-foreground">{getReadableSubject(lesson.subject_id)} • {getReadableChapter(lesson.chapter_id)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
