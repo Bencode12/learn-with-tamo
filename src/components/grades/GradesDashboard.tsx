@@ -111,7 +111,7 @@ export const GradesDashboard = () => {
       console.error('Sync error:', error);
       toast({
         title: "Sync Failed",
-        description: "Failed to sync grades. Please check your credentials.",
+        description: error instanceof Error ? error.message : "Failed to sync grades. Please check your credentials.",
         variant: "destructive"
       });
     } finally {
