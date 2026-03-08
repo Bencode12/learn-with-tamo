@@ -50,6 +50,9 @@ const ProgramLearning = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [existingPlans, setExistingPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     loadExistingPlans();
