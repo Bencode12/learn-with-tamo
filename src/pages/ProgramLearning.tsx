@@ -285,8 +285,21 @@ const ProgramLearning = () => {
             ))}
           </div>
 
-          <Button variant="outline" className="w-full" onClick={() => setShowCreateNew(true)}>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => {
+              if (!isPremium && existingPlans.length >= MAX_FREE_PLANS) {
+                toast.error(`Free users can have up to ${MAX_FREE_PLANS} active plans. Upgrade to Premium for unlimited plans.`);
+                return;
+              }
+              setShowCreateNew(true);
+            }}
+          >
             <Sparkles className="h-4 w-4 mr-2" /> Create New Plan
+            {!isPremium && (
+              <span className="ml-2 text-xs text-muted-foreground">({existingPlans.length}/{MAX_FREE_PLANS})</span>
+            )}
           </Button>
         </main>
       </div>
