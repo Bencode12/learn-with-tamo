@@ -96,6 +96,8 @@ Your lessons should be:
 - Be appropriate for the difficulty level specified
 - Include key concepts, explanations, and practice problems
 
+CRITICAL: You MUST generate exactly 5 quiz questions. Never generate fewer than 5 quiz questions. Each quiz must have exactly 4 options.
+
 Always respond with valid JSON in this exact format:
 {
   "title": "Lesson title",
@@ -127,9 +129,9 @@ Always respond with valid JSON in this exact format:
 - Difficulty: ${difficulty}
 - This is lesson ${lessonNumber} of week ${weekNumber}
 
-Make the lesson engaging, educational, and include at least:
+Make the lesson engaging, educational, and include:
 - 3-4 content sections (mix of theory, examples, and practice)
-- 4-5 quiz questions of varying difficulty
+- EXACTLY 5 quiz questions of varying difficulty (this is mandatory - do NOT generate fewer than 5)
 - Clear explanations suitable for the difficulty level
 - Real-world applications where appropriate`;
 
