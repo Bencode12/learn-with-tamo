@@ -33,6 +33,8 @@ async function firecrawlScrape(
       url,
       formats: ['html', 'markdown'],
       onlyMainContent: false,
+      waitFor: 6000,
+      timeout: 90000,
     };
     if (actions?.length) body.actions = actions;
 
@@ -50,13 +52,14 @@ async function firecrawlScrape(
     const data = await response.json();
     if (!response.ok) {
       console.error('[MD] Firecrawl error:', JSON.stringify(data).substring(0, 500));
-      
+
       if (data?.code === 'SCRAPE_TIMEOUT') {
-        console.log('[MD] Timeout, retrying...');
+        console.log('[MD] Timeout, retrying with extended timeout...');
+        const retryBody = { ...body, waitFor: 12000, timeout: 150000 };
         const retry = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, waitFor: 8000, timeout: 120000 }),
+          body: JSON.stringify(retryBody),
         });
         const retryData = await retry.json();
         if (retry.ok) {
