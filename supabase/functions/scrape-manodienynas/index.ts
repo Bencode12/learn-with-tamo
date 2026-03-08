@@ -698,6 +698,7 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(grade.date || '')) return null;
       const rowDate = grade.date;
+      const semester = (grade.semester || 'I').substring(0, 10);
       const teacherName = (grade.teacher || 'Nenurodyta').substring(0, 120);
       const notes = grade.comment?.trim()?.substring(0, 4000) || null;
 
