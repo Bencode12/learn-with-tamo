@@ -144,7 +144,7 @@ const ProgramLearning = () => {
     
     // Generate weekly plan based on assessment results
     const weeklyPlan = [];
-    const currentFields = subjectFieldsMap[selectedSubject] || [];
+    const currentFields = subjectFieldsMap[effectiveSubject] || [];
     const fieldsToStudy = selectedFields.map(f => ({
       id: f,
       name: currentFields.find(mf => mf.id === f)?.name || f,
