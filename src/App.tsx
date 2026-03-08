@@ -72,6 +72,7 @@ const App = () => (
             <Route path="/self-learning" element={<ProtectedRoute><SelfLearning /></ProtectedRoute>} />
             <Route path="/curriculum" element={<ProtectedRoute><CurriculumLearning /></ProtectedRoute>} />
             <Route path="/subjects" element={<ProtectedRoute><SubjectsOverview /></ProtectedRoute>} />
+            <Route path="/schools" element={<SchoolSubscription />} />
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<ContactUs />} />

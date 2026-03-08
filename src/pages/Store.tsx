@@ -169,6 +169,24 @@ const Store = () => {
           ))}
         </div>
 
+        {/* School CTA */}
+        <Card className="mt-6 border-border/40 bg-primary/5">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <School className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Looking for a school plan?</h3>
+                <p className="text-sm text-muted-foreground">Per-student pricing, teacher dashboards, and invoicing</p>
+              </div>
+            </div>
+            <Link to="/schools">
+              <Button variant="outline">Learn More</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         {/* FAQ */}
         <Card className="mt-8 border-border/40">
           <CardHeader>
