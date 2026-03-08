@@ -511,24 +511,13 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
       if (/^\d+[.,]\d+$/.test(cell)) continue; // averages
       if (/^[-–—]+$/.test(cell)) continue;
 
-      const entries = extractGradesWithDatesFromCell(cell, maxGrade);
+      const monthName = monthByIndex[colIdx];
+      const entries = extractGradesWithDatesFromCell(cell, maxGrade, monthName);
 
       for (const entry of entries) {
-        const gradeValue = entry.grade;
-        const monthName = monthByIndex[colIdx];
+        if (!entry.date) continue;
 
-        let rowDate = entry.date;
-        if (!rowDate) {
-          const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
-          const key = `${currentSubject}|${monthName}`;
-          const count = gradeCounter[key] || 0;
-          gradeCounter[key] = count + 1;
-          const dayOptions = [8, 12, 15, 18, 22, 25];
-          const day = dayOptions[count % dayOptions.length];
-          rowDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
-        }
-
-        const parsedDate = new Date(rowDate);
+        const parsedDate = new Date(entry.date);
         const monthNum = Number.isNaN(parsedDate.getTime())
           ? (monthName ? MONTH_TO_NUMBER[monthName] : undefined)
           : parsedDate.getMonth() + 1;
@@ -536,9 +525,9 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
 
         grades.push({
           subject: currentSubject,
-          grade: gradeValue,
+          grade: entry.grade,
           gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
-          date: rowDate,
+          date: entry.date,
           semester,
           teacher: currentTeacher || 'Nenurodyta',
         });
