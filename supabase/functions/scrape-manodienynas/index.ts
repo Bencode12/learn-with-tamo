@@ -307,10 +307,10 @@ function buildTeacherMap(markdown: string): Record<string, string> {
 
 // ====== MARKDOWN TABLE PARSER ======
 
-function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
+function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<string, string>): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
   const lines = markdown.split('\n');
-  const teacherMap = buildTeacherMap(markdown);
+  const teacherMap = teacherMapInput ?? buildTeacherMap(markdown);
 
   // Detect MYP
   const isMYP = /\bI?MYP\d?\b/i.test(markdown);
