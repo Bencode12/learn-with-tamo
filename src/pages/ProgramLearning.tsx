@@ -10,7 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS } from "@/data/programAssessments";
+import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS, subSubjectsMap } from "@/data/programAssessments";
 import { Input } from "@/components/ui/input";
 
 const subjects = [
