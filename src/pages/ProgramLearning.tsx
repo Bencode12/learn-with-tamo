@@ -4,13 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Calculator, Atom, History, Code, Languages, Music, Palette, CheckCircle, Calendar, Target, Clock, Play, Sparkles, Brain, AlertCircle } from "lucide-react";
+import { BookOpen, ArrowLeft, Calculator, Atom, History, Code, Languages, Music, Palette, CheckCircle, Calendar, Target, Clock, Play, Sparkles, Brain, AlertCircle, Lock, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateAssessment, subjectFieldsMap } from "@/data/programAssessments";
+import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS } from "@/data/programAssessments";
+import { Input } from "@/components/ui/input";
 
 const subjects = [
   { id: "math", name: "Mathematics", icon: Calculator },
