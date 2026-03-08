@@ -1,5 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as hexEncode, decode as hexDecode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
+
+const _te = new TextEncoder();
+const _td = new TextDecoder();
+
+async function decryptPassword(stored: string): Promise<string> {
+  if (!stored.startsWith('aes:')) return atob(stored); // legacy
+  const [, ivHex, ctHex] = stored.split(':');
+  const keyHex = Deno.env.get('CREDENTIAL_ENCRYPTION_KEY') || '';
+  const keyMaterial = await crypto.subtle.digest('SHA-256', _te.encode(keyHex));
+  const key = await crypto.subtle.importKey('raw', keyMaterial, 'AES-GCM', false, ['decrypt']);
+  const iv = hexDecode(_te.encode(ivHex));
+  const ct = hexDecode(_te.encode(ctHex));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return _td.decode(decrypted);
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
