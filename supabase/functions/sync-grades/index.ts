@@ -128,9 +128,10 @@ serve(async (req) => {
           throw new Error('Invalid credentials format');
         }
 
+        const encryptedPwd = await encryptPassword(cleanPassword);
         const encryptedData = JSON.stringify({
           username: cleanUsername,
-          passwordHash: btoa(cleanPassword),
+          password: encryptedPwd,
           savedAt: new Date().toISOString(),
         });
 
