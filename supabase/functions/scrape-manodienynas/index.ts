@@ -152,7 +152,7 @@ function isNumericGrade(value: string): boolean {
   return /^(10|[1-9])$/.test(value.trim());
 }
 
-function extractNumericGradesFromCell(value: string): number[] {
+function extractNumericGradesFromCell(value: string, maxGrade: number = 10): number[] {
   const normalized = value
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[*_`~]/g, ' ')
@@ -161,7 +161,7 @@ function extractNumericGradesFromCell(value: string): number[] {
 
   return [...normalized.matchAll(/\b(10|[1-9])\b/g)]
     .map((match) => parseInt(match[1], 10))
-    .filter((num) => Number.isFinite(num) && num >= 1 && num <= 10);
+    .filter((num) => Number.isFinite(num) && num >= 1 && num <= maxGrade);
 }
 
 /**
@@ -389,12 +389,20 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
   const lines = markdown.split('\n');
   const teacherMap = buildTeacherMap(markdown);
 
+  // Detect MYP program: if subjects contain IMYP or MYP, cap grades at 7
+  const isMYP = /\bI?MYP\d?\b/i.test(markdown);
+  const maxGrade = isMYP ? 7 : 10;
+  console.log('[MD] Program detected:', isMYP ? 'MYP (grades 1-7)' : 'Standard (grades 1-10)');
+
   let currentSubject = '';
   let currentTeacher = '';
   let currentIsFormative = false;
   let tableDetected = false;
   let monthIndexes: number[] = [];
   let monthByIndex: Record<number, string> = {};
+
+  // Track grade count per subject+month for date distribution
+  const gradeCountPerSubjectMonth: Record<string, number> = {};
 
   // Log first few table lines for debugging
   const tableLines = lines.filter(l => l.includes('|')).slice(0, 5);
@@ -454,27 +462,48 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
 
     if (!currentSubject) continue;
 
-    // Scan ALL columns (not just month columns) for grades
-    // Use month mapping to determine dates
-    for (let colIdx = (rowHasSubject ? 1 : 0); colIdx < cells.length; colIdx++) {
+    // ONLY scan month columns for grades (not all columns)
+    // This prevents picking up row numbers, averages, and other non-grade numbers
+    const columnsToScan = monthIndexes.length > 0 ? monthIndexes : [];
+    
+    if (columnsToScan.length === 0) continue; // No month columns detected, skip
+
+    for (const colIdx of columnsToScan) {
+      if (colIdx >= cells.length) continue;
       const cell = cells[colIdx].trim();
       if (!cell) continue;
       if (/^[nN]$/.test(cell)) continue;
       if (/^įsk$/i.test(cell)) continue;
       if (/val\.?$/i.test(cell)) continue;
       if (/^\d+\s*val\.?$/i.test(cell)) continue;
-      // Skip average columns (typically labeled "vid." or contain decimal numbers)
+      // Skip average columns (decimal numbers)
       if (/^\d+[.,]\d+$/.test(cell)) continue;
 
-      const numericGrades = extractNumericGradesFromCell(cell);
+      const numericGrades = extractNumericGradesFromCell(cell, maxGrade);
 
       for (const parsedGrade of numericGrades) {
-        const monthHeader = getMonthForColumn(colIdx, monthIndexes, monthByIndex);
+        const monthHeader = monthByIndex[colIdx] || '';
         let semester = getSemester(new Date());
         let gradeDate = new Date().toISOString().split('T')[0];
 
         if (monthHeader) {
-          gradeDate = monthNameToDate(monthHeader);
+          // Distribute grades across the month instead of all on the 15th
+          const monthKey = `${currentSubject}|${monthHeader}`;
+          const gradeNum = (gradeCountPerSubjectMonth[monthKey] || 0);
+          gradeCountPerSubjectMonth[monthKey] = gradeNum + 1;
+          
+          // Spread dates: 5th, 10th, 15th, 20th, 25th, then cycle
+          const dayOptions = [5, 10, 15, 20, 25];
+          const day = dayOptions[gradeNum % dayOptions.length];
+          
+          const monthNum = MONTH_TO_NUMBER[monthHeader];
+          if (monthNum) {
+            const now = new Date();
+            let year = now.getFullYear();
+            if (monthNum >= 9 && now.getMonth() + 1 < 9) year = year - 1;
+            gradeDate = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          }
+          
           if (FIRST_SEMESTER_MONTHS.includes(monthHeader)) {
             semester = 'I';
           } else if (SECOND_SEMESTER_MONTHS.includes(monthHeader)) {
@@ -495,6 +524,7 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
   }
 
   console.log('[MD] Total parsed from markdown:', grades.length, 'grades across', new Set(grades.map(g => g.subject)).size, 'subjects');
+  console.log('[MD] Grade value distribution:', [...new Set(grades.map(g => g.grade))].sort((a,b) => a-b).join(', '));
   return grades;
 }
 
