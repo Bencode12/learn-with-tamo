@@ -252,11 +252,8 @@ const Progress = () => {
   };
 
   const getReadableLessonName = (lesson: LessonProgress) => {
-    // Handle program study lesson IDs like "w1_l1"
-    const weekLessonMatch = lesson.lesson_id.match(/^w(\d+)_l(\d+)$/i);
-    if (weekLessonMatch) {
-      return `Week ${weekLessonMatch[1]}, Lesson ${weekLessonMatch[2]}`;
-    }
+    // Use stored lesson title if available
+    if (lesson.lesson_title) return lesson.lesson_title;
     // Try to find lesson title from lessonData
     for (const subject of lessonData) {
       const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
@@ -270,18 +267,35 @@ const Progress = () => {
     return lesson.lesson_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  const getReadableChapter = (chapterId: string) => {
+  // Build a map from plan_id -> weekly_plan for chapter focus lookup
+  const planWeeklyMap = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    // We'll populate this from a separate fetch
+    return map;
+  }, []);
+
+  const getReadableChapter = (lesson: LessonProgress) => {
+    // If it's a program study lesson with plan_id and week_number, show the plan name + week focus
+    if (lesson.plan_id && lesson.week_number) {
+      const planName = planNameMap[lesson.plan_id] || planNameMap[lesson.subject_id];
+      if (planName) return `${planName} • Week ${lesson.week_number}`;
+      return `Week ${lesson.week_number}`;
+    }
     // Handle program study chapter IDs like "week_1"
-    const weekMatch = chapterId.match(/^week_(\d+)$/i);
-    if (weekMatch) return `Week ${weekMatch[1]}`;
+    const weekMatch = lesson.chapter_id.match(/^week_(\d+)$/i);
+    if (weekMatch) {
+      const planName = planNameMap[lesson.subject_id];
+      if (planName) return `${planName} • Week ${weekMatch[1]}`;
+      return `Week ${weekMatch[1]}`;
+    }
     // Try lessonData
     for (const subject of lessonData) {
       const chapters = subject.chapters || subject.fields?.flatMap(f => f.chapters) || [];
       for (const chapter of chapters) {
-        if (chapter.id === chapterId) return chapter.name;
+        if (chapter.id === lesson.chapter_id) return chapter.name;
       }
     }
-    return chapterId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return lesson.chapter_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const getSubjectIcon = (subjectId: string) => {
