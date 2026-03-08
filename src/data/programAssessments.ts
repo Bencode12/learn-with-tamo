@@ -355,6 +355,15 @@ export function generateAssessment(subjectId: string, selectedFields: string[]):
 // Fields that free users can access for math
 export const FREE_MATH_FIELDS = ["algebra", "geometry", "calculus", "trigonometry", "probability"];
 
+// Subjects that have sub-subject selection before fields
+export const subSubjectsMap: Record<string, { id: string; name: string; icon: string }[]> = {
+  science: [
+    { id: "physics", name: "Physics", icon: "⚛️" },
+    { id: "chemistry", name: "Chemistry", icon: "🧪" },
+    { id: "biology", name: "Biology", icon: "🧬" },
+  ],
+};
+
 export const subjectFieldsMap: Record<string, { id: string; name: string; icon: string; category?: string }[]> = {
   math: [
     // Core & Classical — Algebra
