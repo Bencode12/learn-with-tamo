@@ -53,6 +53,7 @@ const ProgramLearning = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [fieldSearch, setFieldSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubSubject, setSelectedSubSubject] = useState<string>("");
 
   useEffect(() => {
     loadExistingPlans();
