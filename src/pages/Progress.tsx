@@ -35,6 +35,10 @@ interface LessonProgress {
   score: number | null;
   time_spent: number;
   last_accessed: string;
+  lesson_title: string | null;
+  week_number: number | null;
+  lesson_number: number | null;
+  plan_id: string | null;
 }
 
 interface Achievement {

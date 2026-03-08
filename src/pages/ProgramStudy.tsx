@@ -258,6 +258,7 @@ const ProgramStudy = () => {
       plan_id: plan.id,
       week_number: weekNum,
       lesson_number: lessonNum,
+      lesson_title: lessonData?.title || null,
       last_accessed: new Date().toISOString(),
     } as any, { onConflict: 'user_id,subject_id,chapter_id,lesson_id' });
 
