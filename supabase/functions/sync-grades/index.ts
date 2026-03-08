@@ -1,10 +1,52 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as hexEncode, decode as hexDecode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyHex = Deno.env.get('CREDENTIAL_ENCRYPTION_KEY') || '';
+  // Derive a 256-bit key from the secret using SHA-256
+  const keyMaterial = await crypto.subtle.digest('SHA-256', textEncoder.encode(keyHex));
+  return crypto.subtle.importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function encryptPassword(password: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    textEncoder.encode(password)
+  );
+  // Format: hex(iv):hex(ciphertext)
+  const ivHex = textDecoder.decode(hexEncode(iv));
+  const ctHex = textDecoder.decode(hexEncode(new Uint8Array(encrypted)));
+  return `aes:${ivHex}:${ctHex}`;
+}
+
+async function decryptPassword(stored: string): Promise<string> {
+  // Support legacy btoa format
+  if (!stored.startsWith('aes:')) {
+    return atob(stored);
+  }
+  const [, ivHex, ctHex] = stored.split(':');
+  const key = await getEncryptionKey();
+  const iv = hexDecode(textEncoder.encode(ivHex));
+  const ct = hexDecode(textEncoder.encode(ctHex));
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ct
+  );
+  return textDecoder.decode(decrypted);
+}
 
 const sanitizeInput = (input: string): string => {
   if (!input) return '';
@@ -86,9 +128,10 @@ serve(async (req) => {
           throw new Error('Invalid credentials format');
         }
 
+        const encryptedPwd = await encryptPassword(cleanPassword);
         const encryptedData = JSON.stringify({
           username: cleanUsername,
-          passwordHash: btoa(cleanPassword),
+          password: encryptedPwd,
           savedAt: new Date().toISOString(),
         });
 
