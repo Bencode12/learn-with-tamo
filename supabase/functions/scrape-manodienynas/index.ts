@@ -330,13 +330,8 @@ function extractGradesWithDatesFromCell(
     grades.forEach((grade) => pushEntry(grade, date));
   }
 
-  if (entries.length > 0) return entries;
-
-  const date = extractDateFromText(cellRaw, fallbackMonthName);
-  if (!date) return [];
-
-  const grades = extractNumericGradesFromCell(cleanText(cellRaw), maxGrade);
-  grades.forEach((grade) => pushEntry(grade, date));
+  // Do not fall back to parsing whole cell text: it can mix unrelated numbers
+  // from menus/headers and create fake grades/dates.
   return entries;
 }
 
