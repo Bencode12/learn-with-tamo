@@ -723,19 +723,17 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return { success: false, grades: [], error: 'Login failed - invalid credentials' };
     }
 
-    // Try markdown parser first
-    let grades = parseGradesFromMarkdown(markdown);
-    console.log('[MD] Markdown parser result:', grades.length, 'grades');
+    const teacherMap = buildTeacherMap(markdown);
 
-    // If too few, try HTML parser as fallback
-    if (grades.length < 5 && html.length > 0) {
-      console.log('[MD] Trying HTML parser fallback...');
-      const htmlGrades = parseGradesFromHtml(html);
-      console.log('[MD] HTML parser result:', htmlGrades.length, 'grades');
-      if (htmlGrades.length > grades.length) {
-        grades = htmlGrades;
-        console.log('[MD] Using HTML parser results');
-      }
+    const markdownGrades = parseGradesFromMarkdown(markdown, teacherMap);
+    console.log('[MD] Markdown parser result:', markdownGrades.length, 'grades');
+
+    const htmlGrades = html.length > 0 ? parseGradesFromHtml(html, teacherMap) : [];
+    console.log('[MD] HTML parser result:', htmlGrades.length, 'grades');
+
+    let grades = htmlGrades.length > markdownGrades.length ? htmlGrades : markdownGrades;
+    if (htmlGrades.length > markdownGrades.length) {
+      console.log('[MD] Using HTML parser results');
     }
 
     // If still too few, try fallback navigation
