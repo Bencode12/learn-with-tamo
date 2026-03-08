@@ -762,14 +762,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
           console.log(`[MD] FB-MD[${i}-${i + chunkSize}]: ${fbMarkdown.substring(i, i + chunkSize)}`);
         }
 
-        const fbGrades = parseGradesFromMarkdown(fbMarkdown);
-        if (fbGrades.length <= grades.length && fbHtml.length > 0) {
-          const fbHtmlGrades = parseGradesFromHtml(fbHtml);
-          if (fbHtmlGrades.length > grades.length) {
-            grades = fbHtmlGrades;
-          }
-        } else if (fbGrades.length > grades.length) {
-          grades = fbGrades;
+        const fallbackTeacherMap = buildTeacherMap(fbMarkdown);
+        const fbMarkdownGrades = parseGradesFromMarkdown(fbMarkdown, fallbackTeacherMap);
+        const fbHtmlGrades = fbHtml.length > 0 ? parseGradesFromHtml(fbHtml, fallbackTeacherMap) : [];
+        const bestFallback = fbHtmlGrades.length > fbMarkdownGrades.length ? fbHtmlGrades : fbMarkdownGrades;
+
+        if (bestFallback.length > grades.length) {
+          grades = bestFallback;
         }
       }
     }
