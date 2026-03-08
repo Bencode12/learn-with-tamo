@@ -372,6 +372,13 @@ export const FREE_FIELDS: Record<string, string[]> = {
     "gross_anatomy", "plant_anatomy", "plant_physiology",
     "vertebrate_zoology", "bacteriology", "evolutionary_genetics"
   ],
+  languages: [
+    "english", "spanish", "french", "german", "portuguese", "italian",
+    "russian", "mandarin_chinese", "japanese", "korean", "arabic",
+    "hindi", "bengali", "turkish", "indonesian", "vietnamese",
+    "thai", "swahili", "polish", "dutch", "greek", "swedish",
+    "lithuanian"
+  ],
 };
 // Backwards compat
 export const FREE_MATH_FIELDS = FREE_FIELDS.math;
