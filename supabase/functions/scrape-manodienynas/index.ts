@@ -99,26 +99,29 @@ function cleanText(value: string): string {
 
 function cleanSubjectName(raw: string): string {
   let name = raw
-    .replace(/\s*\(-?\)\s*/g, ' ')
+    .replace(/\s*\(-[^)]*\)?\s*/g, ' ')  // Handle (-), (-, (-xxx) patterns
+    .replace(/\s*\([^)]*$/, '')           // Remove unclosed parenthesis at end
     .replace(/\s*I?MYP\d*/gi, '')
-    .replace(/\.\.\.$/, '')  // Remove trailing ellipsis
+    .replace(/\.\.\.$/, '')
     .replace(/\s+/g, ' ')
     .trim();
-  // Remove trailing semester markers like " I" or " II"
   name = name.replace(/\s+I{1,2}$/, '').trim();
   return name;
 }
 
 /**
  * Strip "Formuojamasis vertinimas" or "Formojamasis vertinimas" prefix from subject name.
- * Returns { baseSubject, isFormative }
  */
 function stripFormativePrefix(subject: string): { baseSubject: string; isFormative: boolean } {
-  // Match both correct and common misspelling
-  const formativePattern = /^form[ou]jamasis\s+vertinimas\s+/i;
-  if (formativePattern.test(subject)) {
-    const base = subject.replace(formativePattern, '').trim();
-    return { baseSubject: cleanSubjectName(base), isFormative: true };
+  // Normalize all whitespace (including non-breaking spaces) to regular spaces
+  const normalized = subject.replace(/[\s\u00a0]+/g, ' ').trim();
+  const lower = normalized.toLowerCase();
+  
+  for (const prefix of ['formuojamasis vertinimas ', 'formojamasis vertinimas ']) {
+    if (lower.startsWith(prefix)) {
+      const base = normalized.substring(prefix.length).trim();
+      return { baseSubject: cleanSubjectName(base), isFormative: true };
+    }
   }
   return { baseSubject: subject, isFormative: false };
 }
