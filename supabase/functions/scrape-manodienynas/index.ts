@@ -174,6 +174,86 @@ function monthToDateString(monthName: string): string {
   return `${year}-${String(monthNum).padStart(2, '0')}-15`;
 }
 
+function toIsoDate(year: number, month: number, day: number): string | null {
+  if (year < 2000 || year > 2100) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function extractDateFromText(text: string): string | null {
+  if (!text) return null;
+
+  const isoMatch = text.match(/(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  if (isoMatch) {
+    return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+  }
+
+  const ltMatch = text.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/);
+  if (ltMatch) {
+    return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
+  }
+
+  return null;
+}
+
+function extractNumericGradesFromCell(cellValue: string, maxGrade: number): number[] {
+  const cleaned = cellValue
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s"'<>]+/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return [];
+
+  const boundaryMatches = [...cleaned.matchAll(/\b(10|[1-9])\b/g)]
+    .map((m) => Number(m[1]))
+    .filter((grade) => Number.isFinite(grade) && grade >= 1 && grade <= maxGrade);
+
+  if (boundaryMatches.length > 0) return boundaryMatches;
+
+  // Fallback for concatenated grades like "6791" in a single rendered cell
+  const compact = cleaned.replace(/\d{3,}/g, ' ').replace(/[^\d]/g, '');
+  if (!compact || compact.length > 8) return [];
+
+  const grades: number[] = [];
+  for (let i = 0; i < compact.length; i++) {
+    if (compact[i] === '1' && compact[i + 1] === '0') {
+      const grade = 10;
+      if (grade <= maxGrade) grades.push(grade);
+      i += 1;
+      continue;
+    }
+
+    const grade = Number(compact[i]);
+    if (grade >= 1 && grade <= maxGrade) grades.push(grade);
+  }
+
+  return grades;
+}
+
+function extractGradesWithDatesFromCell(cellRaw: string, maxGrade: number): Array<{ grade: number; date: string | null }> {
+  const entries: Array<{ grade: number; date: string | null }> = [];
+  const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+
+  for (const match of cellRaw.matchAll(anchorRegex)) {
+    const attrs = match[1] || '';
+    const inner = match[2] || '';
+    const grades = extractNumericGradesFromCell(cleanText(inner), maxGrade);
+    if (grades.length === 0) continue;
+
+    const date = extractDateFromText(`${attrs} ${inner}`);
+    grades.forEach((grade) => entries.push({ grade, date }));
+  }
+
+  if (entries.length > 0) return entries;
+
+  const date = extractDateFromText(cellRaw);
+  const grades = extractNumericGradesFromCell(cleanText(cellRaw), maxGrade);
+  return grades.map((grade) => ({ grade, date }));
+}
+
 // ====== Teacher map builder ======
 
 function buildTeacherMap(markdown: string): Record<string, string> {
