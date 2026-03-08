@@ -74,12 +74,21 @@ const ProgramLearning = () => {
     setLoading(false);
   };
 
+  const MAX_FREE_FIELDS = 3;
+  const MAX_FREE_PLANS = 2;
+
   const handleFieldToggle = (fieldId: string) => {
-    setSelectedFields(prev => 
-      prev.includes(fieldId) 
-        ? prev.filter(id => id !== fieldId)
-        : [...prev, fieldId]
-    );
+    setSelectedFields(prev => {
+      if (prev.includes(fieldId)) {
+        return prev.filter(id => id !== fieldId);
+      }
+      // Enforce free user field limit
+      if (!isPremium && prev.length >= MAX_FREE_FIELDS) {
+        toast.error(`Free users can select up to ${MAX_FREE_FIELDS} fields. Upgrade to Premium for unlimited fields.`);
+        return prev;
+      }
+      return [...prev, fieldId];
+    });
   };
 
   // The effective subject key for field/assessment lookup (e.g. "physics" instead of "science")
