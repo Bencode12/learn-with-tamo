@@ -364,7 +364,45 @@ const ProgramLearning = () => {
               </div>
               
               <div className="flex justify-end">
-                <Button onClick={() => setStep(2)} disabled={!selectedSubject}>
+                <Button onClick={handleSubjectContinue} disabled={!selectedSubject}>
+                  Continue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 1.5: Sub-Subject Selection (e.g. Physics/Chemistry/Biology) */}
+        {step === 1.5 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Select Discipline
+              </CardTitle>
+              <CardDescription>Choose the specific discipline within {subjects.find(s => s.id === selectedSubject)?.name}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                {(subSubjectsMap[selectedSubject] || []).map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setSelectedSubSubject(sub.id)}
+                    className={`p-6 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
+                      selectedSubSubject === sub.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="text-4xl mb-3">{sub.icon}</span>
+                    <span className="text-base font-medium">{sub.name}</span>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => { setStep(1); setSelectedSubSubject(""); }}>Back</Button>
+                <Button onClick={() => setStep(2)} disabled={!selectedSubSubject}>
                   Continue
                 </Button>
               </div>
