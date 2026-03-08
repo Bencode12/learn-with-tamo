@@ -10,7 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS, subSubjectsMap } from "@/data/programAssessments";
+import { generateAssessment, subjectFieldsMap, FREE_FIELDS, subSubjectsMap } from "@/data/programAssessments";
 import { Input } from "@/components/ui/input";
 
 const subjects = [
@@ -425,7 +425,7 @@ const ProgramLearning = () => {
         {/* Step 2: Fields Selection */}
         {step === 2 && (() => {
           const allFields = subjectFieldsMap[effectiveSubject] || [];
-          const isMath = effectiveSubject === "math";
+          const hasFreeGating = !!FREE_FIELDS[effectiveSubject];
           const categories = [...new Set(allFields.map(f => f.category).filter(Boolean))];
           
           const filteredFields = allFields.filter(f => {
@@ -435,7 +435,7 @@ const ProgramLearning = () => {
           });
 
           const isFieldLocked = (fieldId: string) => {
-            return isMath && !isPremium && !FREE_MATH_FIELDS.includes(fieldId);
+            return hasFreeGating && !isPremium && !(FREE_FIELDS[effectiveSubject] || []).includes(fieldId);
           };
 
           return (
@@ -447,17 +447,17 @@ const ProgramLearning = () => {
               </CardTitle>
               <CardDescription>
                 Choose the areas you want to focus on
-                {isMath && !isPremium && (
+                {hasFreeGating && !isPremium && (
                   <span className="block mt-1 text-xs">
                     <Lock className="h-3 w-3 inline mr-1" />
-                    Free plan includes Algebra, Geometry, Calculus, Trigonometry & Probability. <Link to="/store" className="text-primary underline">Upgrade</Link> for all fields.
+                    Some fields are free. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock all fields.
                   </span>
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Search & category filters for math */}
-              {isMath && (
+              {/* Search & category filters */}
+              {allFields.length > 15 && (
                 <div className="space-y-3 mb-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

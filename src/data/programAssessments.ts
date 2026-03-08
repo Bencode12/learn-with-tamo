@@ -352,8 +352,23 @@ export function generateAssessment(subjectId: string, selectedFields: string[]):
 }
 
 // ─── SUBJECT FIELD MAP ─────────────────────────────────────
-// Fields that free users can access for math
-export const FREE_MATH_FIELDS = ["algebra", "geometry", "calculus", "trigonometry", "probability"];
+// Fields that free users can access per subject
+export const FREE_FIELDS: Record<string, string[]> = {
+  math: ["algebra", "geometry", "calculus", "trigonometry", "probability"],
+  physics: [
+    "classical_mechanics", "classical_thermodynamics", "geometrical_optics",
+    "electrostatics", "fluid_mechanics", "special_relativity",
+    "nonrelativistic_qm", "solid_mechanics"
+  ],
+  chemistry: [
+    "aliphatic_chemistry", "aromatic_chemistry", "stereochemistry",
+    "chemical_thermodynamics", "chemical_kinetics", "quantitative_analysis",
+    "qualitative_analysis", "spectroscopy", "coordination_chemistry",
+    "polymer_chemistry"
+  ],
+};
+// Backwards compat
+export const FREE_MATH_FIELDS = FREE_FIELDS.math;
 
 // Subjects that have sub-subject selection before fields
 export const subSubjectsMap: Record<string, { id: string; name: string; icon: string }[]> = {
