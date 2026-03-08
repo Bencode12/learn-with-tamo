@@ -342,10 +342,11 @@ export function generateAssessment(subjectId: string, selectedFields: string[]):
     filtered = [...filtered, ...fieldQuestions.slice(0, 4)];
   });
   
-  // Ensure minimum 15 questions
-  if (filtered.length < 15) {
-    const remaining = bank.filter(q => !filtered.includes(q));
-    filtered = [...filtered, ...remaining.slice(0, 15 - filtered.length)];
+  // Only backfill from the SELECTED fields if we have too few questions
+  // Never add questions from unrelated/unselected fields
+  if (filtered.length < 10) {
+    const remaining = bank.filter(q => selectedFields.includes(q.field) && !filtered.includes(q));
+    filtered = [...filtered, ...remaining.slice(0, 10 - filtered.length)];
   }
   
   return filtered;
