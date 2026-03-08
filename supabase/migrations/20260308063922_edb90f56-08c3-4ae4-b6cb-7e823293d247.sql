@@ -1,0 +1,1 @@
+ALTER TABLE public.lesson_progress ADD COLUMN IF NOT EXISTS lesson_title text;
