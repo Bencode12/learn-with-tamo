@@ -267,13 +267,6 @@ const Progress = () => {
     return lesson.lesson_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  // Build a map from plan_id -> weekly_plan for chapter focus lookup
-  const planWeeklyMap = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    // We'll populate this from a separate fetch
-    return map;
-  }, []);
-
   const getReadableChapter = (lesson: LessonProgress) => {
     // If it's a program study lesson with plan_id and week_number, show the plan name + week focus
     if (lesson.plan_id && lesson.week_number) {
