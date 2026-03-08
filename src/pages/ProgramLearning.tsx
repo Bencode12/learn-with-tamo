@@ -184,7 +184,7 @@ const ProgramLearning = () => {
       .insert({
         user_id: user?.id,
         name: planName,
-        subject: selectedSubject,
+        subject: effectiveSubject,
         fields: selectedFields,
         duration_months: timeframe?.months || 1,
         assessment_score: score.overall,
