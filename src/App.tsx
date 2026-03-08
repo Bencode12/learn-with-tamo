@@ -33,6 +33,7 @@ import SelfLearning from "./pages/SelfLearning";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import PublicProfile from "./pages/PublicProfile";
 import CurriculumLearning from "./pages/CurriculumLearning";
+import SchoolSubscription from "./pages/SchoolSubscription";
 import SubjectsOverview from "./pages/SubjectsOverview";
 
 const queryClient = new QueryClient();
