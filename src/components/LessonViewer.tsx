@@ -250,7 +250,9 @@ export const LessonViewer = ({
           <CardContent>
             <ScrollArea className="h-[400px] pr-4">
               <div className="prose prose-slate dark:prose-invert max-w-none">
-                {renderMarkdown(lesson.sections[currentSection].content)}
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                  {safeString(lesson.sections[currentSection].content)}
+                </ReactMarkdown>
               </div>
             </ScrollArea>
           </CardContent>
