@@ -10,7 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS } from "@/data/programAssessments";
+import { generateAssessment, subjectFieldsMap, FREE_MATH_FIELDS, subSubjectsMap } from "@/data/programAssessments";
 import { Input } from "@/components/ui/input";
 
 const subjects = [
@@ -38,7 +38,7 @@ const ProgramLearning = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1); // 1: Subject, 2: Fields, 3: Time, 4: Assessment, 5: Plan
+  const [step, setStep] = useState<number>(1); // 1: Subject, 1.5: Sub-subject, 2: Fields, 3: Time, 4: Assessment, 5: Plan
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
@@ -53,6 +53,7 @@ const ProgramLearning = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [fieldSearch, setFieldSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubSubject, setSelectedSubSubject] = useState<string>("");
 
   useEffect(() => {
     loadExistingPlans();
@@ -81,8 +82,20 @@ const ProgramLearning = () => {
     );
   };
 
+  // The effective subject key for field/assessment lookup (e.g. "physics" instead of "science")
+  const effectiveSubject = selectedSubSubject || selectedSubject;
+  const hasSubSubjects = !!subSubjectsMap[selectedSubject];
+
+  const handleSubjectContinue = () => {
+    if (hasSubSubjects) {
+      setStep(1.5 as any); // sub-subject selection
+    } else {
+      setStep(2);
+    }
+  };
+
   const startAssessment = () => {
-    const questions = generateAssessment(selectedSubject, selectedFields);
+    const questions = generateAssessment(effectiveSubject, selectedFields);
     setAssessmentQuestions(questions);
     setCurrentQuestion(0);
     setAssessmentAnswers({});
@@ -131,7 +144,7 @@ const ProgramLearning = () => {
     
     // Generate weekly plan based on assessment results
     const weeklyPlan = [];
-    const currentFields = subjectFieldsMap[selectedSubject] || [];
+    const currentFields = subjectFieldsMap[effectiveSubject] || [];
     const fieldsToStudy = selectedFields.map(f => ({
       id: f,
       name: currentFields.find(mf => mf.id === f)?.name || f,
@@ -160,7 +173,9 @@ const ProgramLearning = () => {
       });
     }
     
-    const subjectName = subjects.find(s => s.id === selectedSubject)?.name || selectedSubject;
+    const subjectName = selectedSubSubject 
+      ? (subSubjectsMap[selectedSubject]?.find(s => s.id === selectedSubSubject)?.name || selectedSubSubject)
+      : (subjects.find(s => s.id === selectedSubject)?.name || selectedSubject);
     const planName = `${subjectName} Mastery - ${selectedFields.length} Fields`;
     
     // Save to database
@@ -169,7 +184,7 @@ const ProgramLearning = () => {
       .insert({
         user_id: user?.id,
         name: planName,
-        subject: selectedSubject,
+        subject: effectiveSubject,
         fields: selectedFields,
         duration_months: timeframe?.months || 1,
         assessment_score: score.overall,
@@ -305,18 +320,30 @@ const ProgramLearning = () => {
         {/* Progress Bar */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm font-medium">{step} of 5</span>
-            </div>
-            <Progress value={(step / 5) * 100} className="h-2 mb-4" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className={step >= 1 ? "text-primary font-medium" : ""}>Subject</span>
-              <span className={step >= 2 ? "text-primary font-medium" : ""}>Fields</span>
-              <span className={step >= 3 ? "text-primary font-medium" : ""}>Duration</span>
-              <span className={step >= 4 ? "text-primary font-medium" : ""}>Assessment</span>
-              <span className={step >= 5 ? "text-primary font-medium" : ""}>Plan</span>
-            </div>
+            {(() => {
+              const totalSteps = hasSubSubjects ? 6 : 5;
+              const stepMap: Record<number, number> = hasSubSubjects 
+                ? { 1: 1, 1.5: 2, 2: 3, 3: 4, 4: 5, 5: 6 }
+                : { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+              const displayStep = stepMap[step] || step;
+              return (
+                <>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium">Progress</span>
+                    <span className="text-sm font-medium">{displayStep} of {totalSteps}</span>
+                  </div>
+                  <Progress value={(displayStep / totalSteps) * 100} className="h-2 mb-4" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span className={step >= 1 ? "text-primary font-medium" : ""}>Subject</span>
+                    {hasSubSubjects && <span className={step >= 1.5 ? "text-primary font-medium" : ""}>Discipline</span>}
+                    <span className={step >= 2 ? "text-primary font-medium" : ""}>Fields</span>
+                    <span className={step >= 3 ? "text-primary font-medium" : ""}>Duration</span>
+                    <span className={step >= 4 ? "text-primary font-medium" : ""}>Assessment</span>
+                    <span className={step >= 5 ? "text-primary font-medium" : ""}>Plan</span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -349,7 +376,45 @@ const ProgramLearning = () => {
               </div>
               
               <div className="flex justify-end">
-                <Button onClick={() => setStep(2)} disabled={!selectedSubject}>
+                <Button onClick={handleSubjectContinue} disabled={!selectedSubject}>
+                  Continue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 1.5: Sub-Subject Selection (e.g. Physics/Chemistry/Biology) */}
+        {step === 1.5 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Select Discipline
+              </CardTitle>
+              <CardDescription>Choose the specific discipline within {subjects.find(s => s.id === selectedSubject)?.name}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                {(subSubjectsMap[selectedSubject] || []).map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setSelectedSubSubject(sub.id)}
+                    className={`p-6 rounded-lg border-2 flex flex-col items-center justify-center transition-all ${
+                      selectedSubSubject === sub.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="text-4xl mb-3">{sub.icon}</span>
+                    <span className="text-base font-medium">{sub.name}</span>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => { setStep(1); setSelectedSubSubject(""); }}>Back</Button>
+                <Button onClick={() => setStep(2)} disabled={!selectedSubSubject}>
                   Continue
                 </Button>
               </div>
@@ -359,8 +424,8 @@ const ProgramLearning = () => {
 
         {/* Step 2: Fields Selection */}
         {step === 2 && (() => {
-          const allFields = subjectFieldsMap[selectedSubject] || [];
-          const isMath = selectedSubject === "math";
+          const allFields = subjectFieldsMap[effectiveSubject] || [];
+          const isMath = effectiveSubject === "math";
           const categories = [...new Set(allFields.map(f => f.category).filter(Boolean))];
           
           const filteredFields = allFields.filter(f => {
@@ -455,7 +520,7 @@ const ProgramLearning = () => {
               )}
               
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => { setStep(1); setFieldSearch(""); setSelectedCategory(null); }}>Back</Button>
+                <Button variant="outline" onClick={() => { setStep(hasSubSubjects ? 1.5 as any : 1); setFieldSearch(""); setSelectedCategory(null); }}>Back</Button>
                 <Button onClick={() => setStep(3)} disabled={selectedFields.length === 0}>
                   Continue ({selectedFields.length} selected)
                 </Button>

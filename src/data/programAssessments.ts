@@ -355,6 +355,15 @@ export function generateAssessment(subjectId: string, selectedFields: string[]):
 // Fields that free users can access for math
 export const FREE_MATH_FIELDS = ["algebra", "geometry", "calculus", "trigonometry", "probability"];
 
+// Subjects that have sub-subject selection before fields
+export const subSubjectsMap: Record<string, { id: string; name: string; icon: string }[]> = {
+  science: [
+    { id: "physics", name: "Physics", icon: "⚛️" },
+    { id: "chemistry", name: "Chemistry", icon: "🧪" },
+    { id: "biology", name: "Biology", icon: "🧬" },
+  ],
+};
+
 export const subjectFieldsMap: Record<string, { id: string; name: string; icon: string; category?: string }[]> = {
   math: [
     // Core & Classical — Algebra
@@ -485,6 +494,53 @@ export const subjectFieldsMap: Record<string, { id: string; name: string; icon: 
     { id: "approximation_theory", name: "Approximation Theory", icon: "≈", category: "Specialized" },
     { id: "measure_theory", name: "Measure Theory", icon: "📏", category: "Specialized" },
   ],
+  physics: [
+    { id: "physics_mechanics", name: "Classical Mechanics", icon: "⚙️" },
+    { id: "physics_em", name: "Electromagnetism", icon: "⚡" },
+    { id: "physics_quantum", name: "Quantum Mechanics", icon: "🔬" },
+    { id: "physics_thermo", name: "Thermodynamics", icon: "🌡️" },
+    { id: "physics_optics", name: "Optics", icon: "🔭" },
+    { id: "physics_waves", name: "Waves & Acoustics", icon: "〰️" },
+    { id: "physics_relativity", name: "Relativity", icon: "🕐" },
+    { id: "physics_nuclear", name: "Nuclear Physics", icon: "☢️" },
+    { id: "physics_particle", name: "Particle Physics", icon: "⚛️" },
+    { id: "physics_astro", name: "Astrophysics", icon: "🌌" },
+    { id: "physics_condensed", name: "Condensed Matter Physics", icon: "🧊" },
+    { id: "physics_fluid", name: "Fluid Dynamics", icon: "🌊" },
+    { id: "physics_plasma", name: "Plasma Physics", icon: "⚡" },
+    { id: "physics_statistical", name: "Statistical Mechanics", icon: "📊" },
+  ],
+  chemistry: [
+    { id: "chemistry_organic", name: "Organic Chemistry", icon: "🧪" },
+    { id: "chemistry_inorganic", name: "Inorganic Chemistry", icon: "⚗️" },
+    { id: "chemistry_physical", name: "Physical Chemistry", icon: "🔥" },
+    { id: "chemistry_analytical", name: "Analytical Chemistry", icon: "🔬" },
+    { id: "chemistry_bio", name: "Biochemistry", icon: "🧬" },
+    { id: "chemistry_environmental", name: "Environmental Chemistry", icon: "🌍" },
+    { id: "chemistry_materials", name: "Materials Chemistry", icon: "🧱" },
+    { id: "chemistry_nuclear", name: "Nuclear Chemistry", icon: "☢️" },
+    { id: "chemistry_computational", name: "Computational Chemistry", icon: "💻" },
+    { id: "chemistry_medicinal", name: "Medicinal Chemistry", icon: "💊" },
+    { id: "chemistry_polymer", name: "Polymer Chemistry", icon: "🔗" },
+    { id: "chemistry_electrochemistry", name: "Electrochemistry", icon: "🔋" },
+  ],
+  biology: [
+    { id: "biology_cell", name: "Cell Biology", icon: "🦠" },
+    { id: "biology_genetics", name: "Genetics", icon: "🧬" },
+    { id: "biology_ecology", name: "Ecology", icon: "🌿" },
+    { id: "biology_evolution", name: "Evolutionary Biology", icon: "🐒" },
+    { id: "biology_molecular", name: "Molecular Biology", icon: "🔬" },
+    { id: "biology_microbiology", name: "Microbiology", icon: "🦠" },
+    { id: "biology_anatomy", name: "Anatomy & Physiology", icon: "🫀" },
+    { id: "biology_neuroscience", name: "Neuroscience", icon: "🧠" },
+    { id: "biology_immunology", name: "Immunology", icon: "🛡️" },
+    { id: "biology_botany", name: "Botany", icon: "🌱" },
+    { id: "biology_zoology", name: "Zoology", icon: "🐾" },
+    { id: "biology_marine", name: "Marine Biology", icon: "🐠" },
+    { id: "biology_bioinformatics", name: "Bioinformatics", icon: "💻" },
+    { id: "biology_developmental", name: "Developmental Biology", icon: "🥚" },
+  ],
+  // Keep "science" as alias pointing to combined for assessment backwards compat
   science: [
     { id: "physics_mechanics", name: "Classical Mechanics", icon: "⚙️" },
     { id: "physics_em", name: "Electromagnetism", icon: "⚡" },
