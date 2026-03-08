@@ -412,8 +412,8 @@ const ProgramLearning = () => {
 
         {/* Step 2: Fields Selection */}
         {step === 2 && (() => {
-          const allFields = subjectFieldsMap[selectedSubject] || [];
-          const isMath = selectedSubject === "math";
+          const allFields = subjectFieldsMap[effectiveSubject] || [];
+          const isMath = effectiveSubject === "math";
           const categories = [...new Set(allFields.map(f => f.category).filter(Boolean))];
           
           const filteredFields = allFields.filter(f => {
