@@ -174,6 +174,86 @@ function monthToDateString(monthName: string): string {
   return `${year}-${String(monthNum).padStart(2, '0')}-15`;
 }
 
+function toIsoDate(year: number, month: number, day: number): string | null {
+  if (year < 2000 || year > 2100) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function extractDateFromText(text: string): string | null {
+  if (!text) return null;
+
+  const isoMatch = text.match(/(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  if (isoMatch) {
+    return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+  }
+
+  const ltMatch = text.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/);
+  if (ltMatch) {
+    return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
+  }
+
+  return null;
+}
+
+function extractNumericGradesFromCell(cellValue: string, maxGrade: number): number[] {
+  const cleaned = cellValue
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s"'<>]+/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return [];
+
+  const boundaryMatches = [...cleaned.matchAll(/\b(10|[1-9])\b/g)]
+    .map((m) => Number(m[1]))
+    .filter((grade) => Number.isFinite(grade) && grade >= 1 && grade <= maxGrade);
+
+  if (boundaryMatches.length > 0) return boundaryMatches;
+
+  // Fallback for concatenated grades like "6791" in a single rendered cell
+  const compact = cleaned.replace(/\d{3,}/g, ' ').replace(/[^\d]/g, '');
+  if (!compact || compact.length > 8) return [];
+
+  const grades: number[] = [];
+  for (let i = 0; i < compact.length; i++) {
+    if (compact[i] === '1' && compact[i + 1] === '0') {
+      const grade = 10;
+      if (grade <= maxGrade) grades.push(grade);
+      i += 1;
+      continue;
+    }
+
+    const grade = Number(compact[i]);
+    if (grade >= 1 && grade <= maxGrade) grades.push(grade);
+  }
+
+  return grades;
+}
+
+function extractGradesWithDatesFromCell(cellRaw: string, maxGrade: number): Array<{ grade: number; date: string | null }> {
+  const entries: Array<{ grade: number; date: string | null }> = [];
+  const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+
+  for (const match of cellRaw.matchAll(anchorRegex)) {
+    const attrs = match[1] || '';
+    const inner = match[2] || '';
+    const grades = extractNumericGradesFromCell(cleanText(inner), maxGrade);
+    if (grades.length === 0) continue;
+
+    const date = extractDateFromText(`${attrs} ${inner}`);
+    grades.forEach((grade) => entries.push({ grade, date }));
+  }
+
+  if (entries.length > 0) return entries;
+
+  const date = extractDateFromText(cellRaw);
+  const grades = extractNumericGradesFromCell(cleanText(cellRaw), maxGrade);
+  return grades.map((grade) => ({ grade, date }));
+}
+
 // ====== Teacher map builder ======
 
 function buildTeacherMap(markdown: string): Record<string, string> {
@@ -227,10 +307,10 @@ function buildTeacherMap(markdown: string): Record<string, string> {
 
 // ====== MARKDOWN TABLE PARSER ======
 
-function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
+function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<string, string>): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
   const lines = markdown.split('\n');
-  const teacherMap = buildTeacherMap(markdown);
+  const teacherMap = teacherMapInput ?? buildTeacherMap(markdown);
 
   // Detect MYP
   const isMYP = /\bI?MYP\d?\b/i.test(markdown);
@@ -348,39 +428,34 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
       if (/^\d+[.,]\d+$/.test(cell)) continue; // averages
       if (/^[-–—]+$/.test(cell)) continue;
 
-      // Extract grade numbers from cell
-      // Remove markdown links and formatting
-      const cleaned = cell
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/[*_`~]/g, ' ')
-        .replace(/&nbsp;/gi, ' ');
+      const entries = extractGradesWithDatesFromCell(cell, maxGrade);
 
-      const gradeMatches = [...cleaned.matchAll(/\b(10|[1-9])\b/g)];
-      
-      for (const match of gradeMatches) {
-        const gradeValue = parseInt(match[1], 10);
-        if (gradeValue < 1 || gradeValue > maxGrade) continue;
-
+      for (const entry of entries) {
+        const gradeValue = entry.grade;
         const monthName = monthByIndex[colIdx];
-        const monthNum = MONTH_TO_NUMBER[monthName];
+
+        let rowDate = entry.date;
+        if (!rowDate) {
+          const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
+          const key = `${currentSubject}|${monthName}`;
+          const count = gradeCounter[key] || 0;
+          gradeCounter[key] = count + 1;
+          const dayOptions = [8, 12, 15, 18, 22, 25];
+          const day = dayOptions[count % dayOptions.length];
+          rowDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
+        }
+
+        const parsedDate = new Date(rowDate);
+        const monthNum = Number.isNaN(parsedDate.getTime())
+          ? (monthName ? MONTH_TO_NUMBER[monthName] : undefined)
+          : parsedDate.getMonth() + 1;
         const semester = monthNum ? getSemester(monthNum) : 'I';
-
-        // Date: use 15th of month since we can't get exact dates from summary table
-        const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
-
-        // Distribute within month: 8th, 12th, 15th, 18th, 22nd to avoid all on 15th
-        const key = `${currentSubject}|${monthName}`;
-        const count = gradeCounter[key] || 0;
-        gradeCounter[key] = count + 1;
-        const dayOptions = [8, 12, 15, 18, 22, 25];
-        const day = dayOptions[count % dayOptions.length];
-        const adjustedDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
 
         grades.push({
           subject: currentSubject,
           grade: gradeValue,
           gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
-          date: adjustedDate,
+          date: rowDate,
           semester,
           teacher: currentTeacher || 'Nenurodyta',
         });
@@ -401,143 +476,150 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
 
 // ====== HTML TABLE PARSER (fallback) ======
 
-function parseGradesFromHtml(html: string): ManoDienynasGrade[] {
-  const grades: ManoDienynasGrade[] = [];
-  
-  // Detect MYP
+function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = {}): ManoDienynasGrade[] {
+  type ParsedRow = { rawCells: string[]; textCells: string[] };
+
   const isMYP = /\bI?MYP\d?\b/i.test(html);
   const maxGrade = isMYP ? 7 : 10;
-  
-  // Strategy: find all <table> elements, look for ones with grade data
-  // ManoDienynas marks table has <td> cells with grade numbers
-  
-  // Find table rows with grade-like content
+
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-  
-  // First pass: find header row with months to identify the marks table
-  const allRows: string[][] = [];
-  let match;
-  
-  while ((match = rowRegex.exec(html)) !== null) {
-    const rowHtml = match[1];
-    const cells: string[] = [];
-    let cellMatch;
-    cellRegex.lastIndex = 0;
-    while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-      cells.push(cleanText(cellMatch[1]));
+
+  const tables = [...html.matchAll(tableRegex)].map((m) => m[1]);
+  console.log('[MD-HTML] Total tables found:', tables.length);
+
+  let bestGrades: ManoDienynasGrade[] = [];
+
+  for (const tableHtml of tables) {
+    const rows: ParsedRow[] = [];
+
+    for (const rowMatch of tableHtml.matchAll(rowRegex)) {
+      const rowHtml = rowMatch[1];
+      const rawCells: string[] = [];
+      const textCells: string[] = [];
+
+      for (const cellMatch of rowHtml.matchAll(cellRegex)) {
+        const raw = cellMatch[1] || '';
+        rawCells.push(raw);
+        textCells.push(cleanText(raw));
+      }
+
+      if (textCells.length >= 2) {
+        rows.push({ rawCells, textCells });
+      }
     }
-    if (cells.length >= 2) {
-      allRows.push(cells);
+
+    if (rows.length < 3) continue;
+
+    let headerRowIdx = -1;
+    let monthByCol: Record<number, string> = {};
+    let monthCols: number[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i].textCells;
+      const rowJoined = row.join(' ').toLowerCase();
+      if (!rowJoined.includes('dalyk')) continue;
+
+      const tempMonths: Record<number, string> = {};
+      const tempCols: number[] = [];
+
+      for (let j = 0; j < row.length; j++) {
+        const month = findMonth(row[j]);
+        if (month) {
+          tempMonths[j] = month;
+          tempCols.push(j);
+        }
+      }
+
+      if (tempCols.length >= 2) {
+        headerRowIdx = i;
+        monthByCol = tempMonths;
+        monthCols = tempCols;
+        break;
+      }
     }
-  }
-  
-  console.log('[MD-HTML] Total table rows found:', allRows.length);
-  
-  // Find the header row with month names
-  let headerRowIdx = -1;
-  let monthByCol: Record<number, string> = {};
-  let monthCols: number[] = [];
-  
-  for (let i = 0; i < allRows.length; i++) {
-    const row = allRows[i];
-    const first = row[0].toLowerCase();
-    if (!first.includes('dalykas')) continue;
-    
-    const tempMonths: Record<number, string> = {};
-    const tempCols: number[] = [];
-    for (let j = 1; j < row.length; j++) {
-      const m = findMonth(row[j]);
-      if (m) { tempMonths[j] = m; tempCols.push(j); }
-    }
-    
-    if (tempCols.length > 0) {
-      headerRowIdx = i;
-      monthByCol = tempMonths;
-      monthCols = tempCols;
-      console.log('[MD-HTML] ✓ Marks table header at row', i, 'months:', 
-        tempCols.map(c => `${c}:${tempMonths[c]}`).join(', '));
-      break;
-    }
-  }
-  
-  if (headerRowIdx < 0) {
-    console.log('[MD-HTML] No marks table header found');
-    return grades;
-  }
-  
-  // Parse data rows after header
-  let currentSubject = '';
-  let currentTeacher = '';
-  let currentIsFormative = false;
-  let gradeCounter: Record<string, number> = {};
-  
-  for (let i = headerRowIdx + 1; i < allRows.length; i++) {
-    const row = allRows[i];
-    if (row.length < 2) continue;
-    // Skip separator/empty rows
-    if (row.every(c => !c || /^[-–—]+$/.test(c))) continue;
-    
-    const firstCell = row[0];
-    if (!firstCell) continue;
-    
-    // Check if this is a subject row
-    const isSubjectCell = firstCell.length > 2 
-      && !/^(10|[1-9])$/.test(firstCell)
-      && !/^\d+[.,]\d+$/.test(firstCell)
-      && /[a-ząčęėįšųūž]/i.test(firstCell);
-    
-    if (isSubjectCell) {
-      const { baseSubject, isFormative } = stripFormativePrefix(firstCell);
-      const cleaned = cleanSubjectName(baseSubject);
-      if (isLikelySubject(cleaned)) {
+
+    if (headerRowIdx < 0) continue;
+
+    let currentSubject = '';
+    let currentTeacher = '';
+    let currentIsFormative = false;
+    const gradeCounter: Record<string, number> = {};
+    const parsedGrades: ManoDienynasGrade[] = [];
+
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
+      const { rawCells, textCells } = rows[i];
+      if (textCells.every((c) => !c || /^[-–—]+$/.test(c))) continue;
+
+      const candidates = [textCells[0], textCells[1]].filter(Boolean);
+      for (const candidate of candidates) {
+        if (/^\d+$/.test(candidate.trim())) continue;
+
+        const { baseSubject, isFormative } = stripFormativePrefix(candidate);
+        const cleaned = cleanSubjectName(baseSubject);
+        if (!isLikelySubject(cleaned)) continue;
+
         currentSubject = cleaned;
         currentIsFormative = isFormative;
-        currentTeacher = '';
+        currentTeacher = teacherMap[cleaned.toLowerCase()] || currentTeacher || 'Nenurodyta';
+        break;
+      }
+
+      if (!currentSubject) continue;
+
+      for (const colIdx of monthCols) {
+        if (colIdx >= textCells.length || colIdx >= rawCells.length) continue;
+
+        const cellText = textCells[colIdx].trim();
+        const cellRaw = rawCells[colIdx] || '';
+        if (!cellText && !cellRaw) continue;
+        if (/^[nN]$/.test(cellText) || /^įsk/i.test(cellText) || /^\d+[.,]\d+$/.test(cellText)) continue;
+
+        const monthName = monthByCol[colIdx];
+        const entries = extractGradesWithDatesFromCell(cellRaw || cellText, maxGrade);
+
+        for (const entry of entries) {
+          let rowDate = entry.date;
+          if (!rowDate) {
+            const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
+            const key = `${currentSubject}|${monthName}`;
+            const count = gradeCounter[key] || 0;
+            gradeCounter[key] = count + 1;
+            const dayOptions = [8, 12, 15, 18, 22, 25];
+            const day = dayOptions[count % dayOptions.length];
+            rowDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
+          }
+
+          const parsedDate = new Date(rowDate);
+          const monthNum = Number.isNaN(parsedDate.getTime())
+            ? (monthName ? MONTH_TO_NUMBER[monthName] : undefined)
+            : parsedDate.getMonth() + 1;
+          const semester = monthNum ? getSemester(monthNum) : 'I';
+
+          parsedGrades.push({
+            subject: currentSubject,
+            grade: entry.grade,
+            gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
+            date: rowDate,
+            semester,
+            teacher: currentTeacher || 'Nenurodyta',
+          });
+        }
       }
     }
-    
-    if (!currentSubject) continue;
-    
-    // Extract grades from month columns
-    for (const colIdx of monthCols) {
-      if (colIdx >= row.length) continue;
-      const cell = row[colIdx];
-      if (!cell) continue;
-      if (/^[nN]$/.test(cell) || /^įsk/i.test(cell) || /^\d+[.,]\d+$/.test(cell)) continue;
-      
-      const gradeMatches = [...cell.matchAll(/\b(10|[1-9])\b/g)];
-      for (const gm of gradeMatches) {
-        const gradeValue = parseInt(gm[1], 10);
-        if (gradeValue < 1 || gradeValue > maxGrade) continue;
-        
-        const monthName = monthByCol[colIdx];
-        const monthNum = MONTH_TO_NUMBER[monthName];
-        const semester = monthNum ? getSemester(monthNum) : 'I';
-        const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
-        
-        const key = `${currentSubject}|${monthName}`;
-        const count = gradeCounter[key] || 0;
-        gradeCounter[key] = count + 1;
-        const dayOptions = [8, 12, 15, 18, 22, 25];
-        const day = dayOptions[count % dayOptions.length];
-        const adjustedDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
-        
-        grades.push({
-          subject: currentSubject,
-          grade: gradeValue,
-          gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
-          date: adjustedDate,
-          semester,
-          teacher: currentTeacher || 'Nenurodyta',
-        });
-      }
+
+    const uniqueSubjects = new Set(parsedGrades.map((g) => g.subject)).size;
+    const score = parsedGrades.length + uniqueSubjects * 2;
+    const bestScore = bestGrades.length + new Set(bestGrades.map((g) => g.subject)).size * 2;
+
+    if (score > bestScore) {
+      bestGrades = parsedGrades;
     }
   }
-  
-  console.log('[MD-HTML] HTML parser found:', grades.length, 'grades across',
-    new Set(grades.map(g => g.subject)).size, 'subjects');
-  return grades;
+
+  console.log('[MD-HTML] HTML parser best result:', bestGrades.length, 'grades across', new Set(bestGrades.map(g => g.subject)).size, 'subjects');
+  return bestGrades;
 }
 
 // ====== Persistence ======
@@ -641,19 +723,17 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       return { success: false, grades: [], error: 'Login failed - invalid credentials' };
     }
 
-    // Try markdown parser first
-    let grades = parseGradesFromMarkdown(markdown);
-    console.log('[MD] Markdown parser result:', grades.length, 'grades');
+    const teacherMap = buildTeacherMap(markdown);
 
-    // If too few, try HTML parser as fallback
-    if (grades.length < 5 && html.length > 0) {
-      console.log('[MD] Trying HTML parser fallback...');
-      const htmlGrades = parseGradesFromHtml(html);
-      console.log('[MD] HTML parser result:', htmlGrades.length, 'grades');
-      if (htmlGrades.length > grades.length) {
-        grades = htmlGrades;
-        console.log('[MD] Using HTML parser results');
-      }
+    const markdownGrades = parseGradesFromMarkdown(markdown, teacherMap);
+    console.log('[MD] Markdown parser result:', markdownGrades.length, 'grades');
+
+    const htmlGrades = html.length > 0 ? parseGradesFromHtml(html, teacherMap) : [];
+    console.log('[MD] HTML parser result:', htmlGrades.length, 'grades');
+
+    let grades = htmlGrades.length > markdownGrades.length ? htmlGrades : markdownGrades;
+    if (htmlGrades.length > markdownGrades.length) {
+      console.log('[MD] Using HTML parser results');
     }
 
     // If still too few, try fallback navigation
@@ -682,14 +762,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
           console.log(`[MD] FB-MD[${i}-${i + chunkSize}]: ${fbMarkdown.substring(i, i + chunkSize)}`);
         }
 
-        const fbGrades = parseGradesFromMarkdown(fbMarkdown);
-        if (fbGrades.length <= grades.length && fbHtml.length > 0) {
-          const fbHtmlGrades = parseGradesFromHtml(fbHtml);
-          if (fbHtmlGrades.length > grades.length) {
-            grades = fbHtmlGrades;
-          }
-        } else if (fbGrades.length > grades.length) {
-          grades = fbGrades;
+        const fallbackTeacherMap = buildTeacherMap(fbMarkdown);
+        const fbMarkdownGrades = parseGradesFromMarkdown(fbMarkdown, fallbackTeacherMap);
+        const fbHtmlGrades = fbHtml.length > 0 ? parseGradesFromHtml(fbHtml, fallbackTeacherMap) : [];
+        const bestFallback = fbHtmlGrades.length > fbMarkdownGrades.length ? fbHtmlGrades : fbMarkdownGrades;
+
+        if (bestFallback.length > grades.length) {
+          grades = bestFallback;
         }
       }
     }
