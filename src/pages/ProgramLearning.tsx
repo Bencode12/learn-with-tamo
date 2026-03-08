@@ -82,8 +82,20 @@ const ProgramLearning = () => {
     );
   };
 
+  // The effective subject key for field/assessment lookup (e.g. "physics" instead of "science")
+  const effectiveSubject = selectedSubSubject || selectedSubject;
+  const hasSubSubjects = !!subSubjectsMap[selectedSubject];
+
+  const handleSubjectContinue = () => {
+    if (hasSubSubjects) {
+      setStep(1.5 as any); // sub-subject selection
+    } else {
+      setStep(2);
+    }
+  };
+
   const startAssessment = () => {
-    const questions = generateAssessment(selectedSubject, selectedFields);
+    const questions = generateAssessment(effectiveSubject, selectedFields);
     setAssessmentQuestions(questions);
     setCurrentQuestion(0);
     setAssessmentAnswers({});
