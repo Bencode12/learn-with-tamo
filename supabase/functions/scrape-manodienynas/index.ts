@@ -648,21 +648,12 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
         if (/^[nN]$/.test(cellText) || /^įsk/i.test(cellText) || /^\d+[.,]\d+$/.test(cellText)) continue;
 
         const monthName = monthByCol[colIdx];
-        const entries = extractGradesWithDatesFromCell(cellRaw || cellText, maxGrade);
+        const entries = extractGradesWithDatesFromCell(cellRaw || cellText, maxGrade, monthName);
 
         for (const entry of entries) {
-          let rowDate = entry.date;
-          if (!rowDate) {
-            const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
-            const key = `${currentSubject}|${monthName}`;
-            const count = gradeCounter[key] || 0;
-            gradeCounter[key] = count + 1;
-            const dayOptions = [8, 12, 15, 18, 22, 25];
-            const day = dayOptions[count % dayOptions.length];
-            rowDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
-          }
+          if (!entry.date) continue;
 
-          const parsedDate = new Date(rowDate);
+          const parsedDate = new Date(entry.date);
           const monthNum = Number.isNaN(parsedDate.getTime())
             ? (monthName ? MONTH_TO_NUMBER[monthName] : undefined)
             : parsedDate.getMonth() + 1;
@@ -672,7 +663,7 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
             subject: currentSubject,
             grade: entry.grade,
             gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
-            date: rowDate,
+            date: entry.date,
             semester,
             teacher: currentTeacher || 'Nenurodyta',
           });
