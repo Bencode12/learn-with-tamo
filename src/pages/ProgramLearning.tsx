@@ -74,12 +74,21 @@ const ProgramLearning = () => {
     setLoading(false);
   };
 
+  const MAX_FREE_FIELDS = 3;
+  const MAX_FREE_PLANS = 2;
+
   const handleFieldToggle = (fieldId: string) => {
-    setSelectedFields(prev => 
-      prev.includes(fieldId) 
-        ? prev.filter(id => id !== fieldId)
-        : [...prev, fieldId]
-    );
+    setSelectedFields(prev => {
+      if (prev.includes(fieldId)) {
+        return prev.filter(id => id !== fieldId);
+      }
+      // Enforce free user field limit
+      if (!isPremium && prev.length >= MAX_FREE_FIELDS) {
+        toast.error(`Free users can select up to ${MAX_FREE_FIELDS} fields. Upgrade to Premium for unlimited fields.`);
+        return prev;
+      }
+      return [...prev, fieldId];
+    });
   };
 
   // The effective subject key for field/assessment lookup (e.g. "physics" instead of "science")
@@ -276,8 +285,21 @@ const ProgramLearning = () => {
             ))}
           </div>
 
-          <Button variant="outline" className="w-full" onClick={() => setShowCreateNew(true)}>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => {
+              if (!isPremium && existingPlans.length >= MAX_FREE_PLANS) {
+                toast.error(`Free users can have up to ${MAX_FREE_PLANS} active plans. Upgrade to Premium for unlimited plans.`);
+                return;
+              }
+              setShowCreateNew(true);
+            }}
+          >
             <Sparkles className="h-4 w-4 mr-2" /> Create New Plan
+            {!isPremium && (
+              <span className="ml-2 text-xs text-muted-foreground">({existingPlans.length}/{MAX_FREE_PLANS})</span>
+            )}
           </Button>
         </main>
       </div>
@@ -447,10 +469,16 @@ const ProgramLearning = () => {
               </CardTitle>
               <CardDescription>
                 Choose the areas you want to focus on
+                {!isPremium && (
+                  <span className="block mt-1 text-xs">
+                    <Lock className="h-3 w-3 inline mr-1" />
+                    Free users can select up to {MAX_FREE_FIELDS} fields. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock unlimited fields.
+                  </span>
+                )}
                 {hasFreeGating && !isPremium && (
                   <span className="block mt-1 text-xs">
                     <Lock className="h-3 w-3 inline mr-1" />
-                    Some fields are free. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock all fields.
+                    Some advanced fields require Premium.
                   </span>
                 )}
               </CardDescription>
