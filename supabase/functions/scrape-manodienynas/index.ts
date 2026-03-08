@@ -213,12 +213,12 @@ function resolveMonthFromText(text: string): number | null {
 function extractDateFromText(text: string, fallbackMonthName?: string): string | null {
   if (!text) return null;
 
-  const isoMatch = text.match(/(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  const isoMatch = text.match(/(?:^|\D)(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})(?!\d)/);
   if (isoMatch) {
     return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
   }
 
-  const ltMatch = text.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/);
+  const ltMatch = text.match(/(?:^|\D)(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})(?!\d)/);
   if (ltMatch) {
     return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
   }
@@ -243,9 +243,11 @@ function extractDateFromText(text: string, fallbackMonthName?: string): string |
 
   const fallbackMonthNum = fallbackMonthName ? MONTH_TO_NUMBER[fallbackMonthName] : null;
   if (fallbackMonthNum) {
-    const dayOnlyMatch = text.match(/(?:^|\D)(\d{1,2})\s*d\.?(?:\D|$)/i);
-    if (dayOnlyMatch) {
-      const day = Number(dayOnlyMatch[1]);
+    // IMPORTANT: never infer date from a bare number (e.g. grade "5" => day 5).
+    // Accept fallback only when a day marker is explicitly present ("8 d." / "8 dien.").
+    const explicitDayMatch = text.match(/(?:^|\D)(\d{1,2})\s*(?:d\.?|dien\.?)(?:\D|$)/i);
+    if (explicitDayMatch) {
+      const day = Number(explicitDayMatch[1]);
       return toIsoDate(resolveSchoolYearForMonth(fallbackMonthNum), fallbackMonthNum, day);
     }
   }
@@ -328,13 +330,8 @@ function extractGradesWithDatesFromCell(
     grades.forEach((grade) => pushEntry(grade, date));
   }
 
-  if (entries.length > 0) return entries;
-
-  const date = extractDateFromText(cellRaw, fallbackMonthName);
-  if (!date) return [];
-
-  const grades = extractNumericGradesFromCell(cleanText(cellRaw), maxGrade);
-  grades.forEach((grade) => pushEntry(grade, date));
+  // Do not fall back to parsing whole cell text: it can mix unrelated numbers
+  // from menus/headers and create fake grades/dates.
   return entries;
 }
 
