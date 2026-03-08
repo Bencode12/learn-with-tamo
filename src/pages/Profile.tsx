@@ -121,7 +121,7 @@ const Profile = () => {
 
     if (pending && pending.length > 0) {
       const senderIds = pending.map(p => p.user_id);
-      const { data: senders } = await supabase.from('profiles').select('id, username, display_name, avatar_url').in('id', senderIds);
+      const { data: senders } = await supabase.from('safe_profiles').select('id, username, display_name, avatar_url').in('id', senderIds);
       if (senders) {
         setPendingRequests(senders.map(s => ({ ...s, friendshipId: pending.find(p => p.user_id === s.id)?.id })));
       }

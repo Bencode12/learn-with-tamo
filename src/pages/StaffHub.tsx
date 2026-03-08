@@ -142,7 +142,7 @@ const StaffHub = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'staff_chat_messages' },
         async (payload) => {
           const newMsg = payload.new as any;
-          const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', newMsg.sender_id).single();
+          const { data: profile } = await supabase.from('safe_profiles').select('display_name, username').eq('id', newMsg.sender_id).single();
           setChatMessages(prev => [...prev, { ...newMsg, sender_name: profile?.display_name || profile?.username || 'Unknown' }]);
         }
       ).subscribe();
