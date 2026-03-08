@@ -129,7 +129,7 @@ const StaffHub = () => {
     const { data } = await supabase.from('staff_chat_messages').select('*').order('created_at', { ascending: true }).limit(100);
     if (data) {
       const enriched = await Promise.all(data.map(async (msg) => {
-        const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', msg.sender_id).single();
+        const { data: profile } = await supabase.from('safe_profiles').select('display_name, username').eq('id', msg.sender_id).single();
         return { ...msg, sender_name: profile?.display_name || profile?.username || 'Unknown' };
       }));
       setChatMessages(enriched);
@@ -142,7 +142,7 @@ const StaffHub = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'staff_chat_messages' },
         async (payload) => {
           const newMsg = payload.new as any;
-          const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', newMsg.sender_id).single();
+          const { data: profile } = await supabase.from('safe_profiles').select('display_name, username').eq('id', newMsg.sender_id).single();
           setChatMessages(prev => [...prev, { ...newMsg, sender_name: profile?.display_name || profile?.username || 'Unknown' }]);
         }
       ).subscribe();

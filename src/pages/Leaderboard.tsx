@@ -47,8 +47,8 @@ const Leaderboard = () => {
     setLoading(true);
 
     const { data: profiles, count } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, avatar_url, experience, level, is_premium, created_at, skill_rating', { count: 'exact' })
+      .from('safe_profiles')
+      .select('id, username, display_name, avatar_url, experience, level, is_premium, created_at', { count: 'exact' })
       .order('experience', { ascending: false })
       .limit(50);
 

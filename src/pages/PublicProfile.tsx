@@ -23,7 +23,7 @@ const PublicProfile = () => {
     setLoading(true);
 
     const { data: profileData } = await supabase
-      .from('profiles')
+      .from('safe_profiles')
       .select('id, username, display_name, avatar_url, level, experience, is_premium, created_at, total_learning_time')
       .eq('username', username)
       .single();

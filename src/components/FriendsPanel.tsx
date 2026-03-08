@@ -108,7 +108,7 @@ export function FriendsPanel() {
     setIsSearching(true);
     const {
       data
-    } = await supabase.from('profiles').select('id, username, display_name, level').ilike('username', `%${searchQuery}%`).neq('id', user.id).limit(10);
+    } = await supabase.from('safe_profiles').select('id, username, display_name, level').ilike('username', `%${searchQuery}%`).neq('id', user.id).limit(10);
     if (data) {
       // Filter out existing friends
       const friendIds = friends.map(f => f.id);
