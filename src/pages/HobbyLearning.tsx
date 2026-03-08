@@ -7,6 +7,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 interface LessonData {
   title: string;
@@ -86,10 +89,12 @@ const HobbyLearning = () => {
               <CardTitle>{lessonData.sections[currentSection]?.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                {typeof lessonData.sections[currentSection]?.content === 'string'
-                  ? lessonData.sections[currentSection].content
-                  : JSON.stringify(lessonData.sections[currentSection]?.content, null, 2)}
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                  {typeof lessonData.sections[currentSection]?.content === 'string'
+                    ? lessonData.sections[currentSection].content
+                    : JSON.stringify(lessonData.sections[currentSection]?.content, null, 2)}
+                </ReactMarkdown>
               </div>
             </CardContent>
           </Card>
