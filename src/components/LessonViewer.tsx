@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookOpen, CheckCircle, XCircle, ArrowRight, Loader2, Brain, Target, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface LessonSection {
   title: string;
