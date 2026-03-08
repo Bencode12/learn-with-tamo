@@ -428,39 +428,34 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
       if (/^\d+[.,]\d+$/.test(cell)) continue; // averages
       if (/^[-–—]+$/.test(cell)) continue;
 
-      // Extract grade numbers from cell
-      // Remove markdown links and formatting
-      const cleaned = cell
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/[*_`~]/g, ' ')
-        .replace(/&nbsp;/gi, ' ');
+      const entries = extractGradesWithDatesFromCell(cell, maxGrade);
 
-      const gradeMatches = [...cleaned.matchAll(/\b(10|[1-9])\b/g)];
-      
-      for (const match of gradeMatches) {
-        const gradeValue = parseInt(match[1], 10);
-        if (gradeValue < 1 || gradeValue > maxGrade) continue;
-
+      for (const entry of entries) {
+        const gradeValue = entry.grade;
         const monthName = monthByIndex[colIdx];
-        const monthNum = MONTH_TO_NUMBER[monthName];
+
+        let rowDate = entry.date;
+        if (!rowDate) {
+          const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
+          const key = `${currentSubject}|${monthName}`;
+          const count = gradeCounter[key] || 0;
+          gradeCounter[key] = count + 1;
+          const dayOptions = [8, 12, 15, 18, 22, 25];
+          const day = dayOptions[count % dayOptions.length];
+          rowDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
+        }
+
+        const parsedDate = new Date(rowDate);
+        const monthNum = Number.isNaN(parsedDate.getTime())
+          ? (monthName ? MONTH_TO_NUMBER[monthName] : undefined)
+          : parsedDate.getMonth() + 1;
         const semester = monthNum ? getSemester(monthNum) : 'I';
-
-        // Date: use 15th of month since we can't get exact dates from summary table
-        const dateStr = monthName ? monthToDateString(monthName) : new Date().toISOString().split('T')[0];
-
-        // Distribute within month: 8th, 12th, 15th, 18th, 22nd to avoid all on 15th
-        const key = `${currentSubject}|${monthName}`;
-        const count = gradeCounter[key] || 0;
-        gradeCounter[key] = count + 1;
-        const dayOptions = [8, 12, 15, 18, 22, 25];
-        const day = dayOptions[count % dayOptions.length];
-        const adjustedDate = dateStr.replace(/-\d{2}$/, `-${String(day).padStart(2, '0')}`);
 
         grades.push({
           subject: currentSubject,
           grade: gradeValue,
           gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
-          date: adjustedDate,
+          date: rowDate,
           semester,
           teacher: currentTeacher || 'Nenurodyta',
         });
