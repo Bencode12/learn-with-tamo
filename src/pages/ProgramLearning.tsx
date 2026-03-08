@@ -508,7 +508,7 @@ const ProgramLearning = () => {
               )}
               
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => { setStep(1); setFieldSearch(""); setSelectedCategory(null); }}>Back</Button>
+                <Button variant="outline" onClick={() => { setStep(hasSubSubjects ? 1.5 as any : 1); setFieldSearch(""); setSelectedCategory(null); }}>Back</Button>
                 <Button onClick={() => setStep(3)} disabled={selectedFields.length === 0}>
                   Continue ({selectedFields.length} selected)
                 </Button>
