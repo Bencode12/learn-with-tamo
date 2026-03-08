@@ -366,6 +366,12 @@ export const FREE_FIELDS: Record<string, string[]> = {
     "qualitative_analysis", "spectroscopy", "coordination_chemistry",
     "polymer_chemistry"
   ],
+  biology: [
+    "cell_structure", "cell_cycle", "dna_biology", "classical_genetics",
+    "population_ecology", "ecosystem_ecology", "animal_physiology",
+    "gross_anatomy", "plant_anatomy", "plant_physiology",
+    "vertebrate_zoology", "bacteriology", "evolutionary_genetics"
+  ],
 };
 // Backwards compat
 export const FREE_MATH_FIELDS = FREE_FIELDS.math;
