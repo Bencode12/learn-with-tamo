@@ -688,7 +688,6 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
 
 function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
   const nowIso = new Date().toISOString();
-  const today = new Date().toISOString().split('T')[0];
   const dedupe = new Set<string>();
 
   return grades
