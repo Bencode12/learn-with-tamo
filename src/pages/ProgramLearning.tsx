@@ -447,17 +447,17 @@ const ProgramLearning = () => {
               </CardTitle>
               <CardDescription>
                 Choose the areas you want to focus on
-                {isMath && !isPremium && (
+                {hasFreeGating && !isPremium && (
                   <span className="block mt-1 text-xs">
                     <Lock className="h-3 w-3 inline mr-1" />
-                    Free plan includes Algebra, Geometry, Calculus, Trigonometry & Probability. <Link to="/store" className="text-primary underline">Upgrade</Link> for all fields.
+                    Some fields are free. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock all fields.
                   </span>
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Search & category filters for math */}
-              {isMath && (
+              {/* Search & category filters */}
+              {allFields.length > 15 && (
                 <div className="space-y-3 mb-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
