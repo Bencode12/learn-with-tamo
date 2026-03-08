@@ -469,10 +469,16 @@ const ProgramLearning = () => {
               </CardTitle>
               <CardDescription>
                 Choose the areas you want to focus on
+                {!isPremium && (
+                  <span className="block mt-1 text-xs">
+                    <Lock className="h-3 w-3 inline mr-1" />
+                    Free users can select up to {MAX_FREE_FIELDS} fields. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock unlimited fields.
+                  </span>
+                )}
                 {hasFreeGating && !isPremium && (
                   <span className="block mt-1 text-xs">
                     <Lock className="h-3 w-3 inline mr-1" />
-                    Some fields are free. <Link to="/store" className="text-primary underline">Upgrade</Link> to unlock all fields.
+                    Some advanced fields require Premium.
                   </span>
                 )}
               </CardDescription>

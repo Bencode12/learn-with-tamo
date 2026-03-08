@@ -333,8 +333,22 @@ function extractGradesWithDatesFromCell(
     grades.forEach((grade) => pushEntry(grade, date));
   }
 
-  // Do not fall back to parsing whole cell text: it can mix unrelated numbers
-  // from menus/headers and create fake grades/dates.
+  // Fallback: if no grades found from links, parse plain-text grades in the cell
+  // and assign mid-month date from the column's month header
+  if (entries.length === 0 && fallbackMonthName) {
+    const fallbackMonthNum = MONTH_TO_NUMBER[fallbackMonthName];
+    if (fallbackMonthNum) {
+      const plainGrades = extractNumericGradesFromCell(cellRaw, maxGrade);
+      if (plainGrades.length > 0 && plainGrades.length <= 10) {
+        const year = resolveSchoolYearForMonth(fallbackMonthNum);
+        const fallbackDate = toIsoDate(year, fallbackMonthNum, 15);
+        if (fallbackDate) {
+          plainGrades.forEach((grade) => pushEntry(grade, fallbackDate));
+        }
+      }
+    }
+  }
+
   return entries;
 }
 
