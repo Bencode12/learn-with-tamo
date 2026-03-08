@@ -874,15 +874,118 @@ export const subjectFieldsMap: Record<string, { id: string; name: string; icon: 
     { id: "art_history", name: "Art History", icon: "🎨" },
   ],
   coding: [
-    { id: "python", name: "Python", icon: "🐍" },
-    { id: "javascript", name: "JavaScript", icon: "📜" },
-    { id: "typescript", name: "TypeScript", icon: "💎" },
-    { id: "react", name: "React", icon: "⚛️" },
-    { id: "algorithms", name: "Algorithms", icon: "🔄" },
-    { id: "data_structures", name: "Data Structures", icon: "📦" },
-    { id: "databases", name: "Databases", icon: "🗄️" },
-    { id: "web_dev", name: "Web Development", icon: "🌐" },
-    { id: "machine_learning", name: "Machine Learning", icon: "🤖" },
+    // Systems Programming
+    { id: "c_lang", name: "C", icon: "©️", category: "Systems Programming" },
+    { id: "cpp", name: "C++", icon: "⚙️", category: "Systems Programming" },
+    { id: "rust", name: "Rust", icon: "🦀", category: "Systems Programming" },
+    { id: "zig", name: "Zig", icon: "⚡", category: "Systems Programming" },
+    { id: "ada", name: "Ada", icon: "🔧", category: "Systems Programming" },
+    { id: "d_lang", name: "D", icon: "💠", category: "Systems Programming" },
+    // General Purpose
+    { id: "python", name: "Python", icon: "🐍", category: "General Purpose" },
+    { id: "java", name: "Java", icon: "☕", category: "General Purpose" },
+    { id: "csharp", name: "C#", icon: "🎯", category: "General Purpose" },
+    { id: "go", name: "Go", icon: "🐹", category: "General Purpose" },
+    { id: "julia_lang", name: "Julia", icon: "📊", category: "General Purpose" },
+    { id: "kotlin", name: "Kotlin", icon: "🟣", category: "General Purpose" },
+    // Functional Languages
+    { id: "haskell", name: "Haskell", icon: "λ", category: "Functional Languages" },
+    { id: "ocaml", name: "OCaml", icon: "🐫", category: "Functional Languages" },
+    { id: "fsharp", name: "F#", icon: "🎵", category: "Functional Languages" },
+    { id: "elixir", name: "Elixir", icon: "💧", category: "Functional Languages" },
+    { id: "clojure", name: "Clojure", icon: "🔄", category: "Functional Languages" },
+    // Web Languages
+    { id: "javascript", name: "JavaScript", icon: "📜", category: "Web Languages" },
+    { id: "typescript", name: "TypeScript", icon: "💎", category: "Web Languages" },
+    { id: "php", name: "PHP", icon: "🐘", category: "Web Languages" },
+    { id: "dart", name: "Dart", icon: "🎯", category: "Web Languages" },
+    // Scripting
+    { id: "ruby", name: "Ruby", icon: "💎", category: "Scripting" },
+    { id: "perl", name: "Perl", icon: "🐪", category: "Scripting" },
+    { id: "lua", name: "Lua", icon: "🌙", category: "Scripting" },
+    { id: "bash", name: "Bash", icon: "🖥️", category: "Scripting" },
+    // Mobile
+    { id: "swift", name: "Swift", icon: "🦅", category: "Mobile" },
+    { id: "objective_c", name: "Objective-C", icon: "📱", category: "Mobile" },
+    { id: "kotlin_mobile", name: "Kotlin (Mobile)", icon: "🤖", category: "Mobile" },
+    { id: "dart_mobile", name: "Dart (Flutter)", icon: "🦋", category: "Mobile" },
+    // Scientific Computing
+    { id: "matlab", name: "MATLAB", icon: "📐", category: "Scientific Computing" },
+    { id: "r_lang", name: "R", icon: "📈", category: "Scientific Computing" },
+    { id: "julia_sci", name: "Julia (Scientific)", icon: "🔬", category: "Scientific Computing" },
+    // Relational Databases
+    { id: "postgresql", name: "PostgreSQL", icon: "🐘", category: "Relational Databases" },
+    { id: "mysql", name: "MySQL", icon: "🐬", category: "Relational Databases" },
+    { id: "mariadb", name: "MariaDB", icon: "🦭", category: "Relational Databases" },
+    { id: "oracle_db", name: "Oracle Database", icon: "🏛️", category: "Relational Databases" },
+    { id: "mssql", name: "Microsoft SQL Server", icon: "🪟", category: "Relational Databases" },
+    // NoSQL Databases
+    { id: "mongodb", name: "MongoDB", icon: "🍃", category: "NoSQL Databases" },
+    { id: "cassandra", name: "Cassandra", icon: "👁️", category: "NoSQL Databases" },
+    { id: "redis", name: "Redis", icon: "🔴", category: "NoSQL Databases" },
+    { id: "dynamodb", name: "DynamoDB", icon: "⚡", category: "NoSQL Databases" },
+    // Graph Databases
+    { id: "neo4j", name: "Neo4j", icon: "🔗", category: "Graph Databases" },
+    { id: "arangodb", name: "ArangoDB", icon: "🥑", category: "Graph Databases" },
+    // Query Languages
+    { id: "sql", name: "SQL", icon: "🗄️", category: "Query Languages" },
+    { id: "graphql", name: "GraphQL", icon: "◈", category: "Query Languages" },
+    // Machine Learning
+    { id: "supervised_learning", name: "Supervised Learning", icon: "🎓", category: "Machine Learning" },
+    { id: "unsupervised_learning", name: "Unsupervised Learning", icon: "🔍", category: "Machine Learning" },
+    { id: "reinforcement_learning", name: "Reinforcement Learning", icon: "🎮", category: "Machine Learning" },
+    // ML Frameworks
+    { id: "tensorflow", name: "TensorFlow", icon: "🧠", category: "ML Frameworks" },
+    { id: "pytorch", name: "PyTorch", icon: "🔥", category: "ML Frameworks" },
+    { id: "scikit_learn", name: "Scikit-learn", icon: "📊", category: "ML Frameworks" },
+    // Deep Learning
+    { id: "neural_networks", name: "Neural Networks", icon: "🧠", category: "Deep Learning" },
+    { id: "cnn", name: "Convolutional Neural Networks (CNN)", icon: "🖼️", category: "Deep Learning" },
+    { id: "rnn", name: "Recurrent Neural Networks (RNN)", icon: "🔁", category: "Deep Learning" },
+    { id: "transformers", name: "Transformers", icon: "🤖", category: "Deep Learning" },
+    // Data Science
+    { id: "data_mining", name: "Data Mining", icon: "⛏️", category: "Data Science" },
+    { id: "data_pipelines", name: "Data Pipelines", icon: "🔀", category: "Data Science" },
+    { id: "feature_engineering", name: "Feature Engineering", icon: "🛠️", category: "Data Science" },
+    // Big Data
+    { id: "hadoop", name: "Apache Hadoop", icon: "🐘", category: "Big Data" },
+    { id: "spark", name: "Apache Spark", icon: "✨", category: "Big Data" },
+    { id: "kafka", name: "Apache Kafka", icon: "📨", category: "Big Data" },
+    // Frontend
+    { id: "html", name: "HTML", icon: "🌐", category: "Frontend" },
+    { id: "css", name: "CSS", icon: "🎨", category: "Frontend" },
+    { id: "react", name: "React", icon: "⚛️", category: "Frontend" },
+    { id: "angular", name: "Angular", icon: "🅰️", category: "Frontend" },
+    { id: "vuejs", name: "Vue.js", icon: "💚", category: "Frontend" },
+    // Backend
+    { id: "nodejs", name: "Node.js", icon: "🟩", category: "Backend" },
+    { id: "django", name: "Django", icon: "🐍", category: "Backend" },
+    { id: "spring", name: "Spring Framework", icon: "🌱", category: "Backend" },
+    { id: "laravel", name: "Laravel", icon: "🔺", category: "Backend" },
+    // Operating Systems
+    { id: "linux", name: "Linux", icon: "🐧", category: "Systems & Infrastructure" },
+    { id: "windows_os", name: "Windows", icon: "🪟", category: "Systems & Infrastructure" },
+    { id: "macos", name: "macOS", icon: "🍎", category: "Systems & Infrastructure" },
+    // Containers & Virtualization
+    { id: "docker", name: "Docker", icon: "🐳", category: "Systems & Infrastructure" },
+    { id: "kubernetes", name: "Kubernetes", icon: "☸️", category: "Systems & Infrastructure" },
+    // Software Engineering
+    { id: "oop", name: "Object-Oriented Programming", icon: "🧱", category: "Software Engineering" },
+    { id: "functional_programming", name: "Functional Programming", icon: "λ", category: "Software Engineering" },
+    { id: "tdd", name: "Test-Driven Development", icon: "✅", category: "Software Engineering" },
+    { id: "agile", name: "Agile Development", icon: "🔄", category: "Software Engineering" },
+    { id: "git", name: "Git", icon: "🌳", category: "Software Engineering" },
+    // Cybersecurity
+    { id: "cryptography", name: "Cryptography", icon: "🔐", category: "Cybersecurity" },
+    { id: "network_security", name: "Network Security", icon: "🛡️", category: "Cybersecurity" },
+    { id: "ethical_hacking", name: "Ethical Hacking", icon: "🎩", category: "Cybersecurity" },
+    { id: "malware_analysis", name: "Malware Analysis", icon: "🦠", category: "Cybersecurity" },
+    // CS Theory
+    { id: "algorithms", name: "Algorithms", icon: "🔄", category: "CS Theory" },
+    { id: "data_structures", name: "Data Structures", icon: "📦", category: "CS Theory" },
+    { id: "automata_theory", name: "Automata Theory", icon: "🤖", category: "CS Theory" },
+    { id: "computational_complexity", name: "Computational Complexity", icon: "📐", category: "CS Theory" },
+    { id: "distributed_systems", name: "Distributed Systems", icon: "🌐", category: "CS Theory" },
   ],
   languages: [
     // Europe
