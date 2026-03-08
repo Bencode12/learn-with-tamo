@@ -509,7 +509,7 @@ const ProgramStudy = () => {
                         ))}
                       </RadioGroup>
                       {quizSubmitted && (
-                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{safeString(q.explanation)}</ReactMarkdown></div>
+                        <div className="text-sm text-muted-foreground mt-3 bg-muted/50 p-3 rounded prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>{safeString(q.explanation)}</ReactMarkdown></div>
                       )}
                     </CardContent>
                   </Card>
