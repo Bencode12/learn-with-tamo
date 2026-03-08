@@ -38,7 +38,7 @@ const ProgramLearning = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1); // 1: Subject, 2: Fields, 3: Time, 4: Assessment, 5: Plan
+  const [step, setStep] = useState<number>(1); // 1: Subject, 1.5: Sub-subject, 2: Fields, 3: Time, 4: Assessment, 5: Plan
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
