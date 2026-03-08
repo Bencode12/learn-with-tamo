@@ -407,7 +407,6 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
   let tableDetected = false;
   let monthByIndex: Record<number, string> = {};
   let monthIndexes: number[] = [];
-  let gradeCounter: Record<string, number> = {};
 
   // Log ALL table lines for debugging
   const tableLines = lines.filter(l => l.includes('|'));
