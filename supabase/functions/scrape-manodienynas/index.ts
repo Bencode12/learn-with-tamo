@@ -99,12 +99,31 @@ function cleanText(value: string): string {
 
 function cleanSubjectName(raw: string): string {
   let name = raw
-    .replace(/\s*\(-?\)\s*/g, ' ')
+    .replace(/\s*\(-[^)]*\)?\s*/g, ' ')  // Handle (-), (-, (-xxx) patterns
+    .replace(/\s*\([^)]*$/, '')           // Remove unclosed parenthesis at end
     .replace(/\s*I?MYP\d*/gi, '')
+    .replace(/\.\.\.$/, '')
     .replace(/\s+/g, ' ')
     .trim();
   name = name.replace(/\s+I{1,2}$/, '').trim();
   return name;
+}
+
+/**
+ * Strip "Formuojamasis vertinimas" or "Formojamasis vertinimas" prefix from subject name.
+ */
+function stripFormativePrefix(subject: string): { baseSubject: string; isFormative: boolean } {
+  // Normalize all whitespace (including non-breaking spaces) to regular spaces
+  const normalized = subject.replace(/[\s\u00a0]+/g, ' ').trim();
+  const lower = normalized.toLowerCase();
+  
+  for (const prefix of ['formuojamasis vertinimas ', 'formojamasis vertinimas ']) {
+    if (lower.startsWith(prefix)) {
+      const base = normalized.substring(prefix.length).trim();
+      return { baseSubject: cleanSubjectName(base), isFormative: true };
+    }
+  }
+  return { baseSubject: subject, isFormative: false };
 }
 
 // Strict blocklist: anything that is NOT a real school subject
@@ -124,9 +143,7 @@ function isLikelySubject(value: string): boolean {
   const text = cleanText(value).toLowerCase();
   if (text.length < 3 || text.length > 120) return false;
   if (BLOCKED_SUBJECTS.has(text)) return false;
-  // Must contain letters
   if (!/[a-ząčęėįšųūž]/i.test(text)) return false;
-  // Must not be purely numeric
   if (/^\d+$/.test(text)) return false;
   return true;
 }
@@ -149,25 +166,14 @@ function extractNumericGradesFromCell(value: string): number[] {
 
 /**
  * Extract teacher name from a subject cell.
- * ManoDienynas format: "Subject Name (-) CODE  Teacher Firstname Lastname"
- * The teacher name is usually at the end, with Lithuanian names.
  */
 function extractTeacher(cellText: string): { subject: string; teacher: string } {
-  // The PDF shows format: "Subject (-) IMYP2  TeacherLastname TeacherFirstname"
-  // In the table: subject and teacher are in separate cells usually
-  // But in markdown they may be merged
-  
-  // Try to find teacher name pattern at end: "Lastname Firstname" or "Lastname Firstname Middlename"
-  // Lithuanian names: capital letter followed by lowercase
   const namePattern = /\s+((?:[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+\s+){1,2}[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+(?:\s+[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)?)$/;
-  
-  // Also handle "D. Sudarienė, R. Pranevičienė" format
   const multiTeacherPattern = /\s+([A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+(?:,\s*[A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)+)$/;
-  // Also: "S. Aleknienė, K. Gimpelson"
   const initialsPattern = /\s+([A-ZĄČĘĖĮŠŲŪŽ]\.\s*[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)$/;
 
   let cleaned = cleanSubjectName(cellText);
-  
+
   const multiMatch = cleaned.match(multiTeacherPattern);
   if (multiMatch) {
     return {
@@ -175,7 +181,7 @@ function extractTeacher(cellText: string): { subject: string; teacher: string } 
       teacher: multiMatch[1].trim(),
     };
   }
-  
+
   const nameMatch = cleaned.match(namePattern);
   if (nameMatch) {
     return {
@@ -183,7 +189,7 @@ function extractTeacher(cellText: string): { subject: string; teacher: string } 
       teacher: nameMatch[1].trim(),
     };
   }
-  
+
   const initMatch = cleaned.match(initialsPattern);
   if (initMatch) {
     return {
@@ -194,6 +200,33 @@ function extractTeacher(cellText: string): { subject: string; teacher: string } 
 
   return { subject: cleaned, teacher: '' };
 }
+
+// All Lithuanian month names (including alternate forms and partial matches)
+const ALL_MONTH_NAMES = [
+  'rugsėjis', 'rugsej', 'rugs',
+  'spalis', 'spal',
+  'lapkritis', 'lapkrit', 'lapkr',
+  'gruodis', 'gruodž', 'gruod',
+  'sausis', 'saus',
+  'vasaris', 'vasar', 'vas',
+  'kovas', 'kov',
+  'balandis', 'baland', 'bal',
+  'gegužė', 'geguz', 'geg',
+  'birželis', 'birzel', 'birž',
+];
+
+const MONTH_CANONICAL: Record<string, string> = {
+  'rugsėjis': 'rugsėjis', 'rugsej': 'rugsėjis', 'rugs': 'rugsėjis',
+  'spalis': 'spalis', 'spal': 'spalis',
+  'lapkritis': 'lapkritis', 'lapkrit': 'lapkritis', 'lapkr': 'lapkritis',
+  'gruodis': 'gruodis', 'gruodž': 'gruodis', 'gruod': 'gruodis',
+  'sausis': 'sausis', 'saus': 'sausis',
+  'vasaris': 'vasaris', 'vasar': 'vasaris', 'vas': 'vasaris',
+  'kovas': 'kovas', 'kov': 'kovas',
+  'balandis': 'balandis', 'baland': 'balandis', 'bal': 'balandis',
+  'gegužė': 'gegužė', 'geguz': 'gegužė', 'geg': 'gegužė',
+  'birželis': 'birželis', 'birzel': 'birželis', 'birž': 'birželis',
+};
 
 const FIRST_SEMESTER_MONTHS = ['rugsėjis', 'spalis', 'lapkritis', 'gruodis'];
 const SECOND_SEMESTER_MONTHS = ['sausis', 'vasaris', 'kovas', 'balandis', 'gegužė', 'birželis'];
@@ -207,14 +240,10 @@ function monthNameToDate(monthName: string): string {
   const monthNum = MONTH_TO_NUMBER[monthName];
   if (!monthNum) return new Date().toISOString().split('T')[0];
   const now = new Date();
-  // If month is in second semester (Jan-Jun), use current year
-  // If month is in first semester (Sep-Dec), use current school year start
   let year = now.getFullYear();
   if (monthNum >= 9) {
-    // For Sep-Dec: if we're currently in Jan-Aug, the grades are from last year
     if (now.getMonth() + 1 < 9) year = year - 1;
   }
-  // Use the 15th as a reasonable mid-month date
   return `${year}-${String(monthNum).padStart(2, '0')}-15`;
 }
 
@@ -226,37 +255,150 @@ function normalizeHeaderText(value: string): string {
     .trim();
 }
 
+/**
+ * Try to find which canonical month a header cell refers to.
+ * Handles: full names, partial names, accented/unaccented, case-insensitive.
+ */
+function findMonthInHeader(headerText: string): string | null {
+  const normalized = normalizeHeaderText(headerText);
+  if (!normalized) return null;
+
+  // Try exact and partial matches against all known month name forms
+  for (const monthForm of ALL_MONTH_NAMES) {
+    if (normalized.includes(monthForm)) {
+      return MONTH_CANONICAL[monthForm] || null;
+    }
+  }
+
+  // Also try without diacritics
+  const stripped = normalized
+    .replace(/ą/g, 'a').replace(/č/g, 'c').replace(/ę/g, 'e')
+    .replace(/ė/g, 'e').replace(/į/g, 'i').replace(/š/g, 's')
+    .replace(/ų/g, 'u').replace(/ū/g, 'u').replace(/ž/g, 'z');
+
+  const MONTH_NO_DIACRITICS: Record<string, string> = {
+    'rugsejis': 'rugsėjis', 'spalis': 'spalis', 'lapkritis': 'lapkritis',
+    'gruodis': 'gruodis', 'sausis': 'sausis', 'vasaris': 'vasaris',
+    'kovas': 'kovas', 'balandis': 'balandis', 'geguze': 'gegužė',
+    'birzelis': 'birželis',
+  };
+
+  for (const [noDiac, canonical] of Object.entries(MONTH_NO_DIACRITICS)) {
+    if (stripped.includes(noDiac)) {
+      return canonical;
+    }
+  }
+
+  return null;
+}
+
 function detectMonthColumns(cells: string[]): { monthIndexes: number[]; monthByIndex: Record<number, string> } {
   const monthIndexes: number[] = [];
   const monthByIndex: Record<number, string> = {};
 
   for (let i = 1; i < cells.length; i++) {
-    const normalized = normalizeHeaderText(cells[i]);
-    if (!normalized) continue;
-
-    const month = [...FIRST_SEMESTER_MONTHS, ...SECOND_SEMESTER_MONTHS].find((m) => normalized.includes(m));
+    const month = findMonthInHeader(cells[i]);
     if (!month) continue;
 
     monthIndexes.push(i);
     monthByIndex[i] = month;
   }
 
+  console.log('[MD] Detected month columns:', monthIndexes.length, '-', monthIndexes.map(i => `col${i}:${monthByIndex[i]}`).join(', '));
   return { monthIndexes, monthByIndex };
 }
 
 /**
+ * Build a subject -> teacher map from the "Eil. Nr. | Dalykas" table.
+ * ManoDienynas shows teacher names as markdown links: [TeacherName](url "tooltip")
+ */
+function buildTeacherMap(markdown: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  const lines = markdown.split('\n');
+  let inSubjectList = false;
+
+  for (const line of lines) {
+    if (!line.includes('|')) continue;
+    const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
+    if (cells.length < 2) continue;
+    if (cells.every(c => /^[-:]+$/.test(c) || c === '')) continue;
+
+    const firstNorm = normalizeHeaderText(cells[0]);
+    if (firstNorm === 'eil nr' || firstNorm === 'eil. nr.' || firstNorm === 'eil nr.') {
+      inSubjectList = true;
+      continue;
+    }
+
+    if (!inSubjectList) continue;
+    // End of subject list table
+    if (cells[0] && !/^\d+$/.test(cells[0].trim())) {
+      inSubjectList = false;
+      continue;
+    }
+
+    // Parse subject and teacher from second cell
+    // Format: "Subject (-) IMYP2<br>[TeacherLastname TeacherFirstname](url)"
+    const subjectCell = cells[1] || '';
+    const teacherMatch = subjectCell.match(/\[([^\]]+)\]\([^)]*\)/);
+    const teacherName = teacherMatch ? teacherMatch[1].trim() : '';
+
+    // Extract subject name (before <br> or before the link)
+    let subjectName = subjectCell
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '')
+      .replace(/\s*\(-?\)\s*/g, ' ')
+      .replace(/\s*I?MYP\d*/gi, '')
+      .replace(/"[^"]*"/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const { baseSubject } = stripFormativePrefix(subjectName);
+    subjectName = cleanSubjectName(baseSubject);
+
+    if (subjectName && teacherName && isLikelySubject(subjectName)) {
+      map[subjectName.toLowerCase()] = teacherName;
+    }
+  }
+
+  console.log('[MD] Teacher map built:', Object.keys(map).length, 'subjects -', Object.entries(map).slice(0, 5).map(([s, t]) => `${s}: ${t}`).join(', '));
+  return map;
+}
+
+/**
+ * Find the nearest month for a column index based on detected month columns.
+ * Assigns each column to the closest preceding or exact month column.
+ */
+function getMonthForColumn(colIndex: number, monthIndexes: number[], monthByIndex: Record<number, string>): string {
+  if (monthByIndex[colIndex]) return monthByIndex[colIndex];
+  if (monthIndexes.length === 0) return '';
+
+  // Find closest preceding month
+  let closest = '';
+  for (const mi of monthIndexes) {
+    if (mi <= colIndex) closest = monthByIndex[mi];
+    else break;
+  }
+  return closest;
+}
+
+/**
  * Parse the ManoDienynas marks table from markdown.
- * Only the marks table (headed by "Dalykas") is parsed.
  */
 function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
   const grades: ManoDienynasGrade[] = [];
   const lines = markdown.split('\n');
+  const teacherMap = buildTeacherMap(markdown);
 
   let currentSubject = '';
   let currentTeacher = '';
+  let currentIsFormative = false;
   let tableDetected = false;
   let monthIndexes: number[] = [];
   let monthByIndex: Record<number, string> = {};
+
+  // Log first few table lines for debugging
+  const tableLines = lines.filter(l => l.includes('|')).slice(0, 5);
+  console.log('[MD] First 5 table lines:', tableLines.map(l => l.substring(0, 200)));
 
   for (const line of lines) {
     if (!line.includes('|')) continue;
@@ -269,13 +411,19 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
 
     const firstCellNormalized = normalizeHeaderText(cells[0]);
 
-    // Detect marks header row and capture real month columns only
-    if (firstCellNormalized === 'dalykas') {
-      tableDetected = true;
+    // Detect marks header row: must have "dalykas" AND at least one month in other cells
+    if (firstCellNormalized === 'dalykas' || firstCellNormalized.includes('dalykas')) {
       const monthInfo = detectMonthColumns(cells);
-      monthIndexes = monthInfo.monthIndexes;
-      monthByIndex = monthInfo.monthByIndex;
-      console.log('[MD] Detected month columns:', monthIndexes.map(i => `${i}:${monthByIndex[i]}`).join(', '));
+
+      // Only treat as marks table if months are found (to skip the subject list table)
+      if (monthInfo.monthIndexes.length > 0) {
+        tableDetected = true;
+        monthIndexes = monthInfo.monthIndexes;
+        monthByIndex = monthInfo.monthByIndex;
+        console.log('[MD] Marks table header found with', monthInfo.monthIndexes.length, 'month columns');
+      } else {
+        console.log('[MD] Skipping table with "Dalykas" header but no months:', cells.map((c, i) => `${i}:"${c.substring(0, 30)}"`).join(', '));
+      }
       continue;
     }
 
@@ -285,30 +433,65 @@ function parseGradesFromMarkdown(markdown: string): ManoDienynasGrade[] {
     const rowHasSubject = firstCell.length > 0 && !isNumericGrade(firstCell) && !/^[nN]$/.test(firstCell) && !/^įsk$/i.test(firstCell);
 
     if (rowHasSubject) {
-      const { subject, teacher } = extractTeacher(firstCell);
+      const { subject: rawSubject, teacher } = extractTeacher(firstCell);
 
-      if (!isLikelySubject(subject)) {
+      if (!isLikelySubject(rawSubject)) {
         currentSubject = '';
         currentTeacher = '';
         continue;
       }
 
-      currentSubject = subject;
-      currentTeacher = teacher || 'Nenurodyta';
-      console.log('[MD] Subject:', currentSubject, '| Teacher:', currentTeacher);
+      // Check if this is a "Formuojamasis vertinimas" row
+      const { baseSubject, isFormative } = stripFormativePrefix(rawSubject);
+      currentSubject = cleanSubjectName(baseSubject);
+      currentIsFormative = isFormative;
+
+      // Look up teacher from subject list table
+      const lookupKey = currentSubject.toLowerCase();
+      currentTeacher = teacher || teacherMap[lookupKey] || 'Nenurodyta';
+      console.log('[MD] Subject:', currentSubject, '| Formative:', isFormative, '| Teacher:', currentTeacher);
     }
 
     if (!currentSubject) continue;
 
-    extractGradesFromCells({
-      cells,
-      subject: currentSubject,
-      teacher: currentTeacher,
-      monthIndexes,
-      monthByIndex,
-      rowHasSubject,
-      grades,
-    });
+    // Scan ALL columns (not just month columns) for grades
+    // Use month mapping to determine dates
+    for (let colIdx = (rowHasSubject ? 1 : 0); colIdx < cells.length; colIdx++) {
+      const cell = cells[colIdx].trim();
+      if (!cell) continue;
+      if (/^[nN]$/.test(cell)) continue;
+      if (/^įsk$/i.test(cell)) continue;
+      if (/val\.?$/i.test(cell)) continue;
+      if (/^\d+\s*val\.?$/i.test(cell)) continue;
+      // Skip average columns (typically labeled "vid." or contain decimal numbers)
+      if (/^\d+[.,]\d+$/.test(cell)) continue;
+
+      const numericGrades = extractNumericGradesFromCell(cell);
+
+      for (const parsedGrade of numericGrades) {
+        const monthHeader = getMonthForColumn(colIdx, monthIndexes, monthByIndex);
+        let semester = getSemester(new Date());
+        let gradeDate = new Date().toISOString().split('T')[0];
+
+        if (monthHeader) {
+          gradeDate = monthNameToDate(monthHeader);
+          if (FIRST_SEMESTER_MONTHS.includes(monthHeader)) {
+            semester = 'I';
+          } else if (SECOND_SEMESTER_MONTHS.includes(monthHeader)) {
+            semester = 'II';
+          }
+        }
+
+        grades.push({
+          subject: currentSubject,
+          grade: parsedGrade,
+          gradeType: currentIsFormative ? 'Formuojamasis' : 'Įvertinimas',
+          date: gradeDate,
+          semester,
+          teacher: currentTeacher,
+        });
+      }
+    }
   }
 
   console.log('[MD] Total parsed from markdown:', grades.length, 'grades across', new Set(grades.map(g => g.subject)).size, 'subjects');
@@ -319,12 +502,13 @@ function extractGradesFromCells(params: {
   cells: string[];
   subject: string;
   teacher: string;
+  isFormative: boolean;
   monthIndexes: number[];
   monthByIndex: Record<number, string>;
   rowHasSubject: boolean;
   grades: ManoDienynasGrade[];
 }) {
-  const { cells, subject, teacher, monthIndexes, monthByIndex, rowHasSubject, grades } = params;
+  const { cells, subject, teacher, isFormative, monthIndexes, monthByIndex, rowHasSubject, grades } = params;
 
   const fallbackIndexes = cells
     .map((_, index) => index)
@@ -350,19 +534,20 @@ function extractGradesFromCells(params: {
       const monthHeader = monthByIndex[columnIndex] || '';
       let semester = getSemester(new Date());
       let gradeDate = new Date().toISOString().split('T')[0];
-      if (FIRST_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) {
-        semester = 'I';
+
+      if (monthHeader) {
         gradeDate = monthNameToDate(monthHeader);
-      }
-      if (SECOND_SEMESTER_MONTHS.some(m => monthHeader.includes(m))) {
-        semester = 'II';
-        gradeDate = monthNameToDate(monthHeader);
+        if (FIRST_SEMESTER_MONTHS.includes(monthHeader)) {
+          semester = 'I';
+        } else if (SECOND_SEMESTER_MONTHS.includes(monthHeader)) {
+          semester = 'II';
+        }
       }
 
       grades.push({
         subject,
         grade: parsedGrade,
-        gradeType: subject.toLowerCase().startsWith('formuojamasis') ? 'Formuojamasis' : 'Įvertinimas',
+        gradeType: isFormative ? 'Formuojamasis' : 'Įvertinimas',
         date: gradeDate,
         semester,
         teacher,
@@ -387,7 +572,7 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
       const teacherName = (grade.teacher || 'Nenurodyta').substring(0, 120);
       const notes = grade.comment?.trim()?.substring(0, 4000) || null;
 
-      const fingerprint = `${subject}|${grade.grade}|${rowDate}|${semester}|${teacherName}|${notes || ''}`;
+      const fingerprint = `${subject}|${grade.grade}|${grade.gradeType}|${rowDate}|${semester}|${teacherName}|${notes || ''}`;
       if (dedupe.has(fingerprint)) return null;
       dedupe.add(fingerprint);
 
@@ -412,6 +597,7 @@ async function persistGrades(supabase: ReturnType<typeof createClient>, userId: 
   if (rows.length === 0) throw new Error('No valid grades were parsed to store.');
 
   console.log('[MD] Persisting', rows.length, 'grades. Subjects:', [...new Set(rows.map(r => r.subject))].join(', '));
+  console.log('[MD] Date distribution:', [...new Set(rows.map(r => r.date))].sort().join(', '));
 
   const { error: deleteError } = await supabase
     .from('synced_grades')
@@ -456,7 +642,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
     const markdown = result.markdown || '';
 
     console.log('[MD] HTML length:', html.length, '| Markdown length:', markdown.length);
-    console.log('[MD] Markdown first 800 chars:', markdown.substring(0, 800));
+    console.log('[MD] Markdown first 1200 chars:', markdown.substring(0, 1200));
 
     // Check if still on login page
     if (html.includes('dl_username') && html.includes('dienynas_form1') && html.length < 50000) {
@@ -465,7 +651,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
 
     // Parse from markdown (primary)
     let grades = parseGradesFromMarkdown(markdown);
-    
+
     console.log('[MD] Markdown parser found:', grades.length, 'grades');
 
     // If too few, try a fallback navigation
@@ -479,14 +665,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
         { type: 'write', text: password },
         { type: 'click', selector: '#login_submit' },
         { type: 'wait', milliseconds: 5000 },
-        // Try direct URL navigation via address bar approach
         { type: 'click', selector: 'a[href*="marks"]' },
         { type: 'wait', milliseconds: 4000 },
       ]);
 
       if (fallback.success) {
         console.log('[MD] Fallback markdown length:', fallback.markdown?.length);
-        console.log('[MD] Fallback first 800:', fallback.markdown?.substring(0, 800));
+        console.log('[MD] Fallback first 1200:', fallback.markdown?.substring(0, 1200));
         const fallbackGrades = parseGradesFromMarkdown(fallback.markdown || '');
         if (fallbackGrades.length > grades.length) {
           grades = fallbackGrades;
@@ -502,7 +687,13 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       };
     }
 
-    console.log('[MD] Final:', grades.length, 'grades across', new Set(grades.map(g => g.subject)).size, 'subjects');
+    // Log summary
+    const subjects = [...new Set(grades.map(g => g.subject))];
+    const dates = [...new Set(grades.map(g => g.date))].sort();
+    console.log('[MD] Final:', grades.length, 'grades across', subjects.length, 'subjects');
+    console.log('[MD] Subjects:', subjects.join(', '));
+    console.log('[MD] Date range:', dates[0], '-', dates[dates.length - 1]);
+
     return { success: true, grades };
   } catch (error) {
     console.error('[MD] Error:', error);
