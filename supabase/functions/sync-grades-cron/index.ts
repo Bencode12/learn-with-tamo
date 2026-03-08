@@ -124,7 +124,7 @@ serve(async (req) => {
               action: 'sync_for_user',
               userId,
               username: decryptedCreds.username,
-              password: atob(decryptedCreds.passwordHash),
+              password: await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash),
             }),
           });
 

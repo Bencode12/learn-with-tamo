@@ -933,9 +933,10 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
+      const password = await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash);
       const result = await loginAndScrapeGrades(
         decryptedCreds.username,
-        atob(decryptedCreds.passwordHash)
+        password
       );
 
       if (!result.success) {
