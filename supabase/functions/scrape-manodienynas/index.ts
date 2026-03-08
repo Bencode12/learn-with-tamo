@@ -150,6 +150,31 @@ const MONTH_PATTERNS: [RegExp, string][] = [
   [/bir[zž]el/i, 'birželis'],
 ];
 
+const DATE_MONTH_PATTERNS: Array<{ regex: RegExp; month: number }> = [
+  { regex: /rugs[eė]j/i, month: 9 },
+  { regex: /spal/i, month: 10 },
+  { regex: /lapkrit/i, month: 11 },
+  { regex: /gruod/i, month: 12 },
+  { regex: /saus/i, month: 1 },
+  { regex: /vasar/i, month: 2 },
+  { regex: /kov[ao]/i, month: 3 },
+  { regex: /baland/i, month: 4 },
+  { regex: /gegu[zž]/i, month: 5 },
+  { regex: /bir[zž]el/i, month: 6 },
+  { regex: /jan(?:uary)?/i, month: 1 },
+  { regex: /feb(?:ruary)?/i, month: 2 },
+  { regex: /mar(?:ch)?/i, month: 3 },
+  { regex: /apr(?:il)?/i, month: 4 },
+  { regex: /may/i, month: 5 },
+  { regex: /jun(?:e)?/i, month: 6 },
+  { regex: /jul(?:y)?/i, month: 7 },
+  { regex: /aug(?:ust)?/i, month: 8 },
+  { regex: /sep(?:t(?:ember)?)?/i, month: 9 },
+  { regex: /oct(?:ober)?/i, month: 10 },
+  { regex: /nov(?:ember)?/i, month: 11 },
+  { regex: /dec(?:ember)?/i, month: 12 },
+];
+
 function findMonth(text: string): string | null {
   const clean = text.toLowerCase().replace(/[^a-ząčęėįšųūž]/g, '');
   for (const [pattern, month] of MONTH_PATTERNS) {
@@ -166,12 +191,9 @@ function getSchoolYear(): { startYear: number; endYear: number } {
   return { startYear: year - 1, endYear: year };
 }
 
-function monthToDateString(monthName: string): string {
-  const monthNum = MONTH_TO_NUMBER[monthName];
-  if (!monthNum) return new Date().toISOString().split('T')[0];
+function resolveSchoolYearForMonth(month: number): number {
   const { startYear, endYear } = getSchoolYear();
-  const year = monthNum >= 9 ? startYear : endYear;
-  return `${year}-${String(monthNum).padStart(2, '0')}-15`;
+  return month >= 9 ? startYear : endYear;
 }
 
 function toIsoDate(year: number, month: number, day: number): string | null {
@@ -181,7 +203,14 @@ function toIsoDate(year: number, month: number, day: number): string | null {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function extractDateFromText(text: string): string | null {
+function resolveMonthFromText(text: string): number | null {
+  for (const { regex, month } of DATE_MONTH_PATTERNS) {
+    if (regex.test(text)) return month;
+  }
+  return null;
+}
+
+function extractDateFromText(text: string, fallbackMonthName?: string): string | null {
   if (!text) return null;
 
   const isoMatch = text.match(/(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
@@ -192,6 +221,33 @@ function extractDateFromText(text: string): string | null {
   const ltMatch = text.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/);
   if (ltMatch) {
     return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
+  }
+
+  const monthFirstMatch = text.match(/([A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+)\s*(\d{1,2})(?:\s*d\.?)?/);
+  if (monthFirstMatch) {
+    const month = resolveMonthFromText(monthFirstMatch[1]);
+    if (month) {
+      const day = Number(monthFirstMatch[2]);
+      return toIsoDate(resolveSchoolYearForMonth(month), month, day);
+    }
+  }
+
+  const dayFirstMatch = text.match(/(\d{1,2})(?:\s*d\.?)?\s*([A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+)/);
+  if (dayFirstMatch) {
+    const month = resolveMonthFromText(dayFirstMatch[2]);
+    if (month) {
+      const day = Number(dayFirstMatch[1]);
+      return toIsoDate(resolveSchoolYearForMonth(month), month, day);
+    }
+  }
+
+  const fallbackMonthNum = fallbackMonthName ? MONTH_TO_NUMBER[fallbackMonthName] : null;
+  if (fallbackMonthNum) {
+    const dayOnlyMatch = text.match(/(?:^|\D)(\d{1,2})\s*d\.?(?:\D|$)/i);
+    if (dayOnlyMatch) {
+      const day = Number(dayOnlyMatch[1]);
+      return toIsoDate(resolveSchoolYearForMonth(fallbackMonthNum), fallbackMonthNum, day);
+    }
   }
 
   return null;
@@ -233,25 +289,53 @@ function extractNumericGradesFromCell(cellValue: string, maxGrade: number): numb
   return grades;
 }
 
-function extractGradesWithDatesFromCell(cellRaw: string, maxGrade: number): Array<{ grade: number; date: string | null }> {
+function extractGradesWithDatesFromCell(
+  cellRaw: string,
+  maxGrade: number,
+  fallbackMonthName?: string
+): Array<{ grade: number; date: string | null }> {
   const entries: Array<{ grade: number; date: string | null }> = [];
-  const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+  const dedupe = new Set<string>();
 
+  const pushEntry = (grade: number, date: string | null) => {
+    if (!date) return;
+    const key = `${grade}|${date}`;
+    if (dedupe.has(key)) return;
+    dedupe.add(key);
+    entries.push({ grade, date });
+  };
+
+  const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
   for (const match of cellRaw.matchAll(anchorRegex)) {
     const attrs = match[1] || '';
     const inner = match[2] || '';
     const grades = extractNumericGradesFromCell(cleanText(inner), maxGrade);
     if (grades.length === 0) continue;
 
-    const date = extractDateFromText(`${attrs} ${inner}`);
-    grades.forEach((grade) => entries.push({ grade, date }));
+    const date = extractDateFromText(`${attrs} ${inner}`, fallbackMonthName);
+    grades.forEach((grade) => pushEntry(grade, date));
+  }
+
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/gi;
+  for (const match of cellRaw.matchAll(markdownLinkRegex)) {
+    const label = cleanText(match[1] || '');
+    const url = match[2] || '';
+    const title = match[3] || '';
+    const grades = extractNumericGradesFromCell(label, maxGrade);
+    if (grades.length === 0) continue;
+
+    const date = extractDateFromText(`${title} ${url} ${label}`, fallbackMonthName);
+    grades.forEach((grade) => pushEntry(grade, date));
   }
 
   if (entries.length > 0) return entries;
 
-  const date = extractDateFromText(cellRaw);
+  const date = extractDateFromText(cellRaw, fallbackMonthName);
+  if (!date) return [];
+
   const grades = extractNumericGradesFromCell(cleanText(cellRaw), maxGrade);
-  return grades.map((grade) => ({ grade, date }));
+  grades.forEach((grade) => pushEntry(grade, date));
+  return entries;
 }
 
 // ====== Teacher map builder ======
