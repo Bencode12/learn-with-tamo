@@ -173,7 +173,9 @@ const ProgramLearning = () => {
       });
     }
     
-    const subjectName = subjects.find(s => s.id === selectedSubject)?.name || selectedSubject;
+    const subjectName = selectedSubSubject 
+      ? (subSubjectsMap[selectedSubject]?.find(s => s.id === selectedSubSubject)?.name || selectedSubSubject)
+      : (subjects.find(s => s.id === selectedSubject)?.name || selectedSubject);
     const planName = `${subjectName} Mastery - ${selectedFields.length} Fields`;
     
     // Save to database
