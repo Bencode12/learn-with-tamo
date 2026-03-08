@@ -642,6 +642,7 @@ export type Database = {
           last_accessed: string
           lesson_id: string
           lesson_number: number | null
+          lesson_title: string | null
           plan_id: string | null
           score: number | null
           subject_id: string
@@ -659,6 +660,7 @@ export type Database = {
           last_accessed?: string
           lesson_id: string
           lesson_number?: number | null
+          lesson_title?: string | null
           plan_id?: string | null
           score?: number | null
           subject_id: string
@@ -676,6 +678,7 @@ export type Database = {
           last_accessed?: string
           lesson_id?: string
           lesson_number?: number | null
+          lesson_title?: string | null
           plan_id?: string | null
           score?: number | null
           subject_id?: string
