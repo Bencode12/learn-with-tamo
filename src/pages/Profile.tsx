@@ -104,7 +104,7 @@ const Profile = () => {
     if (friendships && friendships.length > 0) {
       const friendIds = friendships.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('safe_profiles')
         .select('id, username, display_name, avatar_url, level, is_premium')
         .in('id', friendIds);
 
