@@ -33,6 +33,8 @@ async function firecrawlScrape(
       url,
       formats: ['html', 'markdown'],
       onlyMainContent: false,
+      waitFor: 6000,
+      timeout: 90000,
     };
     if (actions?.length) body.actions = actions;
 
@@ -50,13 +52,14 @@ async function firecrawlScrape(
     const data = await response.json();
     if (!response.ok) {
       console.error('[MD] Firecrawl error:', JSON.stringify(data).substring(0, 500));
-      
+
       if (data?.code === 'SCRAPE_TIMEOUT') {
-        console.log('[MD] Timeout, retrying...');
+        console.log('[MD] Timeout, retrying with extended timeout...');
+        const retryBody = { ...body, waitFor: 12000, timeout: 150000 };
         const retry = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, waitFor: 8000, timeout: 120000 }),
+          body: JSON.stringify(retryBody),
         });
         const retryData = await retry.json();
         if (retry.ok) {
@@ -746,105 +749,93 @@ async function persistGrades(supabase: ReturnType<typeof createClient>, userId: 
 
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: ManoDienynasGrade[]; error?: string }> {
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
+  const marksUrl = 'https://www.manodienynas.lt/1/lt/public/public/marks_pupil/marks';
 
-  try {
-    console.log('[MD] Starting login + scrape...');
-    const result = await firecrawlScrape(loginUrl, [
-      { type: 'wait', milliseconds: 2000 },
-      { type: 'click', selector: '#dl_username' },
-      { type: 'write', text: username },
-      { type: 'click', selector: '#dl_password' },
-      { type: 'write', text: password },
-      { type: 'click', selector: '#login_submit' },
-      { type: 'wait', milliseconds: 5000 },
-      { type: 'click', selector: 'a[href*="marks_pupil/marks"]' },
-      { type: 'wait', milliseconds: 4000 },
-    ]);
-
-    if (!result.success) {
-      return { success: false, grades: [], error: `Login failed: ${result.error}` };
-    }
-
-    const html = result.html || '';
-    const markdown = result.markdown || '';
-
-    console.log('[MD] HTML length:', html.length, '| Markdown length:', markdown.length);
-    
-    // Log markdown in chunks for debugging
-    const chunkSize = 2000;
-    const maxChunks = 10;
-    for (let i = 0; i < Math.min(markdown.length, chunkSize * maxChunks); i += chunkSize) {
-      console.log(`[MD] MD[${i}-${i + chunkSize}]: ${markdown.substring(i, i + chunkSize)}`);
-    }
-
-    // Check if still on login page
-    if (html.includes('dl_username') && html.includes('dienynas_form1') && html.length < 50000) {
-      return { success: false, grades: [], error: 'Login failed - invalid credentials' };
-    }
-
-    const teacherMap = buildTeacherMap(markdown);
-
-    const markdownGrades = parseGradesFromMarkdown(markdown, teacherMap);
-    console.log('[MD] Markdown parser result:', markdownGrades.length, 'grades');
-
-    const htmlGrades = html.length > 0 ? parseGradesFromHtml(html, teacherMap) : [];
-    console.log('[MD] HTML parser result:', htmlGrades.length, 'grades');
-
-    let grades = htmlGrades.length > markdownGrades.length ? htmlGrades : markdownGrades;
-    if (htmlGrades.length > markdownGrades.length) {
-      console.log('[MD] Using HTML parser results');
-    }
-
-    // If still too few, try fallback navigation
-    if (grades.length < 5) {
-      console.log('[MD] Too few grades, trying fallback navigation...');
-      const fallback = await firecrawlScrape(loginUrl, [
-        { type: 'wait', milliseconds: 2000 },
+  const attempts: Array<{ label: string; url: string; actions: any[] }> = [
+    {
+      label: 'direct-marks-login',
+      url: marksUrl,
+      actions: [
+        { type: 'wait', milliseconds: 1500 },
+        { type: 'click', selector: '#dl_username' },
+        { type: 'write', text: username },
+        { type: 'click', selector: '#dl_password' },
+        { type: 'write', text: password },
+        { type: 'click', selector: '#login_submit' },
+        { type: 'wait', milliseconds: 7000 },
+      ],
+    },
+    {
+      label: 'dashboard-click-marks',
+      url: loginUrl,
+      actions: [
+        { type: 'wait', milliseconds: 1500 },
         { type: 'click', selector: '#dl_username' },
         { type: 'write', text: username },
         { type: 'click', selector: '#dl_password' },
         { type: 'write', text: password },
         { type: 'click', selector: '#login_submit' },
         { type: 'wait', milliseconds: 5000 },
-        // Try different selector for marks page
         { type: 'click', selector: 'a[href*="marks"]' },
         { type: 'wait', milliseconds: 5000 },
-      ]);
+      ],
+    },
+  ];
 
-      if (fallback.success) {
-        const fbMarkdown = fallback.markdown || '';
-        const fbHtml = fallback.html || '';
-        console.log('[MD] Fallback MD length:', fbMarkdown.length, '| HTML length:', fbHtml.length);
-        
-        // Log fallback markdown
-        for (let i = 0; i < Math.min(fbMarkdown.length, chunkSize * 5); i += chunkSize) {
-          console.log(`[MD] FB-MD[${i}-${i + chunkSize}]: ${fbMarkdown.substring(i, i + chunkSize)}`);
-        }
+  try {
+    console.log('[MD] Starting login + scrape...');
 
-        const fallbackTeacherMap = buildTeacherMap(fbMarkdown);
-        const fbMarkdownGrades = parseGradesFromMarkdown(fbMarkdown, fallbackTeacherMap);
-        const fbHtmlGrades = fbHtml.length > 0 ? parseGradesFromHtml(fbHtml, fallbackTeacherMap) : [];
-        const bestFallback = fbHtmlGrades.length > fbMarkdownGrades.length ? fbHtmlGrades : fbMarkdownGrades;
+    let bestGrades: ManoDienynasGrade[] = [];
+    let lastError = 'No grades found. The marks page may not have loaded correctly.';
 
-        if (bestFallback.length > grades.length) {
-          grades = bestFallback;
-        }
+    for (const attempt of attempts) {
+      console.log(`[MD] Attempt: ${attempt.label}`);
+      const result = await firecrawlScrape(attempt.url, attempt.actions);
+
+      if (!result.success) {
+        lastError = `Login failed: ${result.error}`;
+        continue;
+      }
+
+      const html = result.html || '';
+      const markdown = result.markdown || '';
+
+      console.log(`[MD] ${attempt.label} HTML length:`, html.length, '| Markdown length:', markdown.length);
+
+      // Still on login page => invalid credentials
+      if (html.includes('dl_username') && html.includes('dienynas_form1') && html.length < 50000) {
+        return { success: false, grades: [], error: 'Login failed - invalid credentials' };
+      }
+
+      const teacherMap = buildTeacherMap(markdown);
+      const markdownGrades = parseGradesFromMarkdown(markdown, teacherMap);
+      const htmlGrades = html.length > 0 ? parseGradesFromHtml(html, teacherMap) : [];
+      const grades = htmlGrades.length > markdownGrades.length ? htmlGrades : markdownGrades;
+
+      console.log(`[MD] ${attempt.label} parsed:`, grades.length, 'grades');
+
+      if (grades.length > bestGrades.length) {
+        bestGrades = grades;
+      }
+
+      if (grades.length >= 5) {
+        break;
       }
     }
 
-    if (grades.length === 0) {
+    if (bestGrades.length === 0) {
       return {
         success: false,
         grades: [],
-        error: 'No grades found. The marks page may not have loaded correctly.',
+        error: lastError,
       };
     }
 
-    const subjects = [...new Set(grades.map(g => g.subject))];
-    console.log('[MD] FINAL:', grades.length, 'grades across', subjects.length, 'subjects');
+    const subjects = [...new Set(bestGrades.map(g => g.subject))];
+    console.log('[MD] FINAL:', bestGrades.length, 'grades across', subjects.length, 'subjects');
     console.log('[MD] Subjects:', subjects.join(', '));
 
-    return { success: true, grades };
+    return { success: true, grades: bestGrades };
   } catch (error) {
     console.error('[MD] Error:', error);
     return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
