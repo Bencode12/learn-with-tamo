@@ -243,9 +243,11 @@ function extractDateFromText(text: string, fallbackMonthName?: string): string |
 
   const fallbackMonthNum = fallbackMonthName ? MONTH_TO_NUMBER[fallbackMonthName] : null;
   if (fallbackMonthNum) {
-    const dayOnlyMatch = text.match(/(?:^|\D)(\d{1,2})\s*d\.?(?:\D|$)/i);
-    if (dayOnlyMatch) {
-      const day = Number(dayOnlyMatch[1]);
+    // IMPORTANT: never infer date from a bare number (e.g. grade "5" => day 5).
+    // Accept fallback only when a day marker is explicitly present ("8 d." / "8 dien.").
+    const explicitDayMatch = text.match(/(?:^|\D)(\d{1,2})\s*(?:d\.?|dien\.?)(?:\D|$)/i);
+    if (explicitDayMatch) {
+      const day = Number(explicitDayMatch[1]);
       return toIsoDate(resolveSchoolYearForMonth(fallbackMonthNum), fallbackMonthNum, day);
     }
   }
