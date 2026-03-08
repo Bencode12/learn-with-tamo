@@ -61,15 +61,14 @@ const ProgramLearning = () => {
   const loadExistingPlans = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from('learning_plans')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+    const [plansRes, profileRes] = await Promise.all([
+      supabase.from('learning_plans').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('is_premium, subscription_tier').eq('id', user.id).single()
+    ]);
     
-    if (data) {
-      setExistingPlans(data);
+    if (plansRes.data) setExistingPlans(plansRes.data);
+    if (profileRes.data) {
+      setIsPremium(profileRes.data.is_premium || (profileRes.data.subscription_tier !== null && profileRes.data.subscription_tier !== 'free'));
     }
     setLoading(false);
   };
