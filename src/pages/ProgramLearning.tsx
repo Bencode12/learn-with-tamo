@@ -358,45 +358,112 @@ const ProgramLearning = () => {
         )}
 
         {/* Step 2: Fields Selection */}
-        {step === 2 && (
+        {step === 2 && (() => {
+          const allFields = subjectFieldsMap[selectedSubject] || [];
+          const isMath = selectedSubject === "math";
+          const categories = [...new Set(allFields.map(f => f.category).filter(Boolean))];
+          
+          const filteredFields = allFields.filter(f => {
+            const matchesSearch = !fieldSearch || f.name.toLowerCase().includes(fieldSearch.toLowerCase());
+            const matchesCategory = !selectedCategory || f.category === selectedCategory;
+            return matchesSearch && matchesCategory;
+          });
+
+          const isFieldLocked = (fieldId: string) => {
+            return isMath && !isPremium && !FREE_MATH_FIELDS.includes(fieldId);
+          };
+
+          return (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 Select Fields to Study
               </CardTitle>
-              <CardDescription>Choose the areas you want to focus on</CardDescription>
+              <CardDescription>
+                Choose the areas you want to focus on
+                {isMath && !isPremium && (
+                  <span className="block mt-1 text-xs">
+                    <Lock className="h-3 w-3 inline mr-1" />
+                    Free plan includes Algebra, Geometry, Calculus, Trigonometry & Probability. <Link to="/store" className="text-primary underline">Upgrade</Link> for all fields.
+                  </span>
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                {(subjectFieldsMap[selectedSubject] || []).map((field) => (
-                  <button
-                    key={field.id}
-                    onClick={() => handleFieldToggle(field.id)}
-                    className={`p-4 rounded-lg border-2 flex items-center gap-3 transition-all ${
-                      selectedFields.includes(field.id)
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <span className="text-2xl">{field.icon}</span>
-                    <span className="text-sm font-medium text-left">{field.name}</span>
-                    {selectedFields.includes(field.id) && (
-                      <CheckCircle className="h-5 w-5 text-primary ml-auto" />
-                    )}
-                  </button>
-                ))}
+              {/* Search & category filters for math */}
+              {isMath && (
+                <div className="space-y-3 mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search fields..."
+                      value={fieldSearch}
+                      onChange={(e) => setFieldSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant={selectedCategory === null ? "default" : "outline"} onClick={() => setSelectedCategory(null)}>All</Button>
+                    {categories.map(cat => (
+                      <Button key={cat} size="sm" variant={selectedCategory === cat ? "default" : "outline"} onClick={() => setSelectedCategory(cat!)}>
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 max-h-[400px] overflow-y-auto pr-1">
+                {filteredFields.map((field) => {
+                  const locked = isFieldLocked(field.id);
+                  return (
+                    <button
+                      key={field.id}
+                      onClick={() => {
+                        if (locked) {
+                          toast.error("Upgrade to Premium to access this field");
+                          return;
+                        }
+                        handleFieldToggle(field.id);
+                      }}
+                      className={`p-4 rounded-lg border-2 flex items-center gap-3 transition-all ${
+                        locked
+                          ? "border-border opacity-50 cursor-not-allowed"
+                          : selectedFields.includes(field.id)
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <span className="text-2xl">{field.icon}</span>
+                      <span className="text-sm font-medium text-left">{field.name}</span>
+                      {locked ? (
+                        <Lock className="h-4 w-4 text-muted-foreground ml-auto" />
+                      ) : selectedFields.includes(field.id) ? (
+                        <CheckCircle className="h-5 w-5 text-primary ml-auto" />
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
+
+              {filteredFields.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2" />
+                  <p>No fields found</p>
+                </div>
+              )}
               
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                <Button variant="outline" onClick={() => { setStep(1); setFieldSearch(""); setSelectedCategory(null); }}>Back</Button>
                 <Button onClick={() => setStep(3)} disabled={selectedFields.length === 0}>
                   Continue ({selectedFields.length} selected)
                 </Button>
               </div>
             </CardContent>
           </Card>
-        )}
+          );
+        })()}
 
         {/* Step 3: Timeframe Selection */}
         {step === 3 && (
