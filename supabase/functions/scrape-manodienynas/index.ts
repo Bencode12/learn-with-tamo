@@ -213,12 +213,12 @@ function resolveMonthFromText(text: string): number | null {
 function extractDateFromText(text: string, fallbackMonthName?: string): string | null {
   if (!text) return null;
 
-  const isoMatch = text.match(/(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  const isoMatch = text.match(/(?:^|\D)(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})(?!\d)/);
   if (isoMatch) {
     return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
   }
 
-  const ltMatch = text.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/);
+  const ltMatch = text.match(/(?:^|\D)(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})(?!\d)/);
   if (ltMatch) {
     return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
   }
