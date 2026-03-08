@@ -379,6 +379,11 @@ export const FREE_FIELDS: Record<string, string[]> = {
     "thai", "swahili", "polish", "dutch", "greek", "swedish",
     "lithuanian"
   ],
+  coding: [
+    "python", "javascript", "typescript", "java", "csharp", "cpp", "c_lang",
+    "html", "css", "react", "sql", "git", "algorithms", "data_structures",
+    "oop", "nodejs", "go", "bash", "linux", "postgresql"
+  ],
 };
 // Backwards compat
 export const FREE_MATH_FIELDS = FREE_FIELDS.math;
