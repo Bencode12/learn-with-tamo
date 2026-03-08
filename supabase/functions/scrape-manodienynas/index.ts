@@ -617,7 +617,6 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
     let currentSubject = '';
     let currentTeacher = '';
     let currentIsFormative = false;
-    const gradeCounter: Record<string, number> = {};
     const parsedGrades: ManoDienynasGrade[] = [];
 
     for (let i = headerRowIdx + 1; i < rows.length; i++) {
