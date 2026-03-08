@@ -320,18 +320,30 @@ const ProgramLearning = () => {
         {/* Progress Bar */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm font-medium">{step} of 5</span>
-            </div>
-            <Progress value={(step / 5) * 100} className="h-2 mb-4" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className={step >= 1 ? "text-primary font-medium" : ""}>Subject</span>
-              <span className={step >= 2 ? "text-primary font-medium" : ""}>Fields</span>
-              <span className={step >= 3 ? "text-primary font-medium" : ""}>Duration</span>
-              <span className={step >= 4 ? "text-primary font-medium" : ""}>Assessment</span>
-              <span className={step >= 5 ? "text-primary font-medium" : ""}>Plan</span>
-            </div>
+            {(() => {
+              const totalSteps = hasSubSubjects ? 6 : 5;
+              const stepMap: Record<number, number> = hasSubSubjects 
+                ? { 1: 1, 1.5: 2, 2: 3, 3: 4, 4: 5, 5: 6 }
+                : { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+              const displayStep = stepMap[step] || step;
+              return (
+                <>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium">Progress</span>
+                    <span className="text-sm font-medium">{displayStep} of {totalSteps}</span>
+                  </div>
+                  <Progress value={(displayStep / totalSteps) * 100} className="h-2 mb-4" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span className={step >= 1 ? "text-primary font-medium" : ""}>Subject</span>
+                    {hasSubSubjects && <span className={step >= 1.5 ? "text-primary font-medium" : ""}>Discipline</span>}
+                    <span className={step >= 2 ? "text-primary font-medium" : ""}>Fields</span>
+                    <span className={step >= 3 ? "text-primary font-medium" : ""}>Duration</span>
+                    <span className={step >= 4 ? "text-primary font-medium" : ""}>Assessment</span>
+                    <span className={step >= 5 ? "text-primary font-medium" : ""}>Plan</span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
