@@ -152,7 +152,7 @@ function isNumericGrade(value: string): boolean {
   return /^(10|[1-9])$/.test(value.trim());
 }
 
-function extractNumericGradesFromCell(value: string): number[] {
+function extractNumericGradesFromCell(value: string, maxGrade: number = 10): number[] {
   const normalized = value
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[*_`~]/g, ' ')
@@ -161,7 +161,7 @@ function extractNumericGradesFromCell(value: string): number[] {
 
   return [...normalized.matchAll(/\b(10|[1-9])\b/g)]
     .map((match) => parseInt(match[1], 10))
-    .filter((num) => Number.isFinite(num) && num >= 1 && num <= 10);
+    .filter((num) => Number.isFinite(num) && num >= 1 && num <= maxGrade);
 }
 
 /**
