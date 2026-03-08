@@ -140,33 +140,6 @@ export const LessonViewer = ({
     return JSON.stringify(val, null, 2);
   };
 
-  const renderMarkdown = (content: unknown) => {
-    const text = safeString(content);
-    return text
-      .split('\n')
-      .map((line, idx) => {
-        if (line.startsWith('### ')) {
-          return <h3 key={idx} className="text-lg font-bold mt-4 mb-2">{line.slice(4)}</h3>;
-        }
-        if (line.startsWith('## ')) {
-          return <h2 key={idx} className="text-xl font-bold mt-6 mb-3">{line.slice(3)}</h2>;
-        }
-        if (line.startsWith('# ')) {
-          return <h1 key={idx} className="text-2xl font-bold mt-6 mb-4">{line.slice(2)}</h1>;
-        }
-        if (line.startsWith('- ')) {
-          return <li key={idx} className="ml-4 list-disc">{line.slice(2)}</li>;
-        }
-        if (line.startsWith('**') && line.endsWith('**')) {
-          return <p key={idx} className="font-bold my-2">{line.slice(2, -2)}</p>;
-        }
-        if (line.trim() === '') {
-          return <br key={idx} />;
-        }
-        return <p key={idx} className="my-2">{line}</p>;
-      });
-  };
-
   if (loading) {
     return (
       <Card className="max-w-4xl mx-auto">
