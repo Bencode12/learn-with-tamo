@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Gamepad2, BookOpen, BarChart3, Users, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import Logo from "@/components/Logo";
 
 import previewMath from "@/assets/preview-math.jpg";
 import previewScience from "@/assets/preview-science.jpg";
