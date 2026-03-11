@@ -61,6 +61,7 @@ const App = () => (
             <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
+            <Route path="/library" element={<Library />} />
             
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
