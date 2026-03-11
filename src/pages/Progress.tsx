@@ -226,11 +226,16 @@ const Progress = () => {
     if (!user) return;
     const { data } = await supabase
       .from('learning_plans')
-      .select('id, name, subject')
+      .select('id, name, subject, fields')
       .eq('user_id', user.id);
     if (data) {
       const map: Record<string, string> = {};
-      data.forEach(p => { map[p.id] = p.name || p.subject; });
+      data.forEach(p => {
+        const label = p.name || p.subject;
+        map[p.id] = label;
+        // Also map the subject field so both UUID and subject key resolve
+        if (p.subject) map[p.subject] = label;
+      });
       setPlanNameMap(map);
     }
   };
@@ -247,6 +252,8 @@ const Progress = () => {
     if (subjectNameMap[subjectId]) return subjectNameMap[subjectId];
     // Check learning plan names (for UUIDs from program learning)
     if (planNameMap[subjectId]) return planNameMap[subjectId];
+    // If it looks like a UUID, show "Study Plan" instead of garbled text
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(subjectId)) return 'Study Plan';
     // Fallback: format nicely
     return subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
   };
