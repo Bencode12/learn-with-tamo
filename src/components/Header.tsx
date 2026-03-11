@@ -60,7 +60,7 @@ const Header = ({
                 </Button>
               </Link>}
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <img src="/logo.png" alt="KnowIt AI" className="w-9 h-9" />
+              <Logo />
               <span className="text-xl font-bold text-foreground">KnowIt AI</span>
             </Link>
           </div>
