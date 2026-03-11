@@ -18,6 +18,7 @@ import Progress from "./pages/Progress";
 import Store from "./pages/Store";
 import GameModes from "./pages/GameModes";
 import Exams from "./pages/Exams";
+import Library from "./pages/Library";
 
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
