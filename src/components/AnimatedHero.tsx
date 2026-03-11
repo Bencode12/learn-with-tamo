@@ -92,17 +92,7 @@ export const AnimatedHero = () => {
               <span className="font-semibold text-xl text-foreground tracking-tight">KnowIt AI</span>
             </Link>
 
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/gamemodes" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Learning</Link>
-              <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Leaderboard</Link>
-              <Link to="/store" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Premium</Link>
-              <Link to="/help" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Support</Link>
-            </div>
-
             <div className="flex items-center gap-3">
-              <Link to="/login">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">Sign In</Button>
-              </Link>
               <Link to="/signup">
                 <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-5">Get Started</Button>
               </Link>

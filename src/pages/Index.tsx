@@ -231,7 +231,7 @@ const Index = () => {
           </div>
 
           <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">© 2024 KnowIt AI. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 Gamma Studios. All rights reserved.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Globe className="h-5 w-5" />
