@@ -252,6 +252,8 @@ const Progress = () => {
     if (subjectNameMap[subjectId]) return subjectNameMap[subjectId];
     // Check learning plan names (for UUIDs from program learning)
     if (planNameMap[subjectId]) return planNameMap[subjectId];
+    // If it looks like a UUID, show "Study Plan" instead of garbled text
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(subjectId)) return 'Study Plan';
     // Fallback: format nicely
     return subjectId.charAt(0).toUpperCase() + subjectId.slice(1).replace(/-/g, ' ');
   };
