@@ -86,9 +86,7 @@ export const AnimatedHero = () => {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-foreground rounded-xl flex items-center justify-center">
-                <span className="text-background font-bold text-lg">K</span>
-              </div>
+              <img src="/logo.png" alt="KnowIt AI" className="w-10 h-10" />
               <span className="font-semibold text-xl text-foreground tracking-tight">KnowIt AI</span>
             </Link>
 
