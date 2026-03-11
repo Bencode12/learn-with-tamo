@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Code, School, User, Briefcase, Presentation, Heart, Play, Plus, CheckCircle, ArrowRight, Trash2 } from "lucide-react";
+import { Code, School, User, Briefcase, Presentation, Heart, Play, Plus, CheckCircle, ArrowRight, Trash2, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
