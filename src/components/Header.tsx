@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Store, Trophy, Settings, User, LogOut, ArrowLeft } from "lucide-react";
+import Logo from "@/components/Logo";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { FriendsPanel } from "./FriendsPanel";
 import { TemporaryNotifications } from "./TemporaryNotifications";
