@@ -226,11 +226,16 @@ const Progress = () => {
     if (!user) return;
     const { data } = await supabase
       .from('learning_plans')
-      .select('id, name, subject')
+      .select('id, name, subject, fields')
       .eq('user_id', user.id);
     if (data) {
       const map: Record<string, string> = {};
-      data.forEach(p => { map[p.id] = p.name || p.subject; });
+      data.forEach(p => {
+        const label = p.name || p.subject;
+        map[p.id] = label;
+        // Also map the subject field so both UUID and subject key resolve
+        if (p.subject) map[p.subject] = label;
+      });
       setPlanNameMap(map);
     }
   };
