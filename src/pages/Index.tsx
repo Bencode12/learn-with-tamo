@@ -194,9 +194,7 @@ const Index = () => {
             {/* Brand */}
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
-                  <span className="text-background font-bold text-sm">K</span>
-                </div>
+                <img src="/logo.png" alt="KnowIt AI" className="w-8 h-8" />
                 <span className="font-semibold text-foreground">KnowIt AI</span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">
