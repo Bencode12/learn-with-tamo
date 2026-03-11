@@ -44,7 +44,7 @@ const SimpleThemeSwitcher = () => {
     updateTheme();
     
     // For auto theme, update periodically to reflect time changes
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (selectedTheme === "auto") {
       interval = setInterval(updateTheme, 60000); // Update every minute
     }
