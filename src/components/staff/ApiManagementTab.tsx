@@ -178,8 +178,11 @@ export function ApiManagementTab() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             {[
-              { method: 'GET', path: '/overview', desc: 'Full platform overview (users + revenue + content)' },
+              { method: 'GET', path: '/overview', desc: 'Full platform overview (users + subscriptions + tickets + anti-cheat + revenue + content)' },
               { method: 'GET', path: '/users', desc: 'User analytics: total, active, retention, signups' },
+              { method: 'GET', path: '/subscriptions', desc: 'Subscription data: tiers, expiring, recent subscribers' },
+              { method: 'GET', path: '/tickets', desc: 'Support tickets: open, resolved, by priority/status' },
+              { method: 'GET', path: '/anti-cheat', desc: 'Anti-cheat flags: severity, event types, flagged users' },
               { method: 'GET', path: '/revenue', desc: 'Revenue data: MRR, ARR, subscriptions, charges' },
               { method: 'GET', path: '/content', desc: 'Content metrics: lessons, exams, completions' },
             ].map((ep, i) => (

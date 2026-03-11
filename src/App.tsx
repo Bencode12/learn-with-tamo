@@ -18,6 +18,7 @@ import Progress from "./pages/Progress";
 import Store from "./pages/Store";
 import GameModes from "./pages/GameModes";
 import Exams from "./pages/Exams";
+import Library from "./pages/Library";
 
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/gamemodes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/game-modes" element={<ProtectedRoute><GameModes /></ProtectedRoute>} />
             <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
+            <Route path="/library" element={<Library />} />
             
             <Route path="/staff-hub" element={<ProtectedRoute><StaffHub /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />

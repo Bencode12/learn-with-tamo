@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Code, School, User, Briefcase, Presentation, Heart, Play, Plus, CheckCircle, ArrowRight, Trash2 } from "lucide-react";
+import { Code, School, User, Briefcase, Presentation, Heart, Play, Plus, CheckCircle, ArrowRight, Trash2, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -209,6 +209,31 @@ const GameModes = () => {
           <CardContent>
             <Button variant="outline" className="w-full border-border/40" onClick={() => navigate("/self-learning")}>
               Select <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Library */}
+        <Card className="relative border-border/40 hover:border-foreground/20 transition-all duration-300">
+          <div className="absolute top-4 right-4">
+            <Badge variant="outline" className="bg-foreground/5 border-foreground/10 text-foreground text-[10px]">
+              New
+            </Badge>
+          </div>
+          <CardHeader className="pb-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-foreground/5 rounded-xl flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-foreground" />
+              </div>
+              <div className="flex-1 min-w-0 pr-12">
+                <CardTitle className="text-lg mb-1">Library</CardTitle>
+                <CardDescription className="text-sm">Books, research papers & school program resources</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full border-border/40" onClick={() => navigate("/library")}>
+              Browse <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </CardContent>
         </Card>

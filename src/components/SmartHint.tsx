@@ -25,7 +25,7 @@ export const SmartHint = ({
   const [hint, setHint] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
 
   useEffect(() => {

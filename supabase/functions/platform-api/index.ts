@@ -13,7 +13,6 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-// Simple hash function for API key validation
 async function hashKey(key: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
@@ -34,7 +33,6 @@ async function validateApiKey(apiKey: string, requiredPermission: string): Promi
   if (data.expires_at && new Date(data.expires_at) < new Date()) return false;
   if (!data.permissions.includes(requiredPermission) && !data.permissions.includes('all')) return false;
 
-  // Update last used
   await supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id);
   return true;
 }
@@ -63,7 +61,6 @@ async function getUserAnalytics(): Promise<Record<string, any>> {
   const roleCounts: Record<string, number> = {};
   roleBreakdown?.forEach(r => { roleCounts[r.role] = (roleCounts[r.role] || 0) + 1; });
 
-  // Signups per day (last 30 days)
   const signupsByDay: Record<string, number> = {};
   recentSignups?.forEach(u => {
     const day = u.created_at.split('T')[0];
@@ -82,6 +79,119 @@ async function getUserAnalytics(): Promise<Record<string, any>> {
   };
 }
 
+async function getSubscriptionData(): Promise<Record<string, any>> {
+  const [
+    { count: totalPremium },
+    { data: tierBreakdown },
+    { data: recentPremium },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_premium', true),
+    supabase.from('profiles').select('subscription_tier').eq('is_premium', true),
+    supabase.from('profiles').select('id, subscription_tier, premium_expires_at, updated_at')
+      .eq('is_premium', true)
+      .order('updated_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  const tiers: Record<string, number> = {};
+  tierBreakdown?.forEach(p => {
+    const t = p.subscription_tier || 'unknown';
+    tiers[t] = (tiers[t] || 0) + 1;
+  });
+
+  const expiringIn7d = recentPremium?.filter(p => {
+    if (!p.premium_expires_at) return false;
+    const exp = new Date(p.premium_expires_at);
+    const now = new Date();
+    return exp > now && exp < new Date(now.getTime() + 7 * 86400000);
+  }).length || 0;
+
+  return {
+    total_subscribers: totalPremium,
+    tier_breakdown: tiers,
+    expiring_in_7_days: expiringIn7d,
+    recent_subscribers: recentPremium?.slice(0, 10).map(p => ({
+      id: p.id,
+      tier: p.subscription_tier,
+      expires_at: p.premium_expires_at,
+    })),
+  };
+}
+
+async function getTicketData(): Promise<Record<string, any>> {
+  const [
+    { count: totalTickets },
+    { count: openTickets },
+    { count: resolvedTickets },
+    { data: recentTickets },
+    { data: priorityBreakdown },
+  ] = await Promise.all([
+    supabase.from('support_tickets').select('*', { count: 'exact', head: true }),
+    supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
+    supabase.from('support_tickets').select('id, subject, status, priority, created_at')
+      .order('created_at', { ascending: false }).limit(20),
+    supabase.from('support_tickets').select('priority, status'),
+  ]);
+
+  const byPriority: Record<string, number> = {};
+  const byStatus: Record<string, number> = {};
+  priorityBreakdown?.forEach(t => {
+    byPriority[t.priority] = (byPriority[t.priority] || 0) + 1;
+    byStatus[t.status] = (byStatus[t.status] || 0) + 1;
+  });
+
+  return {
+    total_tickets: totalTickets,
+    open_tickets: openTickets,
+    resolved_tickets: resolvedTickets,
+    by_priority: byPriority,
+    by_status: byStatus,
+    recent_tickets: recentTickets,
+  };
+}
+
+async function getAntiCheatData(): Promise<Record<string, any>> {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
+
+  const [
+    { count: totalFlags },
+    { count: flagsWeek },
+    { count: flagsMonth },
+    { data: recentFlags },
+    { data: severityBreakdown },
+  ] = await Promise.all([
+    supabase.from('anti_cheat_logs').select('*', { count: 'exact', head: true }),
+    supabase.from('anti_cheat_logs').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+    supabase.from('anti_cheat_logs').select('*', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo),
+    supabase.from('anti_cheat_logs').select('id, user_id, event_type, game_mode, severity, created_at')
+      .order('created_at', { ascending: false }).limit(30),
+    supabase.from('anti_cheat_logs').select('severity, event_type'),
+  ]);
+
+  const bySeverity: Record<string, number> = {};
+  const byEventType: Record<string, number> = {};
+  severityBreakdown?.forEach(l => {
+    bySeverity[l.severity || 'unknown'] = (bySeverity[l.severity || 'unknown'] || 0) + 1;
+    byEventType[l.event_type] = (byEventType[l.event_type] || 0) + 1;
+  });
+
+  // Unique flagged users
+  const uniqueUsers = new Set(recentFlags?.map(f => f.user_id));
+
+  return {
+    total_flags: totalFlags,
+    flags_7d: flagsWeek,
+    flags_30d: flagsMonth,
+    unique_flagged_users: uniqueUsers.size,
+    by_severity: bySeverity,
+    by_event_type: byEventType,
+    recent_flags: recentFlags?.slice(0, 15),
+  };
+}
+
 async function getRevenueData(): Promise<Record<string, any>> {
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   if (!stripeKey) return { error: "Stripe not configured" };
@@ -95,7 +205,6 @@ async function getRevenueData(): Promise<Record<string, any>> {
       stripe.customers.list({ limit: 100 }),
     ]);
 
-    // Calculate MRR
     let mrr = 0;
     const tierCounts: Record<string, number> = {};
     subscriptions.data.forEach(sub => {
@@ -105,7 +214,6 @@ async function getRevenueData(): Promise<Record<string, any>> {
       tierCounts[productId] = (tierCounts[productId] || 0) + 1;
     });
 
-    // Get recent charges for revenue trend
     const charges = await stripe.charges.list({ limit: 100, created: { gte: Math.floor(Date.now() / 1000) - 30 * 86400 } });
     const revenueByDay: Record<string, number> = {};
     charges.data.filter(c => c.paid).forEach(c => {
@@ -122,7 +230,7 @@ async function getRevenueData(): Promise<Record<string, any>> {
       available_balance: balance.available.map(b => ({ amount: b.amount / 100, currency: b.currency })),
       pending_balance: balance.pending.map(b => ({ amount: b.amount / 100, currency: b.currency })),
       revenue_by_day_30d: revenueByDay,
-      churn_rate: null, // Would need historical data
+      churn_rate: null,
     };
   } catch (e) {
     return { error: e.message };
@@ -178,11 +286,11 @@ serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop() || '';
 
-    // Determine required permission
     let permission = 'analytics';
     if (path === 'revenue') permission = 'revenue';
-    if (path === 'users') permission = 'analytics';
-    if (path === 'content') permission = 'analytics';
+    if (path === 'subscriptions') permission = 'analytics';
+    if (path === 'tickets') permission = 'analytics';
+    if (path === 'anti-cheat') permission = 'analytics';
 
     const isValid = await validateApiKey(apiKey, permission);
     if (!isValid) {
@@ -197,6 +305,15 @@ serve(async (req) => {
       case 'users':
         data = await getUserAnalytics();
         break;
+      case 'subscriptions':
+        data = await getSubscriptionData();
+        break;
+      case 'tickets':
+        data = await getTicketData();
+        break;
+      case 'anti-cheat':
+        data = await getAntiCheatData();
+        break;
       case 'revenue':
         data = await getRevenueData();
         break;
@@ -205,12 +322,15 @@ serve(async (req) => {
         break;
       case 'overview':
       default:
-        const [users, revenue, content] = await Promise.all([
+        const [users, subscriptions, tickets, antiCheat, revenue, content] = await Promise.all([
           getUserAnalytics(),
+          getSubscriptionData(),
+          getTicketData(),
+          getAntiCheatData(),
           getRevenueData(),
           getContentMetrics(),
         ]);
-        data = { users, revenue, content, timestamp: new Date().toISOString() };
+        data = { users, subscriptions, tickets, anti_cheat: antiCheat, revenue, content, timestamp: new Date().toISOString() };
         break;
     }
 
