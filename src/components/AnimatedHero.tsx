@@ -122,11 +122,6 @@ export const AnimatedHero = () => {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/gamemodes">
-              <Button size="lg" variant="outline" className="rounded-full px-8 py-6 text-base font-medium border-border/50 hover:bg-muted/50">
-                Explore Subjects
-              </Button>
-            </Link>
           </div>
 
           {/* Category Pills with Hover Cards */}
