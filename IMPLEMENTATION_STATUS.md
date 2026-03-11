@@ -1,225 +1,162 @@
-# KnowIt AI Implementation Status
+# KnowIt AI — Implementation Status
+
+> **Part of Gamma Studios**
+> Last Updated: 2026-03-11
+
+---
 
 ## ✅ COMPLETED FEATURES
 
-### 1. Core Backend & Database
-- ✅ Removed coins concept entirely from database and UI
-- ✅ Removed hearts/lives system entirely from database and UI
+### Core Backend & Database
 - ✅ Notifications system with real-time updates and triggers
-- ✅ Friends system with pending/accepted/rejected states
-- ✅ Friend request notifications with automatic triggers
+- ✅ Friends system with pending/accepted/rejected states + notification triggers
 - ✅ Real-time subscriptions for friendships and notifications
 - ✅ Proper RLS policies for all tables
+- ✅ User roles system (admin, staff, user, teacher) with SECURITY DEFINER functions
+- ✅ Profile system with XP, levels, skill rating
+- ✅ Learning plans with weekly curriculum, assessments, field selection
+- ✅ Lesson progress tracking with accuracy-based Skill Rating
+- ✅ Support tickets system
+- ✅ Staff Hub with email management, API keys, moderation logs
+- ✅ School pilot management
+- ✅ Classes & teacher dashboard
 
-### 2. UI Components
-- ✅ Notifications Panel with real-time updates
-- ✅ Friends Panel with search, send requests, accept/decline
-- ✅ Header with all new components integrated
-- ✅ Store page (Premium only, no coins)
-- ✅ Progress page with real database data
-- ✅ Lesson completion with XP rewards
-
-### 3. Authentication & Security
-- ✅ Full authentication system
-- ✅ Logout functionality
+### Authentication & Security
+- ✅ Full auth system (signup, login, email verification)
+- ✅ OAuth (Google) support
 - ✅ Protected routes
 - ✅ Row Level Security on all tables
+- ✅ Credential encryption for school portal logins
+- ✅ Custom auth email templates (branded for notify.sudzinas.pw)
 
-## 🚧 IN PROGRESS / NEEDS COMPLETION
+### UI & Frontend
+- ✅ Leaderboard with real database data (safe_profiles view)
+- ✅ Themes system (multiple themes, persistence)
+- ✅ Store page (premium tiers: Starter, Premium, Enterprise)
+- ✅ Progress page with real data + subject performance charts
+- ✅ Landing page (monochromatic SaaS aesthetic, category pills)
+- ✅ Notifications Panel with real-time updates
+- ✅ Friends Panel with search, send/accept/decline
+- ✅ AI Tutor chat
+- ✅ Therapist/wellness check-in modal
+- ✅ Self-learning environment (code editor, LaTeX, spreadsheet, browser, presentations)
+- ✅ Job interview prep
+- ✅ Presentation prep
+- ✅ Hobby learning
+- ✅ Program/curriculum learning with field selection
+- ✅ Daily challenges & random events
+- ✅ Transactional & auth email templates
 
-### 1. Leaderboard
-**Status:** Partially complete (mock data)
-**Needs:** 
-- Real database rankings (code ready, needs testing)
-- Weekly/monthly filtering
-- Subject-specific leaderboards
+### Edge Functions (Deployed)
+- ✅ ai-tutor — AI-powered tutoring chat
+- ✅ ai-recommendations — Personalized learning suggestions
+- ✅ generate-lesson — AI lesson generation
+- ✅ therapist-chat — Wellness check-in AI
+- ✅ auth-email-hook — Custom branded auth emails
+- ✅ send-email — Transactional email sending
+- ✅ sync-grades / scrape-tamo / scrape-manodienynas — Grade scraping (needs real portal testing)
+- ✅ create-checkout / check-subscription — Stripe integration
+- ✅ platform-api — External API access
 
-### 2. Language System
-**Status:** Not started
+---
+
+## 🚧 IN PROGRESS / NEEDS WORK
+
+### Language System (i18n)
+**Status:** react-i18next installed, LanguageSelector exists, but translations are NOT wired up
 **Needs:**
-- i18n library integration (react-i18next)
-- Translation files for Lithuanian/English
-- Language context provider
-- Update all hardcoded text
+- Translation files for all supported languages (EN, LT, DE, ZH, UK)
+- Replace all hardcoded text with `t()` calls
+- Language persistence via user_settings
 
-### 3. Themes System
-**Status:** Basic theme selector exists
+### Settings Page — Missing Features
 **Needs:**
-- Multiple theme variants
-- Theme persistence
-- Apply themes throughout app
+- ❌ Account deletion
+- ❌ Password change
+- ❌ No confirmation/success form shown after email actions
 
-### 4. Mobile UI Optimization
-**Status:** Partially responsive
+### Mobile Responsiveness
+**Status:** Has significant issues across multiple pages
 **Needs:**
-- Review all pages on mobile
+- Full responsive audit of all pages
 - Touch-friendly interactions
-- Mobile menu improvements
+- Mobile navigation improvements
+- Test on various screen sizes
 
-## ⏳ REQUIRES EXTERNAL SETUP
+### Notifications
+**Status:** Built but never tested end-to-end
+**Needs:**
+- Full testing of notification delivery
+- Verify real-time subscription works in production
+- Test friend request notifications
 
-### 1. Tamo & ManoDienynas API Integration
-**Requirements:**
-- API documentation from both services
-- API keys/credentials
-- Authentication flow understanding
-- Grade sync endpoints
+### Avatar System
+**Status:** Uses base64 strings stored in profiles.avatar_url
+**Needs:**
+- Migrate to proper file storage bucket
+- **Future:** GIF avatars for premium users
+- **Future:** Apple Memoji-style avatar builder
 
-**Next Steps:**
-```typescript
-// Will need edge function like:
-// supabase/functions/sync-grades/index.ts
-// - Authenticate with Tamo/ManoDienynas
-// - Fetch grades
-// - Update dashboard
-```
+### Anti-Cheat System
+**Status:** Logging infrastructure exists (anti_cheat_logs table), no active detection
+**Needs:**
+- Tab-switching detection for exams
+- AI answer validation
+- Integration with exam system
+- Could extend to multiplayer if reimplemented
 
-### 2. AI-Powered Recommendations (Lovable AI)
-**Requirements:**
-- Lovable AI already enabled
-- Need to create edge function
-- Analyze user weak areas
-- Generate personalized suggestions
+### School Portal Scrapers (Tamo / ManoDienynas)
+**Status:** Edge functions written, but no public API exists for these portals
+**Note:** Scrapers are the only viable automated option. Manual grade sheet upload dismissed (not fast, not automatic).
+**Needs:**
+- Real credential testing against portals
+- Error handling for portal changes
+- Periodic sync via cron
 
-**Next Steps:**
-```typescript
-// Create: supabase/functions/ai-recommendations/index.ts
-// Use google/gemini-2.5-flash model
-// Analyze lesson_progress table
-// Return personalized learning path
-```
+---
 
-### 3. Payment System (Stripe)
-**Requirements:**
-- Stripe account
-- Stripe publishable & secret keys
-- Product/price setup in Stripe
-- Webhook configuration
+## 🔴 NOT IMPLEMENTED / REMOVED
 
-**Next Steps:**
-- Enable Stripe integration
-- Create subscription products
-- Implement checkout flow
-- Handle webhooks for subscription updates
-
-## 🔴 COMPLEX FEATURES (Require Significant Development)
-
-### 1. Real-time Multiplayer System
-**Complexity:** High
-**Requirements:**
-- WebSocket server (Supabase Realtime)
+### Multiplayer Game Modes
+**Status:** Removed from current build
+**Note:** Can be reimplemented but it's a lengthy project requiring:
+- WebSocket/Realtime game state sync
 - Matchmaking algorithm
-- Game state synchronization
-- Real-time question/answer flow
-- Scoring system
-- Connection handling
+- Real-time scoring
+- Voice chat (requires third-party: Agora/Twilio/Daily)
+- Text chat with moderation
 
-**Estimated Effort:** Multiple sessions
+### Exam Builder / Analytics
+**Status:** Basic exam table exists, no builder UI
+**Needs:** Question bank management, time-based engine, detailed analytics
 
-### 2. Voice Chat in Multiplayer
-**Complexity:** Very High
-**Requirements:**
-- WebRTC implementation
-- Audio streaming
-- Peer-to-peer connections
-- Signaling server
-- Audio permissions handling
+---
 
-**Recommended:** Use third-party service like:
-- Agora.io
-- Twilio
-- Daily.co
+## 📋 QUICK WINS
 
-### 3. Comprehensive Exam System
-**Complexity:** High
-**Requirements:**
-- Exam builder interface
-- Question bank management
-- Time-based test engine
-- Detailed analytics
-- Performance tracking
-- Subject breakdowns
+- [ ] Wire up i18n translations for at least EN + LT
+- [ ] Add password change to Settings
+- [ ] Add account deletion to Settings
+- [ ] Test notification system end-to-end
+- [ ] Add success/confirmation forms for email actions
 
-**Estimated Effort:** Multiple sessions
-
-### 4. Text Chat in Multiplayer
-**Complexity:** Medium
-**Requirements:**
-- Chat UI component
-- Message storage (Supabase table)
-- Real-time message updates
-- User blocking/reporting
-- Profanity filtering
-
-## 📋 QUICK WINS (Can be completed quickly)
-
-### Profile Improvements
-- Add bio editing
-- Upload avatar images
-- Display statistics
-- Achievement showcase
-
-### Notifications Enhancements
-- Mark all as read
-- Notification preferences
-- Different notification types
-- Sound/desktop notifications
-
-### Settings Page Completion
-- Account deletion
-- Email change
-- Password reset
-- Privacy settings
-
-## 🎯 RECOMMENDED PRIORITY ORDER
-
-1. **Complete Mobile UI** (1-2 hours)
-   - Review all pages
-   - Fix responsive issues
-   - Test on mobile devices
-
-2. **Language System** (2-3 hours)
-   - Set up i18n
-   - Create translation files
-   - Update all text
-
-3. **AI Recommendations** (2-3 hours)
-   - Create edge function
-   - Implement analysis logic
-   - Display recommendations
-
-4. **Payment System** (3-4 hours)
-   - Set up Stripe
-   - Implement subscription flow
-   - Test checkout
-
-5. **Tamo/ManoDienynas Integration** (4-6 hours)
-   - Get API access
-   - Build integration
-   - Test grade sync
-
-6. **Multiplayer System** (10+ hours)
-   - Phase 1: Text chat only
-   - Phase 2: Game mechanics
-   - Phase 3: Voice chat (external service)
+---
 
 ## 🔧 TECHNICAL DEBT
 
 - Friend requests need pagination
-- Leaderboard needs caching for performance
-- Image uploads need storage configuration
-- Error handling needs improvement across app
-
-## 📝 NOTES
-
-- All database migrations are complete
-- RLS policies are in place
-- Real-time subscriptions configured
-- Frontend connected to backend
-- Authentication working properly
+- Leaderboard could use caching for scale
+- Avatar images should use storage buckets instead of base64
+- Error handling inconsistent across pages
+- Some UUID subjects still leak through in Progress charts (fallback to "Study Plan")
 
 ---
 
-**Last Updated:** Implementation session
-**Next Actions:** Review priorities with stakeholders
- 
+## 📝 NOTES
+
+- All database migrations are complete and RLS policies are in place
+- Stripe keys are configured (STRIPE_SECRET_KEY secret set)
+- Resend API configured for email (RESEND_API_KEY secret set)
+- Lovable AI is available for AI features (no external API key needed)
+- Subscription tiers gate: daily learning time (2h free), active plans (2 free), fields per plan (3 free), advanced subjects, collaboration limits
+- Part of **Gamma Studios** — footer and branding updated accordingly
