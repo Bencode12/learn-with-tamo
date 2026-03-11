@@ -1,4 +1,4 @@
-import { LibraryItem } from "./Library";
+import { LibraryItem } from "@/pages/Library";
 
 // ═══════════════════════════════════════════════════════════════
 //  ARXIV — Research Papers
