@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { 
   Brain, Target, TrendingUp, Trophy, Users, Zap, 
@@ -194,7 +195,7 @@ const Index = () => {
             {/* Brand */}
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/logo.png" alt="KnowIt AI" className="w-8 h-8" />
+                <Logo size="w-8 h-8" />
                 <span className="font-semibold text-foreground">KnowIt AI</span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Gamepad2, BookOpen, BarChart3, Users, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import Logo from "@/components/Logo";
 
 import previewMath from "@/assets/preview-math.jpg";
 import previewScience from "@/assets/preview-science.jpg";
@@ -86,7 +87,7 @@ export const AnimatedHero = () => {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="KnowIt AI" className="w-10 h-10" />
+              <Logo size="w-10 h-10" />
               <span className="font-semibold text-xl text-foreground tracking-tight">KnowIt AI</span>
             </Link>
 
