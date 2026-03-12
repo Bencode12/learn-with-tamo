@@ -86,9 +86,7 @@ export const AppLayout = ({ children, title, subtitle }: AppLayoutProps) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center">
-                <span className="text-background font-bold text-base">K</span>
-              </div>
+              <Logo />
               <span className="font-semibold text-lg text-foreground tracking-tight hidden sm:block">
                 KnowIt AI
               </span>
