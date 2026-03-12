@@ -20,6 +20,7 @@ import { TemporaryNotifications } from "./TemporaryNotifications";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import Logo from "@/components/Logo";
 
 import { ReactNode } from "react";
 
