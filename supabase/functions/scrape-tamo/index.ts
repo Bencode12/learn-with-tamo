@@ -6,7 +6,7 @@ const _te = new TextEncoder();
 const _td = new TextDecoder();
 
 async function decryptPassword(stored: string): Promise<string> {
-  if (!stored.startsWith('aes:')) return atob(stored); // legacy
+  if (!stored.startsWith('aes:')) return atob(stored);
   const [, ivHex, ctHex] = stored.split(':');
   const keyHex = Deno.env.get('CREDENTIAL_ENCRYPTION_KEY') || '';
   const keyMaterial = await crypto.subtle.digest('SHA-256', _te.encode(keyHex));
@@ -37,31 +37,36 @@ function getSemester(date: Date): string {
   return month >= 8 || month <= 0 ? 'I' : 'II';
 }
 
-function isInvalidTamoLogin(content: string): boolean {
-  const normalized = content.toLowerCase();
-  return normalized.includes('neteisingas prisijungimo vardas') || normalized.includes('neteisingas slaptažodis');
+function getSemesterFromMonth(monthNum: number): string {
+  return (monthNum >= 9 && monthNum <= 12) || monthNum === 1 ? 'I' : 'II';
 }
 
-async function firecrawlScrapeWithActions(
+function isInvalidTamoLogin(content: string): boolean {
+  const normalized = content.toLowerCase();
+  return normalized.includes('neteisingas prisijungimo vardas') || 
+         normalized.includes('neteisingas slaptažodis') ||
+         normalized.includes('incorrect username') ||
+         normalized.includes('incorrect password');
+}
+
+async function firecrawlScrape(
   url: string,
   actions?: any[]
-): Promise<{ success: boolean; html?: string; markdown?: string; extractedJson?: any; error?: string }> {
+): Promise<{ success: boolean; html?: string; markdown?: string; error?: string }> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) {
-    return { success: false, error: 'Firecrawl API key not configured' };
-  }
+  if (!apiKey) return { success: false, error: 'Firecrawl API key not configured' };
 
   try {
     const body: any = {
       url,
       formats: ['html', 'markdown'],
+      onlyMainContent: false,
+      waitFor: 6000,
+      timeout: 120000,
     };
+    if (actions?.length) body.actions = actions;
 
-    if (actions && actions.length > 0) {
-      body.actions = actions;
-    }
-
-    console.log('[Tamo] Firecrawl request to:', url, 'with', actions?.length || 0, 'actions');
+    console.log('[Tamo] Firecrawl scrape:', url, 'actions:', actions?.length || 0);
 
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
@@ -75,122 +80,280 @@ async function firecrawlScrapeWithActions(
     const data = await response.json();
     if (!response.ok) {
       console.error('[Tamo] Firecrawl error:', JSON.stringify(data).substring(0, 500));
-      return { success: false, error: data.error || `Firecrawl returned ${response.status}` };
+
+      // Retry on timeout
+      if (data?.code === 'SCRAPE_TIMEOUT') {
+        console.log('[Tamo] Timeout, retrying with extended timeout...');
+        const retryBody = { ...body, waitFor: 12000, timeout: 180000 };
+        const retry = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(retryBody),
+        });
+        const retryData = await retry.json();
+        if (retry.ok) {
+          return {
+            success: true,
+            html: retryData.data?.html || retryData.html || '',
+            markdown: retryData.data?.markdown || retryData.markdown || '',
+          };
+        }
+        return { success: false, error: retryData.error || 'Retry failed' };
+      }
+      return { success: false, error: data.error || `Status ${response.status}` };
     }
 
     return {
       success: true,
       html: data.data?.html || data.html || '',
       markdown: data.data?.markdown || data.markdown || '',
-      extractedJson: null,
     };
   } catch (error) {
-    console.error('[Tamo] Firecrawl fetch error:', error);
+    console.error('[Tamo] Fetch error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-function parseGradesFromContent(_html: string, markdown: string, extractedJson?: any): TamoGrade[] {
-  const grades: TamoGrade[] = [];
+// ====== Grade parsing ======
 
-  const extractedGrades = Array.isArray(extractedJson?.grades)
-    ? extractedJson.grades
-    : Array.isArray(extractedJson)
-      ? extractedJson
-      : [];
+const BLOCKED_SUBJECTS = new Set([
+  'dalykas', 'pažymys', 'vidurkis', 'komentaras', 'mokytojas', 'data', 'tipas',
+  'nėra duomenų', 'pusmečio vidurkis', 'metinis vidurkis', 'pamoka', 'tema',
+  'klasė', 'grupė', 'mokslo metai',
+]);
 
-  if (extractedGrades.length > 0) {
-    for (const item of extractedGrades) {
-      const parsedGrade = Number.parseInt(String(item?.grade), 10);
-      if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) continue;
+const MONTH_TO_NUMBER: Record<string, number> = {
+  'rugsėjis': 9, 'spalis': 10, 'lapkritis': 11, 'gruodis': 12,
+  'sausis': 1, 'vasaris': 2, 'kovas': 3, 'balandis': 4, 'gegužė': 5, 'birželis': 6,
+};
 
-      grades.push({
-        subject: String(item?.subject || 'Unknown').trim() || 'Unknown',
-        grade: parsedGrade,
-        gradeType: String(item?.gradeType || 'Įvertinimas').trim() || 'Įvertinimas',
-        date: String(item?.date || new Date().toISOString().split('T')[0]).slice(0, 10),
-        semester: String(item?.semester || getSemester(new Date())).trim() || getSemester(new Date()),
-        teacher: String(item?.teacher || 'Nenurodyta').trim() || 'Nenurodyta',
-        comment: item?.comment ? String(item.comment).trim() : undefined,
-      });
+const MONTH_PATTERNS: [RegExp, string][] = [
+  [/rugs[eė]j/i, 'rugsėjis'], [/spal/i, 'spalis'], [/lapkrit/i, 'lapkritis'],
+  [/gruod/i, 'gruodis'], [/saus/i, 'sausis'], [/vasar/i, 'vasaris'],
+  [/kov[ao]/i, 'kovas'], [/baland/i, 'balandis'], [/gegu[zž]/i, 'gegužė'],
+  [/bir[zž]el/i, 'birželis'],
+];
+
+function findMonth(text: string): string | null {
+  const clean = text.toLowerCase().replace(/[^a-ząčęėįšųūž]/g, '');
+  for (const [pattern, month] of MONTH_PATTERNS) {
+    if (pattern.test(clean)) return month;
+  }
+  return null;
+}
+
+function getSchoolYear(): { startYear: number; endYear: number } {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  if (month >= 9) return { startYear: year, endYear: year + 1 };
+  return { startYear: year - 1, endYear: year };
+}
+
+function resolveSchoolYearForMonth(month: number): number {
+  const { startYear, endYear } = getSchoolYear();
+  return month >= 9 ? startYear : endYear;
+}
+
+function cleanText(value: string): string {
+  return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/\s+/g, ' ').trim();
+}
+
+function cleanSubjectName(raw: string): string {
+  return raw
+    .replace(/\s*\(-[^)]*\)?\s*/g, ' ')
+    .replace(/\s*\([^)]*$/, '')
+    .replace(/\s*I?MYP\d*/gi, '')
+    .replace(/\.\.\.$/, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+I{1,2}$/, '')
+    .trim();
+}
+
+function isLikelySubject(value: string): boolean {
+  const text = cleanText(value).toLowerCase();
+  if (text.length < 3 || text.length > 120) return false;
+  if (BLOCKED_SUBJECTS.has(text)) return false;
+  if (!/[a-ząčęėįšųūž]/i.test(text)) return false;
+  if (/^\d+$/.test(text)) return false;
+  return true;
+}
+
+function extractDateFromText(text: string, fallbackMonthName?: string): string | null {
+  if (!text) return null;
+
+  // ISO date: 2024-09-15
+  const isoMatch = text.match(/(?:^|\D)(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})(?!\d)/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // LT date: 15.09.2024
+  const ltMatch = text.match(/(?:^|\D)(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})(?!\d)/);
+  if (ltMatch) {
+    const [, d, m, y] = ltMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // "8 d." with month context
+  if (fallbackMonthName) {
+    const monthNum = MONTH_TO_NUMBER[fallbackMonthName];
+    if (monthNum) {
+      const dayMatch = text.match(/(?:^|\D)(\d{1,2})\s*(?:d\.?|dien\.?)(?:\D|$)/i);
+      if (dayMatch) {
+        const day = Number(dayMatch[1]);
+        if (day >= 1 && day <= 31) {
+          const year = resolveSchoolYearForMonth(monthNum);
+          return `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
     }
   }
 
-  if (grades.length > 0) {
-    console.log('[Tamo] Parsed grades from JSON extraction:', grades.length);
-    return grades;
-  }
+  return null;
+}
 
-  // Strict markdown table parser to avoid false positives from random dashboard numbers
+function extractGradesFromCell(cellValue: string, maxGrade: number): number[] {
+  const cleaned = cellValue
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s"'<>]+/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return [];
+
+  return [...cleaned.matchAll(/\b(10|[1-9])\b/g)]
+    .map(m => Number(m[1]))
+    .filter(g => g >= 1 && g <= maxGrade);
+}
+
+function parseGradesFromContent(_html: string, markdown: string): TamoGrade[] {
+  const grades: TamoGrade[] = [];
   if (!markdown) return [];
 
-  const blockedSubjectTokens = new Set([
-    'dalykas', 'pažymys', 'vidurkis', 'komentaras', 'mokytojas', 'data', 'tipas',
-    'nėra duomenų', 'pusmečio vidurkis', 'metinis vidurkis',
-  ]);
+  const isMYP = /\bI?MYP\d?\b/i.test(markdown);
+  const maxGrade = isMYP ? 7 : 10;
 
   const lines = markdown.split('\n');
   let inGradeTable = false;
   let currentSubject = '';
+  let monthByIndex: Record<number, string> = {};
+  let monthIndexes: number[] = [];
 
   for (const line of lines) {
     if (!line.includes('|')) continue;
 
-    const cells = line
-      .split('|')
-      .map((cell) => cell.trim())
-      .filter((_, index, arr) => index > 0 && index < arr.length - 1);
-
+    const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
     if (cells.length < 2) continue;
-    if (cells.every((cell) => /^[-:]+$/.test(cell) || cell === '')) continue;
+    if (cells.every(c => /^[-:]+$/.test(c) || c === '')) continue;
 
     const firstCellNormalized = cells[0].toLowerCase().replace(/\s+/g, ' ').trim();
 
+    // Detect table header with months
     if (firstCellNormalized === 'dalykas' || firstCellNormalized.includes('mokomasis dalykas')) {
-      inGradeTable = true;
+      const newMonthByIndex: Record<number, string> = {};
+      const newMonthIndexes: number[] = [];
+      
+      for (let i = 1; i < cells.length; i++) {
+        const month = findMonth(cells[i]);
+        if (month) {
+          newMonthByIndex[i] = month;
+          newMonthIndexes.push(i);
+        }
+      }
+
+      if (newMonthIndexes.length > 0) {
+        inGradeTable = true;
+        monthByIndex = newMonthByIndex;
+        monthIndexes = newMonthIndexes;
+        console.log('[Tamo] Grade table found. Month cols:', newMonthIndexes.map(i => `${i}:${newMonthByIndex[i]}`).join(', '));
+      }
       continue;
     }
 
     if (!inGradeTable) continue;
 
+    // Subject detection
     if (cells[0]) {
-      const maybeSubject = cells[0].replace(/<[^>]*>/g, '').trim();
-      const normalizedSubject = maybeSubject.toLowerCase().replace(/\s+/g, ' ').trim();
-      const containsLetters = /[a-ząčęėįšųūž]/i.test(maybeSubject);
-
-      if (
-        containsLetters &&
-        !blockedSubjectTokens.has(normalizedSubject) &&
-        !/^\d+$/.test(normalizedSubject)
-      ) {
+      const maybeSubject = cleanSubjectName(cleanText(cells[0]));
+      if (isLikelySubject(maybeSubject)) {
         currentSubject = maybeSubject.substring(0, 120);
       }
     }
 
     if (!currentSubject) continue;
 
-    for (let i = 1; i < cells.length; i++) {
-      const cell = cells[i];
-      if (!cell) continue;
+    // Extract grades from month columns
+    for (const colIdx of monthIndexes) {
+      if (colIdx >= cells.length) continue;
+      const cell = cells[colIdx];
+      if (!cell || /^[-–—]+$/.test(cell) || /^\d+[.,]\d+$/.test(cell)) continue;
 
-      const tokens = cell.split(/[\s,;]+/).map((token) => token.trim()).filter(Boolean);
-      for (const token of tokens) {
-        const parsed = Number.parseInt(token, 10);
-        if (!Number.isFinite(parsed) || parsed < 1 || parsed > 10) continue;
+      const monthName = monthByIndex[colIdx];
+      const gradeValues = extractGradesFromCell(cell, maxGrade);
+
+      for (const gradeVal of gradeValues) {
+        const date = extractDateFromText(cell, monthName);
+        // If no date found, use mid-month fallback
+        let finalDate = date;
+        if (!finalDate && monthName) {
+          const monthNum = MONTH_TO_NUMBER[monthName];
+          if (monthNum) {
+            const year = resolveSchoolYearForMonth(monthNum);
+            finalDate = `${year}-${String(monthNum).padStart(2, '0')}-15`;
+          }
+        }
+        if (!finalDate) finalDate = new Date().toISOString().split('T')[0];
+
+        const parsedDate = new Date(finalDate);
+        const monthNum = parsedDate.getMonth() + 1;
 
         grades.push({
           subject: currentSubject,
-          grade: parsed,
+          grade: gradeVal,
           gradeType: 'Įvertinimas',
-          date: new Date().toISOString().split('T')[0],
-          semester: getSemester(new Date()),
+          date: finalDate,
+          semester: getSemesterFromMonth(monthNum),
           teacher: 'Nenurodyta',
         });
       }
     }
   }
 
-  console.log('[Tamo] Parsed grades count:', grades.length);
+  // Fallback: simple row-based parsing if no month-column table found
+  if (grades.length === 0) {
+    let subj = '';
+    for (const line of lines) {
+      if (!line.includes('|')) continue;
+      const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
+      if (cells.length < 2) continue;
+      if (cells.every(c => /^[-:]+$/.test(c) || c === '')) continue;
+
+      const first = cleanText(cells[0]);
+      if (isLikelySubject(cleanSubjectName(first))) {
+        subj = cleanSubjectName(first).substring(0, 120);
+      }
+      if (!subj) continue;
+
+      for (let i = 1; i < cells.length; i++) {
+        const vals = extractGradesFromCell(cells[i], maxGrade);
+        for (const v of vals) {
+          grades.push({
+            subject: subj,
+            grade: v,
+            gradeType: 'Įvertinimas',
+            date: new Date().toISOString().split('T')[0],
+            semester: getSemester(new Date()),
+            teacher: 'Nenurodyta',
+          });
+        }
+      }
+    }
+  }
+
+  console.log('[Tamo] Parsed grades count:', grades.length, '| Subjects:', [...new Set(grades.map(g => g.subject))].join(', '));
   return grades;
 }
 
@@ -200,17 +363,17 @@ function normalizeGradeRows(userId: string, grades: TamoGrade[]) {
   const dedupe = new Set<string>();
 
   return grades
-    .map((grade) => {
+    .map(grade => {
       const parsedGrade = Number.parseInt(String(grade.grade), 10);
       if (!Number.isFinite(parsedGrade) || parsedGrade < 1 || parsedGrade > 10) return null;
 
       const subject = (grade.subject || 'Unknown').trim().substring(0, 120) || 'Unknown';
-      const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80) || 'Įvertinimas';
-      const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10) || getSemester(new Date());
-      const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120) || 'Nenurodyta';
+      const gradeType = (grade.gradeType || 'Įvertinimas').trim().substring(0, 80);
+      const semester = (grade.semester || getSemester(new Date())).trim().substring(0, 10);
+      const teacherName = (grade.teacher || 'Nenurodyta').trim().substring(0, 120);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(grade.date || '') ? grade.date : today;
-
       const notes = grade.comment?.trim()?.substring(0, 4000) || null;
+
       const fingerprint = `${subject}|${parsedGrade}|${gradeType}|${date}|${teacherName}|${notes || ''}`;
       if (dedupe.has(fingerprint)) return null;
       dedupe.add(fingerprint);
@@ -233,9 +396,9 @@ function normalizeGradeRows(userId: string, grades: TamoGrade[]) {
 
 async function persistGrades(supabase: ReturnType<typeof createClient>, userId: string, grades: TamoGrade[]) {
   const rows = normalizeGradeRows(userId, grades);
-  if (rows.length === 0) {
-    throw new Error('No valid grades were parsed to store.');
-  }
+  if (rows.length === 0) throw new Error('No valid grades were parsed to store.');
+
+  console.log('[Tamo] Persisting', rows.length, 'grades. Subjects:', [...new Set(rows.map(r => r.subject))].join(', '));
 
   const { error: deleteError } = await supabase
     .from('synced_grades')
@@ -243,95 +406,118 @@ async function persistGrades(supabase: ReturnType<typeof createClient>, userId: 
     .eq('user_id', userId)
     .eq('source', 'tamo');
 
-  if (deleteError) {
-    throw new Error(`Failed to clear previous Tamo grades: ${deleteError.message}`);
-  }
+  if (deleteError) throw new Error(`Failed to clear previous Tamo grades: ${deleteError.message}`);
 
   const { error: insertError } = await supabase
     .from('synced_grades')
     .insert(rows);
 
-  if (insertError) {
-    throw new Error(`Failed to save Tamo grades: ${insertError.message}`);
-  }
+  if (insertError) throw new Error(`Failed to save Tamo grades: ${insertError.message}`);
 
   return rows.length;
 }
 
+// ====== Login & Scrape ======
+
 async function loginAndScrapeGrades(username: string, password: string): Promise<{ success: boolean; grades: TamoGrade[]; error?: string }> {
-  const loginUrl = 'https://dienynas.tamo.lt/prisijungimas/login';
+  // KEY FIX: Do login + navigate to grades page in a SINGLE Firecrawl call
+  // This maintains session cookies across actions
+  const attempts = [
+    {
+      label: 'login-then-grades',
+      url: 'https://dienynas.tamo.lt/prisijungimas/login',
+      actions: [
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: '#UserName' },
+        { type: 'write', text: username },
+        { type: 'click', selector: '#Password' },
+        { type: 'write', text: password },
+        { type: 'click', selector: '.c_btn.submit' },
+        { type: 'wait', milliseconds: 5000 },
+        // Navigate to grades page within the same session
+        { type: 'click', selector: 'a[href*="pazymiai"], a[href*="dienynas"]' },
+        { type: 'wait', milliseconds: 5000 },
+      ],
+    },
+    {
+      label: 'direct-grades-page',
+      url: 'https://dienynas.tamo.lt/prisijungimas/login',
+      actions: [
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: '#UserName' },
+        { type: 'write', text: username },
+        { type: 'click', selector: '#Password' },
+        { type: 'write', text: password },
+        { type: 'click', selector: '.c_btn.submit' },
+        { type: 'wait', milliseconds: 6000 },
+        // Try navigating directly
+        { type: 'scrapeAndNavigate', url: 'https://dienynas.tamo.lt/dienynas/pazymiai' },
+        { type: 'wait', milliseconds: 5000 },
+      ],
+    },
+    {
+      label: 'login-only',
+      url: 'https://dienynas.tamo.lt/prisijungimas/login',
+      actions: [
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: '#UserName' },
+        { type: 'write', text: username },
+        { type: 'click', selector: '#Password' },
+        { type: 'write', text: password },
+        { type: 'click', selector: '.c_btn.submit' },
+        { type: 'wait', milliseconds: 8000 },
+      ],
+    },
+  ];
 
-  try {
-    // Step 1: Use Firecrawl actions to fill login form and submit
-    console.log('[Tamo] Logging in via Firecrawl actions...');
-    const loginResult = await firecrawlScrapeWithActions(loginUrl, [
-      { type: 'wait', milliseconds: 2000 },
-      { type: 'click', selector: '#UserName' },
-      { type: 'write', text: username },
-      { type: 'click', selector: '#Password' },
-      { type: 'write', text: password },
-      { type: 'click', selector: '.c_btn.submit' },
-      { type: 'wait', milliseconds: 5000 },
-      // After login, we should be on the dashboard or redirected
-      { type: 'screenshot' },
-    ]);
+  let bestGrades: TamoGrade[] = [];
+  let lastError = 'No grades found';
 
-    if (!loginResult.success) {
-      return { success: false, grades: [], error: `Login failed: ${loginResult.error}` };
+  for (const attempt of attempts) {
+    console.log(`[Tamo] Attempt: ${attempt.label}`);
+
+    const result = await firecrawlScrape(attempt.url, attempt.actions);
+    if (!result.success) {
+      lastError = `${attempt.label}: ${result.error}`;
+      continue;
     }
 
-    console.log('[Tamo] Post-login page HTML length:', loginResult.html?.length || 0);
-    console.log('[Tamo] Post-login markdown preview:', loginResult.markdown?.substring(0, 300));
+    const html = result.html || '';
+    const markdown = result.markdown || '';
 
-    const html = loginResult.html || '';
-    const markdown = loginResult.markdown || '';
-    const loginPageContent = `${html}\n${markdown}`;
+    console.log(`[Tamo] ${attempt.label} - HTML: ${html.length}, Markdown: ${markdown.length}`);
 
-    if (
-      html.includes('Įveskite naudotojo vardą') ||
-      html.includes('Naudotojo vardas negali') ||
-      isInvalidTamoLogin(loginPageContent)
-    ) {
+    // Check for failed login
+    if (isInvalidTamoLogin(`${html}\n${markdown}`)) {
       return { success: false, grades: [], error: 'Login failed - invalid Tamo credentials' };
     }
 
-    // Try parsing directly from the authenticated post-login page first
-    const gradesFromLoginPage = parseGradesFromContent(html, markdown, loginResult.extractedJson);
-    if (gradesFromLoginPage.length > 0) {
-      return { success: true, grades: gradesFromLoginPage };
+    // Still on login page
+    if (html.includes('Įveskite naudotojo vardą') || html.includes('#UserName')) {
+      if (html.length < 30000) {
+        lastError = 'Session expired or login failed';
+        continue;
+      }
     }
 
-    // Fallback: direct grades page request
-    console.log('[Tamo] Navigating to grades page...');
-    const gradesResult = await firecrawlScrapeWithActions('https://dienynas.tamo.lt/dienynas/pazymiai', [
-      { type: 'wait', milliseconds: 4000 },
-    ]);
+    const grades = parseGradesFromContent(html, markdown);
+    console.log(`[Tamo] ${attempt.label}: Found ${grades.length} grades`);
 
-    if (!gradesResult.success) {
-      return {
-        success: false,
-        grades: [],
-        error: `Failed to open Tamo gradebook page: ${gradesResult.error || 'Unknown error'}`,
-      };
+    if (grades.length > bestGrades.length) {
+      bestGrades = grades;
     }
 
-    const gradesHtml = gradesResult.html || '';
-    const gradesMarkdown = gradesResult.markdown || '';
-    if (gradesHtml.includes('Įveskite naudotojo vardą') || isInvalidTamoLogin(`${gradesHtml}\n${gradesMarkdown}`)) {
-      return { success: false, grades: [], error: 'Tamo session expired after login. Please retry sync.' };
-    }
-
-    const grades = parseGradesFromContent(gradesHtml, gradesMarkdown, gradesResult.extractedJson);
-    if (grades.length === 0) {
-      return { success: false, grades: [], error: 'No grades found in Tamo gradebook.' };
-    }
-
-    return { success: true, grades };
-  } catch (error) {
-    console.error('[Tamo] Login and scrape error:', error);
-    return { success: false, grades: [], error: error instanceof Error ? error.message : 'Unknown error' };
+    if (grades.length >= 5) break;
   }
+
+  if (bestGrades.length === 0) {
+    return { success: false, grades: [], error: lastError };
+  }
+
+  return { success: true, grades: bestGrades };
 }
+
+// ====== HTTP Handler ======
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -361,9 +547,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: result.success,
         message: result.success
-          ? `Login successful! Found ${result.grades.length} grades.`
+          ? `Login successful! Found ${result.grades.length} grades across ${new Set(result.grades.map(g => g.subject)).size} subjects.`
           : `Login test: ${result.error || 'Failed'}`,
         gradesFound: result.grades.length,
+        subjects: [...new Set(result.grades.map(g => g.subject))],
+        sampleGrades: result.grades.slice(0, 10),
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -390,11 +578,8 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      const password = await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash);
-      const result = await loginAndScrapeGrades(
-        decryptedCreds.username,
-        password
-      );
+      const pwd = await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash);
+      const result = await loginAndScrapeGrades(decryptedCreds.username, pwd);
 
       if (!result.success) {
         return new Response(JSON.stringify({
@@ -410,8 +595,9 @@ serve(async (req) => {
         success: true,
         grades: result.grades,
         gradesStored: persistedCount,
+        subjects: [...new Set(result.grades.map(g => g.subject))],
         lastSync: new Date().toISOString(),
-        message: `Successfully synced and stored ${persistedCount} grades from Tamo`,
+        message: `Successfully synced ${persistedCount} grades from Tamo`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

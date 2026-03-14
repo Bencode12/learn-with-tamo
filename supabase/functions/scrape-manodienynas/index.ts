@@ -6,7 +6,7 @@ const _te = new TextEncoder();
 const _td = new TextDecoder();
 
 async function decryptPassword(stored: string): Promise<string> {
-  if (!stored.startsWith('aes:')) return atob(stored); // legacy
+  if (!stored.startsWith('aes:')) return atob(stored);
   const [, ivHex, ctHex] = stored.split(':');
   const keyHex = Deno.env.get('CREDENTIAL_ENCRYPTION_KEY') || '';
   const keyMaterial = await crypto.subtle.digest('SHA-256', _te.encode(keyHex));
@@ -33,8 +33,7 @@ interface ManoDienynasGrade {
 }
 
 function getSemester(monthNum: number): string {
-  // Lithuanian school: Sept-Dec = I, Jan-June = II
-  return (monthNum >= 9 && monthNum <= 12) ? 'I' : 'II';
+  return (monthNum >= 9 && monthNum <= 12) || monthNum === 1 ? 'I' : 'II';
 }
 
 async function firecrawlScrape(
@@ -49,8 +48,8 @@ async function firecrawlScrape(
       url,
       formats: ['html', 'markdown'],
       onlyMainContent: false,
-      waitFor: 6000,
-      timeout: 90000,
+      waitFor: 8000,
+      timeout: 120000,
     };
     if (actions?.length) body.actions = actions;
 
@@ -71,7 +70,7 @@ async function firecrawlScrape(
 
       if (data?.code === 'SCRAPE_TIMEOUT') {
         console.log('[MD] Timeout, retrying with extended timeout...');
-        const retryBody = { ...body, waitFor: 12000, timeout: 150000 };
+        const retryBody = { ...body, waitFor: 15000, timeout: 180000 };
         const retry = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -109,8 +108,8 @@ function cleanText(value: string): string {
 
 function cleanSubjectName(raw: string): string {
   return raw
-    .replace(/\s*\(-[^)]*\)?\s*/g, ' ')  // (-), (-, (-xxx)
-    .replace(/\s*\([^)]*$/, '')           // unclosed parens
+    .replace(/\s*\(-[^)]*\)?\s*/g, ' ')
+    .replace(/\s*\([^)]*$/, '')
     .replace(/\s*I?MYP\d*/gi, '')
     .replace(/\.\.\.$/, '')
     .replace(/\s+/g, ' ')
@@ -157,41 +156,18 @@ const MONTH_TO_NUMBER: Record<string, number> = {
 };
 
 const MONTH_PATTERNS: [RegExp, string][] = [
-  [/rugs[eė]j/i, 'rugsėjis'],
-  [/spal/i, 'spalis'],
-  [/lapkrit/i, 'lapkritis'],
-  [/gruod/i, 'gruodis'],
-  [/saus/i, 'sausis'],
-  [/vasar/i, 'vasaris'],
-  [/kov[ao]/i, 'kovas'],
-  [/baland/i, 'balandis'],
-  [/gegu[zž]/i, 'gegužė'],
+  [/rugs[eė]j/i, 'rugsėjis'], [/spal/i, 'spalis'], [/lapkrit/i, 'lapkritis'],
+  [/gruod/i, 'gruodis'], [/saus/i, 'sausis'], [/vasar/i, 'vasaris'],
+  [/kov[ao]/i, 'kovas'], [/baland/i, 'balandis'], [/gegu[zž]/i, 'gegužė'],
   [/bir[zž]el/i, 'birželis'],
 ];
 
 const DATE_MONTH_PATTERNS: Array<{ regex: RegExp; month: number }> = [
-  { regex: /rugs[eė]j/i, month: 9 },
-  { regex: /spal/i, month: 10 },
-  { regex: /lapkrit/i, month: 11 },
-  { regex: /gruod/i, month: 12 },
-  { regex: /saus/i, month: 1 },
-  { regex: /vasar/i, month: 2 },
-  { regex: /kov[ao]/i, month: 3 },
-  { regex: /baland/i, month: 4 },
-  { regex: /gegu[zž]/i, month: 5 },
-  { regex: /bir[zž]el/i, month: 6 },
-  { regex: /jan(?:uary)?/i, month: 1 },
-  { regex: /feb(?:ruary)?/i, month: 2 },
-  { regex: /mar(?:ch)?/i, month: 3 },
-  { regex: /apr(?:il)?/i, month: 4 },
-  { regex: /may/i, month: 5 },
-  { regex: /jun(?:e)?/i, month: 6 },
-  { regex: /jul(?:y)?/i, month: 7 },
-  { regex: /aug(?:ust)?/i, month: 8 },
-  { regex: /sep(?:t(?:ember)?)?/i, month: 9 },
-  { regex: /oct(?:ober)?/i, month: 10 },
-  { regex: /nov(?:ember)?/i, month: 11 },
-  { regex: /dec(?:ember)?/i, month: 12 },
+  { regex: /rugs[eė]j/i, month: 9 }, { regex: /spal/i, month: 10 },
+  { regex: /lapkrit/i, month: 11 }, { regex: /gruod/i, month: 12 },
+  { regex: /saus/i, month: 1 }, { regex: /vasar/i, month: 2 },
+  { regex: /kov[ao]/i, month: 3 }, { regex: /baland/i, month: 4 },
+  { regex: /gegu[zž]/i, month: 5 }, { regex: /bir[zž]el/i, month: 6 },
 ];
 
 function findMonth(text: string): string | null {
@@ -216,9 +192,7 @@ function resolveSchoolYearForMonth(month: number): number {
 }
 
 function toIsoDate(year: number, month: number, day: number): string | null {
-  if (year < 2000 || year > 2100) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
+  if (year < 2000 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return null;
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
@@ -233,41 +207,31 @@ function extractDateFromText(text: string, fallbackMonthName?: string): string |
   if (!text) return null;
 
   const isoMatch = text.match(/(?:^|\D)(20\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})(?!\d)/);
-  if (isoMatch) {
-    return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
-  }
+  if (isoMatch) return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
 
   const ltMatch = text.match(/(?:^|\D)(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})(?!\d)/);
-  if (ltMatch) {
-    return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
-  }
+  if (ltMatch) return toIsoDate(Number(ltMatch[3]), Number(ltMatch[2]), Number(ltMatch[1]));
 
   const monthFirstMatch = text.match(/([A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+)\s*(\d{1,2})(?:\s*d\.?)?/);
   if (monthFirstMatch) {
     const month = resolveMonthFromText(monthFirstMatch[1]);
-    if (month) {
-      const day = Number(monthFirstMatch[2]);
-      return toIsoDate(resolveSchoolYearForMonth(month), month, day);
-    }
+    if (month) return toIsoDate(resolveSchoolYearForMonth(month), month, Number(monthFirstMatch[2]));
   }
 
   const dayFirstMatch = text.match(/(\d{1,2})(?:\s*d\.?)?\s*([A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+)/);
   if (dayFirstMatch) {
     const month = resolveMonthFromText(dayFirstMatch[2]);
-    if (month) {
-      const day = Number(dayFirstMatch[1]);
-      return toIsoDate(resolveSchoolYearForMonth(month), month, day);
-    }
+    if (month) return toIsoDate(resolveSchoolYearForMonth(month), month, Number(dayFirstMatch[1]));
   }
 
-  const fallbackMonthNum = fallbackMonthName ? MONTH_TO_NUMBER[fallbackMonthName] : null;
-  if (fallbackMonthNum) {
-    // IMPORTANT: never infer date from a bare number (e.g. grade "5" => day 5).
-    // Accept fallback only when a day marker is explicitly present ("8 d." / "8 dien.").
-    const explicitDayMatch = text.match(/(?:^|\D)(\d{1,2})\s*(?:d\.?|dien\.?)(?:\D|$)/i);
-    if (explicitDayMatch) {
-      const day = Number(explicitDayMatch[1]);
-      return toIsoDate(resolveSchoolYearForMonth(fallbackMonthNum), fallbackMonthNum, day);
+  if (fallbackMonthName) {
+    const fallbackMonthNum = MONTH_TO_NUMBER[fallbackMonthName];
+    if (fallbackMonthNum) {
+      const explicitDayMatch = text.match(/(?:^|\D)(\d{1,2})\s*(?:d\.?|dien\.?)(?:\D|$)/i);
+      if (explicitDayMatch) {
+        const day = Number(explicitDayMatch[1]);
+        return toIsoDate(resolveSchoolYearForMonth(fallbackMonthNum), fallbackMonthNum, day);
+      }
     }
   }
 
@@ -285,24 +249,22 @@ function extractNumericGradesFromCell(cellValue: string, maxGrade: number): numb
   if (!cleaned) return [];
 
   const boundaryMatches = [...cleaned.matchAll(/\b(10|[1-9])\b/g)]
-    .map((m) => Number(m[1]))
-    .filter((grade) => Number.isFinite(grade) && grade >= 1 && grade <= maxGrade);
+    .map(m => Number(m[1]))
+    .filter(grade => grade >= 1 && grade <= maxGrade);
 
   if (boundaryMatches.length > 0) return boundaryMatches;
 
-  // Fallback for concatenated grades like "6791" in a single rendered cell
+  // Fallback for concatenated grades
   const compact = cleaned.replace(/\d{3,}/g, ' ').replace(/[^\d]/g, '');
   if (!compact || compact.length > 8) return [];
 
   const grades: number[] = [];
   for (let i = 0; i < compact.length; i++) {
     if (compact[i] === '1' && compact[i + 1] === '0') {
-      const grade = 10;
-      if (grade <= maxGrade) grades.push(grade);
+      if (10 <= maxGrade) grades.push(10);
       i += 1;
       continue;
     }
-
     const grade = Number(compact[i]);
     if (grade >= 1 && grade <= maxGrade) grades.push(grade);
   }
@@ -326,17 +288,18 @@ function extractGradesWithDatesFromCell(
     entries.push({ grade, date });
   };
 
+  // Extract from HTML anchor tags
   const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
   for (const match of cellRaw.matchAll(anchorRegex)) {
     const attrs = match[1] || '';
     const inner = match[2] || '';
     const grades = extractNumericGradesFromCell(cleanText(inner), maxGrade);
     if (grades.length === 0) continue;
-
     const date = extractDateFromText(`${attrs} ${inner}`, fallbackMonthName);
-    grades.forEach((grade) => pushEntry(grade, date));
+    grades.forEach(grade => pushEntry(grade, date));
   }
 
+  // Extract from markdown links
   const markdownLinkRegex = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/gi;
   for (const match of cellRaw.matchAll(markdownLinkRegex)) {
     const label = cleanText(match[1] || '');
@@ -344,13 +307,11 @@ function extractGradesWithDatesFromCell(
     const title = match[3] || '';
     const grades = extractNumericGradesFromCell(label, maxGrade);
     if (grades.length === 0) continue;
-
     const date = extractDateFromText(`${title} ${url} ${label}`, fallbackMonthName);
-    grades.forEach((grade) => pushEntry(grade, date));
+    grades.forEach(grade => pushEntry(grade, date));
   }
 
-  // Fallback: if no grades found from links, parse plain-text grades in the cell
-  // and assign mid-month date from the column's month header
+  // Fallback: plain-text grades with mid-month date
   if (entries.length === 0 && fallbackMonthName) {
     const fallbackMonthNum = MONTH_TO_NUMBER[fallbackMonthName];
     if (fallbackMonthNum) {
@@ -359,7 +320,7 @@ function extractGradesWithDatesFromCell(
         const year = resolveSchoolYearForMonth(fallbackMonthNum);
         const fallbackDate = toIsoDate(year, fallbackMonthNum, 15);
         if (fallbackDate) {
-          plainGrades.forEach((grade) => pushEntry(grade, fallbackDate));
+          plainGrades.forEach(grade => pushEntry(grade, fallbackDate));
         }
       }
     }
@@ -414,8 +375,7 @@ function buildTeacherMap(markdown: string): Record<string, string> {
     }
   }
 
-  console.log('[MD] Teacher map:', Object.keys(map).length, 'entries -', 
-    Object.entries(map).slice(0, 8).map(([s, t]) => `${s}:${t}`).join(', '));
+  console.log('[MD] Teacher map:', Object.keys(map).length, 'entries');
   return map;
 }
 
@@ -426,7 +386,6 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
   const lines = markdown.split('\n');
   const teacherMap = teacherMapInput ?? buildTeacherMap(markdown);
 
-  // Detect MYP
   const isMYP = /\bI?MYP\d?\b/i.test(markdown);
   const maxGrade = isMYP ? 7 : 10;
   console.log('[MD] Program:', isMYP ? 'MYP (1-7)' : 'Standard (1-10)');
@@ -438,22 +397,12 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
   let monthByIndex: Record<number, string> = {};
   let monthIndexes: number[] = [];
 
-  // Log ALL table lines for debugging
-  const tableLines = lines.filter(l => l.includes('|'));
-  console.log('[MD] Total table lines:', tableLines.length);
-  // Log first 20 lines
-  for (let i = 0; i < Math.min(20, tableLines.length); i++) {
-    console.log(`[MD] TL${i}: ${tableLines[i].substring(0, 250)}`);
-  }
-
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
     if (!line.includes('|')) continue;
 
     const rawCells = line.split('|');
-    // Keep all cells including empty ones at edges for proper indexing
     const cells = rawCells.map(c => c.trim());
-    // Filter to inner cells (between first and last pipe)
     const innerCells = cells.slice(1, cells.length - 1);
     
     if (innerCells.length < 2) continue;
@@ -461,9 +410,8 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
 
     const firstCell = cleanText(innerCells[0]).toLowerCase();
 
-    // Detect marks table header: has "dalykas" and month names
+    // Detect marks table header
     if (firstCell.includes('dalykas') || firstCell === 'dalykas') {
-      // Check for months in other cells
       const newMonthByIndex: Record<number, string> = {};
       const newMonthIndexes: number[] = [];
       
@@ -479,18 +427,14 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
         tableDetected = true;
         monthByIndex = newMonthByIndex;
         monthIndexes = newMonthIndexes;
-        console.log('[MD] ✓ Marks table found! Month cols:', 
-          newMonthIndexes.map(i => `${i}:${newMonthByIndex[i]}`).join(', '));
-      } else {
-        console.log('[MD] Table with "dalykas" but no months, skipping. Cells:', 
-          innerCells.slice(0, 6).map((c, i) => `${i}:"${c.substring(0, 30)}"`).join(', '));
+        console.log('[MD] ✓ Marks table found! Month cols:', newMonthIndexes.map(i => `${i}:${newMonthByIndex[i]}`).join(', '));
       }
       continue;
     }
 
     if (!tableDetected) continue;
 
-    // Try to detect subject from first cell
+    // Subject detection
     const firstCellClean = cleanText(innerCells[0]);
     const isSubjectRow = firstCellClean.length > 2 
       && !/^(10|[1-9])$/.test(firstCellClean)
@@ -499,11 +443,9 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
       && !/^\d+[.,]\d+$/.test(firstCellClean);
 
     if (isSubjectRow) {
-      // Extract teacher from cell if embedded
       let rawSubject = firstCellClean;
       let teacher = '';
 
-      // Check for inline teacher: "Subject TeacherLastname TeacherFirstname"
       const nameMatch = rawSubject.match(/\s+((?:[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+\s+){1,2}[A-ZĄČĘĖĮŠŲŪŽ][a-ząčęėįšųūž]+)$/);
       if (nameMatch) {
         teacher = nameMatch[1].trim();
@@ -517,29 +459,19 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
         currentSubject = cleanedSubject;
         currentIsFormative = isFormative;
         currentTeacher = teacher || teacherMap[cleanedSubject.toLowerCase()] || '';
-        console.log(`[MD] Subject: "${currentSubject}" | Formative: ${isFormative} | Teacher: "${currentTeacher}"`);
-      } else {
-        // Might be a continuation row (grade values in a second row for same subject)
-        // Don't reset currentSubject
-        console.log(`[MD] Non-subject row: "${firstCellClean.substring(0, 50)}"`);
       }
     }
 
     if (!currentSubject) continue;
 
-    // Extract grades ONLY from month columns
+    // Extract grades from month columns
     for (const colIdx of monthIndexes) {
       if (colIdx >= innerCells.length) continue;
       const cell = innerCells[colIdx].trim();
       if (!cell) continue;
       
-      // Skip non-grade values
-      if (/^[nN]$/.test(cell)) continue;
-      if (/^įsk/i.test(cell)) continue;
-      if (/val\.?\s*$/i.test(cell)) continue;
-      if (/^\d+\s*val/i.test(cell)) continue;
-      if (/^\d+[.,]\d+$/.test(cell)) continue; // averages
-      if (/^[-–—]+$/.test(cell)) continue;
+      if (/^[nN]$/.test(cell) || /^įsk/i.test(cell) || /val\.?\s*$/i.test(cell) 
+          || /^\d+\s*val/i.test(cell) || /^\d+[.,]\d+$/.test(cell) || /^[-–—]+$/.test(cell)) continue;
 
       const monthName = monthByIndex[colIdx];
       const entries = extractGradesWithDatesFromCell(cell, maxGrade, monthName);
@@ -567,11 +499,6 @@ function parseGradesFromMarkdown(markdown: string, teacherMapInput?: Record<stri
 
   console.log('[MD] Markdown parser found:', grades.length, 'grades across', 
     new Set(grades.map(g => g.subject)).size, 'subjects');
-  if (grades.length > 0) {
-    console.log('[MD] Subjects:', [...new Set(grades.map(g => g.subject))].join(', '));
-    console.log('[MD] Grade values:', [...new Set(grades.map(g => g.grade))].sort().join(', '));
-    console.log('[MD] Dates:', [...new Set(grades.map(g => g.date))].sort().join(', '));
-  }
   
   return grades;
 }
@@ -588,8 +515,7 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
 
-  const tables = [...html.matchAll(tableRegex)].map((m) => m[1]);
-  console.log('[MD-HTML] Total tables found:', tables.length);
+  const tables = [...html.matchAll(tableRegex)].map(m => m[1]);
 
   let bestGrades: ManoDienynasGrade[] = [];
 
@@ -607,9 +533,7 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
         textCells.push(cleanText(raw));
       }
 
-      if (textCells.length >= 2) {
-        rows.push({ rawCells, textCells });
-      }
+      if (textCells.length >= 2) rows.push({ rawCells, textCells });
     }
 
     if (rows.length < 3) continue;
@@ -628,10 +552,7 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
 
       for (let j = 0; j < row.length; j++) {
         const month = findMonth(row[j]);
-        if (month) {
-          tempMonths[j] = month;
-          tempCols.push(j);
-        }
+        if (month) { tempMonths[j] = month; tempCols.push(j); }
       }
 
       if (tempCols.length >= 2) {
@@ -651,7 +572,7 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
 
     for (let i = headerRowIdx + 1; i < rows.length; i++) {
       const { rawCells, textCells } = rows[i];
-      if (textCells.every((c) => !c || /^[-–—]+$/.test(c))) continue;
+      if (textCells.every(c => !c || /^[-–—]+$/.test(c))) continue;
 
       const candidates = [textCells[0], textCells[1]].filter(Boolean);
       for (const candidate of candidates) {
@@ -701,16 +622,13 @@ function parseGradesFromHtml(html: string, teacherMap: Record<string, string> = 
       }
     }
 
-    const uniqueSubjects = new Set(parsedGrades.map((g) => g.subject)).size;
-    const score = parsedGrades.length + uniqueSubjects * 2;
-    const bestScore = bestGrades.length + new Set(bestGrades.map((g) => g.subject)).size * 2;
+    const score = parsedGrades.length + new Set(parsedGrades.map(g => g.subject)).size * 2;
+    const bestScore = bestGrades.length + new Set(bestGrades.map(g => g.subject)).size * 2;
 
-    if (score > bestScore) {
-      bestGrades = parsedGrades;
-    }
+    if (score > bestScore) bestGrades = parsedGrades;
   }
 
-  console.log('[MD-HTML] HTML parser best result:', bestGrades.length, 'grades across', new Set(bestGrades.map(g => g.subject)).size, 'subjects');
+  console.log('[MD-HTML] HTML parser result:', bestGrades.length, 'grades across', new Set(bestGrades.map(g => g.subject)).size, 'subjects');
   return bestGrades;
 }
 
@@ -721,7 +639,7 @@ function normalizeGradeRows(userId: string, grades: ManoDienynasGrade[]) {
   const dedupe = new Set<string>();
 
   return grades
-    .map((grade) => {
+    .map(grade => {
       if (!Number.isFinite(grade.grade) || grade.grade < 1 || grade.grade > 10) return null;
       const subject = grade.subject.substring(0, 120);
       if (!subject || subject.length < 3) return null;
@@ -781,33 +699,48 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
   const loginUrl = 'https://www.manodienynas.lt/1/lt/public/public/login';
   const marksUrl = 'https://www.manodienynas.lt/1/lt/public/public/marks_pupil/marks';
 
+  // All attempts combine login + navigation in a single Firecrawl call
   const attempts: Array<{ label: string; url: string; actions: any[] }> = [
     {
       label: 'direct-marks-login',
       url: marksUrl,
       actions: [
-        { type: 'wait', milliseconds: 1500 },
+        { type: 'wait', milliseconds: 2000 },
         { type: 'click', selector: '#dl_username' },
         { type: 'write', text: username },
         { type: 'click', selector: '#dl_password' },
         { type: 'write', text: password },
         { type: 'click', selector: '#login_submit' },
-        { type: 'wait', milliseconds: 7000 },
+        { type: 'wait', milliseconds: 8000 },
       ],
     },
     {
-      label: 'dashboard-click-marks',
+      label: 'login-then-navigate',
       url: loginUrl,
       actions: [
-        { type: 'wait', milliseconds: 1500 },
+        { type: 'wait', milliseconds: 2000 },
         { type: 'click', selector: '#dl_username' },
         { type: 'write', text: username },
         { type: 'click', selector: '#dl_password' },
         { type: 'write', text: password },
         { type: 'click', selector: '#login_submit' },
         { type: 'wait', milliseconds: 5000 },
+        // Navigate to marks page within same session
         { type: 'click', selector: 'a[href*="marks"]' },
-        { type: 'wait', milliseconds: 5000 },
+        { type: 'wait', milliseconds: 6000 },
+      ],
+    },
+    {
+      label: 'login-only-dashboard',
+      url: loginUrl,
+      actions: [
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: '#dl_username' },
+        { type: 'write', text: username },
+        { type: 'click', selector: '#dl_password' },
+        { type: 'write', text: password },
+        { type: 'click', selector: '#login_submit' },
+        { type: 'wait', milliseconds: 10000 },
       ],
     },
   ];
@@ -823,7 +756,7 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
       const result = await firecrawlScrape(attempt.url, attempt.actions);
 
       if (!result.success) {
-        lastError = `Login failed: ${result.error}`;
+        lastError = `${attempt.label}: ${result.error}`;
         continue;
       }
 
@@ -848,22 +781,15 @@ async function loginAndScrapeGrades(username: string, password: string): Promise
         bestGrades = grades;
       }
 
-      if (grades.length >= 5) {
-        break;
-      }
+      if (grades.length >= 5) break;
     }
 
     if (bestGrades.length === 0) {
-      return {
-        success: false,
-        grades: [],
-        error: lastError,
-      };
+      return { success: false, grades: [], error: lastError };
     }
 
     const subjects = [...new Set(bestGrades.map(g => g.subject))];
     console.log('[MD] FINAL:', bestGrades.length, 'grades across', subjects.length, 'subjects');
-    console.log('[MD] Subjects:', subjects.join(', '));
 
     return { success: true, grades: bestGrades };
   } catch (error) {
@@ -933,11 +859,8 @@ serve(async (req) => {
         throw new Error('Failed to parse stored credentials');
       }
 
-      const password = await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash);
-      const result = await loginAndScrapeGrades(
-        decryptedCreds.username,
-        password
-      );
+      const pwd = await decryptPassword(decryptedCreds.password || decryptedCreds.passwordHash);
+      const result = await loginAndScrapeGrades(decryptedCreds.username, pwd);
 
       if (!result.success) {
         return new Response(JSON.stringify({
