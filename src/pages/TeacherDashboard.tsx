@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +32,10 @@ import {
   BookOpen,
   Clock,
   Target,
-  GraduationCap
+  GraduationCap,
+  MessageSquare,
+  Send,
+  AlertTriangle
 } from "lucide-react";
 
 
@@ -57,6 +61,13 @@ interface StudentData {
   avg_score: number;
 }
 
+interface ClassMessage {
+  id: string;
+  message: string;
+  created_at: string;
+  class_id: string;
+}
+
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -70,6 +81,14 @@ const TeacherDashboard = () => {
   const [newClassName, setNewClassName] = useState("");
   const [newClassSubject, setNewClassSubject] = useState("");
   const [newClassGrade, setNewClassGrade] = useState("");
+  
+  // Messaging state
+  const [messages, setMessages] = useState<ClassMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  
+  // Delete class state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     checkTeacherStatus();
@@ -84,6 +103,7 @@ const TeacherDashboard = () => {
   useEffect(() => {
     if (selectedClass) {
       loadStudents(selectedClass.id);
+      loadMessages(selectedClass.id);
     }
   }, [selectedClass]);
 
@@ -127,7 +147,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Get student counts
     const classesWithCounts = await Promise.all(
       (data || []).map(async (cls) => {
         const { count } = await supabase
@@ -167,7 +186,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Get lesson progress for each student
     const studentsWithProgress = await Promise.all(
       (data || []).map(async (student: any) => {
         const { data: progress } = await supabase
@@ -194,6 +212,62 @@ const TeacherDashboard = () => {
     );
 
     setStudents(studentsWithProgress);
+  };
+
+  const loadMessages = async (classId: string) => {
+    const { data, error } = await supabase
+      .from('class_messages')
+      .select('id, message, created_at, class_id')
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error loading messages:', error);
+      return;
+    }
+
+    setMessages(data || []);
+  };
+
+  const sendMessage = async () => {
+    if (!user || !selectedClass || !newMessage.trim()) return;
+    setSendingMessage(true);
+
+    const { error } = await supabase
+      .from('class_messages')
+      .insert({
+        class_id: selectedClass.id,
+        sender_id: user.id,
+        message: newMessage.trim()
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+    } else {
+      toast({ title: "Message sent to class" });
+      setNewMessage("");
+      loadMessages(selectedClass.id);
+    }
+
+    setSendingMessage(false);
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    const { error } = await supabase
+      .from('class_messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete message", variant: "destructive" });
+    } else {
+      if (selectedClass) loadMessages(selectedClass.id);
+    }
   };
 
   const createClass = async () => {
@@ -231,6 +305,31 @@ const TeacherDashboard = () => {
     loadClasses();
   };
 
+  const deleteClass = async (classId: string) => {
+    const { error } = await supabase
+      .from('classes')
+      .delete()
+      .eq('id', classId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete class",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({ title: "Class deleted" });
+    setDeleteConfirmId(null);
+    if (selectedClass?.id === classId) {
+      setSelectedClass(null);
+      setStudents([]);
+      setMessages([]);
+    }
+    loadClasses();
+  };
+
   const copyClassCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast({
@@ -261,9 +360,7 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Generate analytics data from actual student data
   const heatmapData = useMemo(() => {
-    // Generate from student lesson activity if we had timestamps, placeholder for now
     return Array.from({ length: 50 }, () => ({
       day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][Math.floor(Math.random() * 7)],
       hour: Math.floor(Math.random() * 24),
@@ -374,9 +471,10 @@ const TeacherDashboard = () => {
       </div>
 
       <Tabs defaultValue="classes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[520px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[640px]">
           <TabsTrigger value="classes">Classes</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -473,20 +571,47 @@ const TeacherDashboard = () => {
                       <Users className="h-4 w-4" />
                       {cls.student_count} students
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
                         {cls.class_code}
                       </code>
                       <Button 
                         variant="ghost" 
                         size="icon"
+                        className="h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation();
                           copyClassCode(cls.class_code);
                         }}
                       >
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
+                      {deleteConfirmId === cls.id ? (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteClass(cls.id);
+                          }}
+                        >
+                          Confirm
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(cls.id);
+                            setTimeout(() => setDeleteConfirmId(null), 3000);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -583,6 +708,89 @@ const TeacherDashboard = () => {
               <CardContent className="py-12 text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Select a class to view students</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Messages Tab */}
+        <TabsContent value="messages" className="space-y-6">
+          {selectedClass ? (
+            <>
+              <div>
+                <h3 className="text-lg font-semibold">{selectedClass.name} - Messages</h3>
+                <p className="text-sm text-muted-foreground">
+                  Send announcements and messages to all students in this class
+                </p>
+              </div>
+
+              {/* Compose message */}
+              <Card className="border-border/40">
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    <Textarea
+                      placeholder="Write a message to your students..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      rows={3}
+                      className="resize-none"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={sendMessage}
+                        disabled={sendingMessage || !newMessage.trim()}
+                        className="gap-2"
+                      >
+                        <Send className="h-4 w-4" />
+                        {sendingMessage ? "Sending..." : "Send Message"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Message history */}
+              <div className="space-y-3">
+                {messages.map((msg) => (
+                  <Card key={msg.id} className="border-border/40">
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {new Date(msg.created_at).toLocaleDateString(undefined, {
+                              year: 'numeric', month: 'short', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => deleteMessage(msg.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {messages.length === 0 && (
+                  <Card className="border-dashed">
+                    <CardContent className="py-8 text-center">
+                      <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">No messages yet. Send your first announcement!</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Select a class to send messages</p>
               </CardContent>
             </Card>
           )}
